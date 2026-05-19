@@ -1,0 +1,126 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function userUpdateFields() {
+      return [
+        "fullName",
+        "phone",
+        "residenceCountry",
+        "destinationCountry",
+        "updatedAt"
+      ];
+    }
+
+    function documentFields() {
+      return [
+        "ownerId",
+        "documentType",
+        "status",
+        "originalFileName",
+        "safeFileName",
+        "contentType",
+        "size",
+        "storagePath",
+        "createdAt",
+        "updatedAt"
+      ];
+    }
+
+    function hasRequiredDocumentFields() {
+      return request.resource.data.keys().hasOnly(documentFields())
+        && request.resource.data.keys().hasAll(documentFields());
+    }
+
+    function hasValidDocumentMetadata() {
+      return request.resource.data.ownerId is string
+        && request.resource.data.documentType is string
+        && request.resource.data.status is string
+        && request.resource.data.originalFileName is string
+        && request.resource.data.safeFileName is string
+        && request.resource.data.contentType is string
+        && request.resource.data.size is number
+        && request.resource.data.storagePath is string;
+    }
+
+    function isAllowedDocumentType(documentType) {
+      return documentType in [
+        "passport",
+        "admission_letter",
+        "payment_proof",
+        "identity_document",
+        "accommodation_certificate",
+        "bank_document",
+        "other"
+      ];
+    }
+
+    function isAllowedDocumentContentType(contentType) {
+      return contentType in [
+        "application/pdf",
+        "image/jpeg",
+        "image/png"
+      ];
+    }
+
+    function isValidDocumentStoragePath(documentId) {
+      return request.resource.data.storagePath.matches(
+        "^users/" + request.auth.uid + "/documents/" + documentId + "-[^/]+$"
+      );
+    }
+
+    match /leads/{leadId} {
+      allow read, write: if false;
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if false;
+      allow update: if isOwner(userId)
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.status == resource.data.status
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(userUpdateFields());
+      allow delete: if false;
+    }
+
+    match /applications/{applicationId} {
+      allow read: if isOwner(resource.data.userId);
+      allow create, update: if false;
+      allow delete: if false;
+    }
+
+    match /documents/{documentId} {
+      allow read: if isOwner(resource.data.ownerId);
+      allow create: if isSignedIn()
+        && hasRequiredDocumentFields()
+        && hasValidDocumentMetadata()
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.status == "uploaded"
+        && isAllowedDocumentType(request.resource.data.documentType)
+        && isAllowedDocumentContentType(request.resource.data.contentType)
+        && request.resource.data.size > 0
+        && request.resource.data.size <= 5 * 1024 * 1024
+        && isValidDocumentStoragePath(documentId)
+        && request.resource.data.createdAt == request.time
+        && request.resource.data.updatedAt == request.time;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    match /payments/{paymentId} {
+      allow read: if isOwner(resource.data.ownerId);
+      allow create, update, delete: if false;
+    }
+  }
+}
