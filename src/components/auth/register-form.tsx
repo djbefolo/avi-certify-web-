@@ -6,7 +6,7 @@ import { AlertCircle, Loader2, UserPlus } from "lucide-react";
 import { useRef, useState } from "react";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { signUpWithEmail } from "@/lib/firebase/auth";
+import { sendVerificationEmail, signUpWithEmail } from "@/lib/firebase/auth";
 import {
   registerSchema,
   type RegisterInput,
@@ -105,8 +105,14 @@ export function RegisterForm() {
       const token = await credential.user.getIdToken();
 
       await createProfile(values, token);
+      await sendVerificationEmail(credential.user).catch((verificationError) => {
+        console.warn(
+          "[auth/register] Failed to send verification email.",
+          verificationError,
+        );
+      });
       trackSignupCompleted();
-      router.replace("/dashboard");
+      router.replace("/verification-email");
     } catch (error) {
       setErrorMessage(getRegisterErrorMessage(error));
     } finally {

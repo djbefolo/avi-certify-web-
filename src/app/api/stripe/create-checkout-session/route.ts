@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ZodError } from "zod";
-import { createCheckoutSession } from "@/lib/server/payments.service";
+import {
+  createCheckoutSession,
+  EmailNotVerifiedError,
+} from "@/lib/server/payments.service";
 import { checkoutRequestSchema } from "@/lib/validations/payment";
 
 export const runtime = "nodejs";
@@ -170,6 +173,16 @@ export async function POST(request: NextRequest) {
       return jsonResponse(
         { error: "Session invalide ou expiree." },
         { status: 401 },
+      );
+    }
+
+    if (error instanceof EmailNotVerifiedError) {
+      return jsonResponse(
+        {
+          error: "EMAIL_NOT_VERIFIED",
+          message: "Please verify your email before continuing.",
+        },
+        { status: 403 },
       );
     }
 

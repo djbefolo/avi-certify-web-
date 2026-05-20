@@ -16,6 +16,7 @@ import { Select } from "@/components/ui/select";
 type CheckoutResponse = {
   checkoutUrl?: string;
   error?: string;
+  message?: string;
 };
 
 function getErrorMessage(error: unknown) {
@@ -29,7 +30,12 @@ async function parseCheckoutError(response: Response) {
     | CheckoutResponse
     | null;
 
+  if (payload?.error === "EMAIL_NOT_VERIFIED") {
+    return "Verification email requise. Veuillez confirmer votre adresse email avant de demarrer un paiement.";
+  }
+
   return (
+    payload?.message ??
     payload?.error ??
     "Impossible de demarrer le paiement pour le moment. Veuillez reessayer."
   );
@@ -37,7 +43,7 @@ async function parseCheckoutError(response: Response) {
 
 export function PaymentButton() {
   const submitLockRef = useRef(false);
-  const { user } = useAuth();
+  const { isEmailVerified, user } = useAuth();
   const { trackCheckoutStarted, trackPaymentStarted } = useAnalytics();
   const [serviceType, setServiceType] = useState<PaymentServiceType>(
     "avi_support",
@@ -60,6 +66,12 @@ export function PaymentButton() {
     try {
       if (!user) {
         throw new Error("Vous devez etre connecte pour payer.");
+      }
+
+      if (!isEmailVerified) {
+        throw new Error(
+          "Verification email requise. Veuillez confirmer votre adresse email avant de demarrer un paiement.",
+        );
       }
 
       trackPaymentStarted(serviceType);

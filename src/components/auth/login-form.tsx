@@ -76,9 +76,11 @@ export function LoginForm() {
 
     try {
       const values: LoginValues = loginSchema.parse(input);
-      await signInWithEmail(values.email, values.password);
+      const credential = await signInWithEmail(values.email, values.password);
       trackLoginCompleted();
-      router.replace("/dashboard");
+      router.replace(
+        credential.user.emailVerified ? "/dashboard" : "/verification-email",
+      );
     } catch (error) {
       setErrorMessage(getAuthErrorMessage(error));
     } finally {

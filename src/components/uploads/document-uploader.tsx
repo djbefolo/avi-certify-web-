@@ -52,7 +52,7 @@ function getFileSizeLabel(size: number) {
 export function DocumentUploader({ onDocumentUploaded }: DocumentUploaderProps) {
   const fileInputId = useId();
   const submitLockRef = useRef(false);
-  const { user } = useAuth();
+  const { isEmailVerified, user } = useAuth();
   const { trackDocumentUploaded } = useAnalytics();
   const [documentType, setDocumentType] = useState<DocumentType | "">("");
   const [file, setFile] = useState<File | null>(null);
@@ -109,6 +109,12 @@ export function DocumentUploader({ onDocumentUploaded }: DocumentUploaderProps) 
     try {
       if (!user) {
         throw new Error("Vous devez etre connecte pour envoyer un document.");
+      }
+
+      if (!isEmailVerified) {
+        throw new Error(
+          "Verification email requise. Veuillez confirmer votre adresse email avant d'envoyer un document.",
+        );
       }
 
       if (!documentType || !file) {

@@ -5,6 +5,7 @@ import { PaymentButton } from "@/components/payments/payment-button";
 
 vi.mock("@/hooks/use-auth", () => ({
   useAuth: () => ({
+    isEmailVerified: true,
     user: {
       getIdToken: vi.fn().mockResolvedValue("firebase-id-token"),
     },

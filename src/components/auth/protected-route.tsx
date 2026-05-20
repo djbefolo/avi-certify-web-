@@ -11,15 +11,24 @@ type ProtectedRouteProps = {
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const router = useRouter();
-  const { loading, isAuthenticated } = useAuth();
+  const { loading, isAuthenticated, isEmailVerified } = useAuth();
 
   useEffect(() => {
-    if (!loading && !isAuthenticated) {
-      router.replace("/connexion");
+    if (loading) {
+      return;
     }
-  }, [isAuthenticated, loading, router]);
 
-  if (loading || !isAuthenticated) {
+    if (!isAuthenticated) {
+      router.replace("/connexion");
+      return;
+    }
+
+    if (!isEmailVerified) {
+      router.replace("/verification-email");
+    }
+  }, [isAuthenticated, isEmailVerified, loading, router]);
+
+  if (loading || !isAuthenticated || !isEmailVerified) {
     return (
       <section className="container flex min-h-[48vh] items-center justify-center py-16">
         <div className="grid justify-items-center gap-4 text-center">

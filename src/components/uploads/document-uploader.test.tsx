@@ -5,6 +5,7 @@ import { DocumentUploader } from "@/components/uploads/document-uploader";
 
 vi.mock("@/hooks/use-auth", () => ({
   useAuth: () => ({
+    isEmailVerified: true,
     user: {
       uid: "user-1",
     },

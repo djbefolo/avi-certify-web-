@@ -1,4 +1,5 @@
 import { FieldValue } from "firebase-admin/firestore";
+import type { DecodedIdToken } from "firebase-admin/auth";
 import type Stripe from "stripe";
 import { paymentServiceConfigs, type PaymentServiceConfig } from "@/constants/payments";
 import { getAdminAuth, getAdminFirestore } from "@/lib/firebase/admin";
@@ -34,11 +35,30 @@ export type PaymentWebhookUpdateResult = {
   reason?: string;
 };
 
+export class EmailNotVerifiedError extends Error {
+  constructor() {
+    super("Email address is not verified.");
+    this.name = "EmailNotVerifiedError";
+  }
+}
+
 function getAppUrl() {
   return (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(
     /\/$/,
     "",
   );
+}
+
+async function assertEmailVerified(decodedToken: DecodedIdToken) {
+  if (decodedToken.email_verified === true) {
+    return;
+  }
+
+  const userRecord = await getAdminAuth().getUser(decodedToken.uid);
+
+  if (!userRecord.emailVerified) {
+    throw new EmailNotVerifiedError();
+  }
 }
 
 function getEventDate(context: StripeWebhookContext) {
@@ -163,6 +183,7 @@ export async function createCheckoutSession(
   input: CreateCheckoutSessionInput,
 ): Promise<{ checkoutUrl: string }> {
   const decodedToken = await getAdminAuth().verifyIdToken(idToken);
+  await assertEmailVerified(decodedToken);
   const ownerId = decodedToken.uid;
   const serviceConfig = getPaymentServiceConfig(input.serviceType);
   const db = getAdminFirestore();
