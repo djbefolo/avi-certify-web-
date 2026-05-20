@@ -26,3 +26,7 @@ export function getStripeServerClient(): Stripe {
 
   return stripeClient;
 }
+
+export function getStripeWebhookSecret(): string {
+  return getRequiredEnv("STRIPE_WEBHOOK_SECRET");
+}
