@@ -26,6 +26,9 @@ export type UserDocument = {
   contentType: "application/pdf" | "image/jpeg" | "image/png";
   size: number;
   storagePath: string;
+  certificateId?: string | null;
+  certificateNumber?: string | null;
+  verificationUrl?: string | null;
   createdAt: Date | null;
   updatedAt: Date | null;
 };

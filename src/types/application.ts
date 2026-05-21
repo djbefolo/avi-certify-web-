@@ -36,6 +36,7 @@ export type ApplicationDocument = {
 };
 
 export type ApplicationPayment = {
+  id?: string;
   status: PaymentStatus;
   amountLabel: string;
   description: string;

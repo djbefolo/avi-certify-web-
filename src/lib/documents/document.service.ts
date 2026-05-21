@@ -53,6 +53,12 @@ function mapDocumentSnapshot(id: string, data: DocumentData): UserDocument {
     contentType: data.contentType as UserDocument["contentType"],
     size: Number(data.size),
     storagePath: String(data.storagePath),
+    certificateId:
+      typeof data.certificateId === "string" ? data.certificateId : null,
+    certificateNumber:
+      typeof data.certificateNumber === "string" ? data.certificateNumber : null,
+    verificationUrl:
+      typeof data.verificationUrl === "string" ? data.verificationUrl : null,
     createdAt: toDate(data.createdAt),
     updatedAt: toDate(data.updatedAt),
   };
@@ -93,6 +99,9 @@ export async function createDocumentMetadata({
     contentType: file.type as UserDocument["contentType"],
     size: file.size,
     storagePath,
+    certificateId: null,
+    certificateNumber: null,
+    verificationUrl: null,
     createdAt: null,
     updatedAt: null,
   };
@@ -143,4 +152,21 @@ export async function listUserDocuments(uid: string): Promise<UserDocument[]> {
 
       return bTime - aTime;
     });
+}
+
+export async function getGeneratedCertificateDocument(
+  uid: string,
+  paymentId: string,
+): Promise<UserDocument | null> {
+  const documents = await listUserDocuments(uid);
+
+  return (
+    documents.find(
+      (document) =>
+        document.id === paymentId &&
+        document.ownerId === uid &&
+        document.documentType === "accommodation_certificate" &&
+        document.status === "generated",
+    ) ?? null
+  );
 }

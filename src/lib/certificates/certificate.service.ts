@@ -177,6 +177,7 @@ export async function generateHousingCertificateForPaidPayment({
       storagePath,
       certificateId: paymentId,
       certificateNumber,
+      verificationUrl,
       createdAt: now,
       updatedAt: now,
     },

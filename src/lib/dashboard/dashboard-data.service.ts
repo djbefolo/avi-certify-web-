@@ -80,6 +80,12 @@ function mapDocumentSnapshot(id: string, data: DocumentData): UserDocument {
     contentType: data.contentType as UserDocument["contentType"],
     size: Number(data.size ?? 0),
     storagePath: String(data.storagePath ?? ""),
+    certificateId:
+      typeof data.certificateId === "string" ? data.certificateId : null,
+    certificateNumber:
+      typeof data.certificateNumber === "string" ? data.certificateNumber : null,
+    verificationUrl:
+      typeof data.verificationUrl === "string" ? data.verificationUrl : null,
     createdAt: toDate(data.createdAt),
     updatedAt: toDate(data.updatedAt),
   };
@@ -244,6 +250,7 @@ export async function getLatestPaymentSummary(
   const status = mapPaymentStatus(latestPayment?.status);
 
   return {
+    id: latestPayment?.id,
     status,
     amountLabel: getAmountLabel(latestPayment),
     description: latestPayment

@@ -1,6 +1,7 @@
 "use client";
 
 import { ExternalLink, FileText, Loader2, RefreshCw } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { listUserDocuments } from "@/lib/documents/document.service";
 import { getUserDocumentDownloadUrl } from "@/lib/firebase/storage";
@@ -16,12 +17,12 @@ type DocumentsListProps = {
 
 const statusLabels: Record<DocumentStatus, string> = {
   pending: "En attente",
-  uploaded: "Envoye",
+  uploaded: "Envoyé",
   generated: "Généré",
   under_review: "En analyse",
-  approved: "Valide",
-  validated: "Valide",
-  rejected: "A corriger",
+  approved: "Validé",
+  validated: "Validé",
+  rejected: "À corriger",
 };
 
 function getStatusClassName(status: DocumentStatus) {
@@ -53,6 +54,12 @@ function getDateLabel(date: Date | null) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);
+}
+
+function getOpenButtonLabel(document: UserDocument) {
+  return document.status === "generated"
+    ? "Télécharger"
+    : "Ouvrir le document";
 }
 
 export function DocumentsList({ refreshKey = 0 }: DocumentsListProps) {
@@ -104,9 +111,9 @@ export function DocumentsList({ refreshKey = 0 }: DocumentsListProps) {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-sm font-medium text-muted-foreground">
-            Documents envoyes
+            Documents envoyés
           </p>
-          <h2 className="mt-2 text-xl font-semibold">Pieces de votre dossier</h2>
+          <h2 className="mt-2 text-xl font-semibold">Pièces de votre dossier</h2>
         </div>
         <Button
           type="button"
@@ -136,9 +143,9 @@ export function DocumentsList({ refreshKey = 0 }: DocumentsListProps) {
       {!loading && documents.length === 0 ? (
         <div className="mt-6 rounded-md border bg-muted/25 p-5 text-center">
           <FileText className="mx-auto h-8 w-8 text-muted-foreground" />
-          <p className="mt-3 font-medium">Aucun document envoye</p>
+          <p className="mt-3 font-medium">Aucun document envoyé</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Vos fichiers apparaitront ici apres le premier upload.
+            Vos fichiers apparaîtront ici après le premier upload.
           </p>
         </div>
       ) : null}
@@ -170,20 +177,34 @@ export function DocumentsList({ refreshKey = 0 }: DocumentsListProps) {
                   </p>
                 </div>
 
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={openingId === document.id}
-                  onClick={() => void openDocument(document)}
-                >
-                  {openingId === document.id ? (
-                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-                  ) : (
-                    <ExternalLink className="h-4 w-4" aria-hidden="true" />
-                  )}
-                  Ouvrir
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={openingId === document.id}
+                    onClick={() => void openDocument(document)}
+                  >
+                    {openingId === document.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                    )}
+                    {getOpenButtonLabel(document)}
+                  </Button>
+                  {document.verificationUrl ? (
+                    <Button variant="outline" size="sm" asChild>
+                      <Link
+                        href={document.verificationUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Vérifier l'authenticité
+                        <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                      </Link>
+                    </Button>
+                  ) : null}
+                </div>
               </div>
             </article>
           ))}
