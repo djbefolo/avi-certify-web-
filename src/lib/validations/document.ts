@@ -24,7 +24,7 @@ export const documentTypeLabels: Record<DocumentType, string> = {
   admission_letter: "Admission ou pre-inscription",
   payment_proof: "Justificatif de paiement",
   identity_document: "Piece d'identite",
-  accommodation_certificate: "Attestation d'hebergement",
+  accommodation_certificate: "Attestation d’hébergement",
   bank_document: "Document bancaire",
   other: "Autre document",
 };

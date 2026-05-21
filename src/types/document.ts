@@ -10,6 +10,7 @@ export type DocumentType =
 export type DocumentStatus =
   | "pending"
   | "uploaded"
+  | "generated"
   | "under_review"
   | "approved"
   | "validated"

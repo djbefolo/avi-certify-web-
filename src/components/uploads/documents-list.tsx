@@ -17,6 +17,7 @@ type DocumentsListProps = {
 const statusLabels: Record<DocumentStatus, string> = {
   pending: "En attente",
   uploaded: "Envoye",
+  generated: "Généré",
   under_review: "En analyse",
   approved: "Valide",
   validated: "Valide",
@@ -24,7 +25,7 @@ const statusLabels: Record<DocumentStatus, string> = {
 };
 
 function getStatusClassName(status: DocumentStatus) {
-  if (status === "approved" || status === "validated") {
+  if (status === "approved" || status === "validated" || status === "generated") {
     return "border-accent/30 bg-accent/10 text-accent";
   }
 

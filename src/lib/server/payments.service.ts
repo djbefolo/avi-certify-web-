@@ -2,6 +2,7 @@ import { FieldValue } from "firebase-admin/firestore";
 import type { DecodedIdToken } from "firebase-admin/auth";
 import type Stripe from "stripe";
 import { paymentServiceConfigs, type PaymentServiceConfig } from "@/constants/payments";
+import { generateHousingCertificateForPaidPayment } from "@/lib/certificates/certificate.service";
 import { getAdminAuth, getAdminFirestore } from "@/lib/firebase/admin";
 import { getStripeServerClient } from "@/lib/stripe/server";
 import type {
@@ -345,12 +346,34 @@ export async function markCheckoutSessionCompleted(
     { merge: true },
   );
 
+  let certificateResult: Awaited<
+    ReturnType<typeof generateHousingCertificateForPaidPayment>
+  > = { generated: false, reason: "not_attempted" };
+
+  try {
+    certificateResult = await generateHousingCertificateForPaidPayment({
+      ownerId,
+      paymentId,
+      serviceType,
+    });
+  } catch (error) {
+    console.error("[stripe/webhook] Certificate generation failed after payment sync", {
+      paymentId,
+      ownerId,
+      serviceType,
+      eventId: context.eventId,
+      error,
+    });
+    certificateResult = { generated: false, reason: "generation_failed" };
+  }
+
   console.info("[stripe/webhook] Payment marked paid", {
     paymentId,
     ownerId,
     sessionId: session.id,
     paymentIntentId,
     eventId: context.eventId,
+    certificate: certificateResult,
   });
 
   return {
