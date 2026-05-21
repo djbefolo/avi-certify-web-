@@ -16,6 +16,7 @@ type CreatePaymentRecordParams = {
   paymentId: string;
   ownerId: string;
   serviceConfig: PaymentServiceConfig;
+  housingRegion?: string;
 };
 
 type UpdatePaymentSessionParams = {
@@ -145,6 +146,7 @@ export async function createPaymentRecord({
   paymentId,
   ownerId,
   serviceConfig,
+  housingRegion,
 }: CreatePaymentRecordParams): Promise<void> {
   const db = getAdminFirestore();
   const paymentRef = db.collection(PAYMENTS_COLLECTION).doc(paymentId);
@@ -156,6 +158,7 @@ export async function createPaymentRecord({
     amount: serviceConfig.amount,
     currency: serviceConfig.currency,
     status: "pending",
+    ...(housingRegion ? { housingRegion } : {}),
     stripeCheckoutSessionId: null,
     stripePaymentIntentId: null,
     checkoutUrl: null,
@@ -195,6 +198,7 @@ export async function createCheckoutSession(
     paymentId: paymentRef.id,
     ownerId,
     serviceConfig,
+    housingRegion: input.housingRegion,
   });
 
   const stripe = getStripeServerClient();
@@ -220,12 +224,14 @@ export async function createCheckoutSession(
       paymentId: paymentRef.id,
       serviceType: serviceConfig.type,
       productFamily: serviceConfig.metadata.productFamily,
+      ...(input.housingRegion ? { housingRegion: input.housingRegion } : {}),
     },
     payment_intent_data: {
       metadata: {
         ownerId,
         paymentId: paymentRef.id,
         serviceType: serviceConfig.type,
+        ...(input.housingRegion ? { housingRegion: input.housingRegion } : {}),
       },
     },
     success_url: `${appUrl}/dossier/paiement?payment=success&session_id={CHECKOUT_SESSION_ID}`,
@@ -324,6 +330,11 @@ export async function markCheckoutSessionCompleted(
   const serviceType =
     getMetadataValue(session.metadata, "serviceType") ??
     (existingPayment.exists ? String(existingPayment.get("serviceType") ?? "") : null);
+  const housingRegion =
+    getMetadataValue(session.metadata, "housingRegion") ??
+    (existingPayment.exists
+      ? String(existingPayment.get("housingRegion") ?? "")
+      : null);
   const productFamily = getMetadataValue(session.metadata, "productFamily");
 
   await paymentRef.set(
@@ -332,6 +343,7 @@ export async function markCheckoutSessionCompleted(
       ownerId,
       serviceType,
       productFamily,
+      ...(housingRegion ? { housingRegion } : {}),
       stripeCheckoutSessionId: session.id,
       stripeSessionId: session.id,
       stripePaymentIntentId: paymentIntentId,
@@ -355,6 +367,7 @@ export async function markCheckoutSessionCompleted(
       ownerId,
       paymentId,
       serviceType,
+      housingRegion,
     });
   } catch (error) {
     console.error("[stripe/webhook] Certificate generation failed after payment sync", {

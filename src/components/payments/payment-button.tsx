@@ -6,6 +6,7 @@ import {
   formatPaymentAmount,
   paymentServiceOptions,
 } from "@/constants/payments";
+import { housingRegions, type HousingRegionCode } from "@/lib/housing/housing-regions";
 import type { PaymentServiceType } from "@/types/payment";
 import { useAuth } from "@/hooks/use-auth";
 import { useAnalytics } from "@/hooks/use-analytics";
@@ -48,6 +49,8 @@ export function PaymentButton() {
   const [serviceType, setServiceType] = useState<PaymentServiceType>(
     "avi_support",
   );
+  const [housingRegion, setHousingRegion] =
+    useState<HousingRegionCode>("ile_de_france");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const selectedService = paymentServiceOptions.find(
@@ -82,7 +85,10 @@ export function PaymentButton() {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ serviceType }),
+        body: JSON.stringify({
+          serviceType,
+          ...(serviceType === "accommodation_certificate" ? { housingRegion } : {}),
+        }),
       });
 
       if (!response.ok) {
@@ -161,6 +167,26 @@ export function PaymentButton() {
                 )}
               </span>
             </div>
+          </div>
+        ) : null}
+
+        {serviceType === "accommodation_certificate" ? (
+          <div className="grid gap-2">
+            <Label htmlFor="housing-region">Région académique</Label>
+            <Select
+              id="housing-region"
+              value={housingRegion}
+              disabled={isLoading}
+              onChange={(event) =>
+                setHousingRegion(event.target.value as HousingRegionCode)
+              }
+            >
+              {housingRegions.map((region) => (
+                <option key={region.code} value={region.code}>
+                  {region.label}
+                </option>
+              ))}
+            </Select>
           </div>
         ) : null}
 

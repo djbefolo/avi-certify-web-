@@ -5,7 +5,7 @@ import {
   getDefaultCertificateDates,
 } from "@/lib/certificates/certificate-generator";
 import { getAdminAuth, getAdminFirestore, getAdminStorage } from "@/lib/firebase/admin";
-import { selectHousingAddress } from "@/lib/housing/housing-addresses";
+import { selectHousingAddress } from "@/lib/housing/housing-regions";
 import type { PaymentServiceType } from "@/types/payment";
 
 const CERTIFICATES_COLLECTION = "certificates";
@@ -16,6 +16,7 @@ type GenerateCertificateParams = {
   ownerId: string;
   paymentId: string;
   serviceType: string | null;
+  housingRegion?: string | null;
 };
 
 type UserProfileData = {
@@ -84,6 +85,7 @@ export async function generateHousingCertificateForPaidPayment({
   ownerId,
   paymentId,
   serviceType,
+  housingRegion,
 }: GenerateCertificateParams) {
   if (!isTargetService(serviceType)) {
     return { generated: false, reason: "service_not_eligible" };
@@ -98,7 +100,10 @@ export async function generateHousingCertificateForPaidPayment({
   }
 
   const profile = await getUserProfile(ownerId);
-  const housing = selectHousingAddress(`${ownerId}:${paymentId}`);
+  const housing = selectHousingAddress({
+    region: housingRegion,
+    seed: `${ownerId}:${paymentId}`,
+  });
   const verificationToken = buildToken(ownerId, paymentId);
   const verificationUrl = `${getAppUrl()}/verifier/${verificationToken}`;
   const certificateNumber = buildCertificateNumber(paymentId);
@@ -137,7 +142,8 @@ export async function generateHousingCertificateForPaidPayment({
     studentFullName: profile.fullName,
     dateOfBirth: profile.dateOfBirth,
     birthPlace: profile.birthPlace,
-    housingAddress: housing.address,
+    housingRegion: housing.region,
+    housingAddress: housing.fullAddress,
     city: housing.city,
     rent: housing.rent,
     entryDate,

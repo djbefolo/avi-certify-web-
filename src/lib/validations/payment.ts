@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { housingRegionCodes } from "@/lib/housing/housing-regions";
 import type { PaymentServiceType } from "@/types/payment";
 
 export const paymentServiceValues = [
@@ -14,8 +15,17 @@ export const checkoutRequestSchema = z
     serviceType: z.enum(paymentServiceValues, {
       errorMap: () => ({ message: "Service de paiement invalide." }),
     }),
+    housingRegion: z.enum(housingRegionCodes).optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((value, context) => {
+    if (value.serviceType === "accommodation_certificate" && !value.housingRegion) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Sélectionnez une région pour l'attestation d'hébergement.",
+        path: ["housingRegion"],
+      });
+    }
+  });
 
 export type CheckoutRequestValues = z.output<typeof checkoutRequestSchema>;
-
