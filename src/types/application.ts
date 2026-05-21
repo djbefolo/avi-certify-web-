@@ -1,10 +1,12 @@
 export type ApplicationStatus =
-  | "draft"
+  | "account_created"
   | "documents_pending"
-  | "in_review"
+  | "ready_for_payment"
   | "payment_pending"
-  | "validated"
-  | "blocked";
+  | "payment_confirmed"
+  | "under_review"
+  | "approved"
+  | "rejected";
 
 export type DocumentStatus =
   | "missing"
@@ -12,7 +14,7 @@ export type DocumentStatus =
   | "approved"
   | "rejected";
 
-export type PaymentStatus = "not_started" | "pending" | "paid" | "failed";
+export type PaymentStatus = "not_started" | "pending" | "paid" | "failed" | "refunded";
 
 export type TimelineStepStatus = "completed" | "current" | "upcoming";
 
@@ -29,6 +31,7 @@ export type ApplicationDocument = {
   title: string;
   description: string;
   status: DocumentStatus;
+  workflowStatus?: "missing" | "uploaded" | "under_review" | "approved" | "rejected";
   required: boolean;
 };
 

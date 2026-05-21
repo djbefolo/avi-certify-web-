@@ -18,12 +18,13 @@ const statusLabels: Record<DocumentStatus, string> = {
   pending: "En attente",
   uploaded: "Envoye",
   under_review: "En analyse",
+  approved: "Valide",
   validated: "Valide",
   rejected: "A corriger",
 };
 
 function getStatusClassName(status: DocumentStatus) {
-  if (status === "validated") {
+  if (status === "approved" || status === "validated") {
     return "border-accent/30 bg-accent/10 text-accent";
   }
 

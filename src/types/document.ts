@@ -11,6 +11,7 @@ export type DocumentStatus =
   | "pending"
   | "uploaded"
   | "under_review"
+  | "approved"
   | "validated"
   | "rejected";
 

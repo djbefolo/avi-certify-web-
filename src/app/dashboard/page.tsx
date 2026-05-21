@@ -1,3 +1,5 @@
+"use client";
+
 import { ApplicationTimeline } from "@/components/dashboard/application-timeline";
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
 import { DashboardSummary } from "@/components/dashboard/dashboard-summary";
@@ -5,10 +7,10 @@ import { DocumentStatusCard } from "@/components/dashboard/document-status-card"
 import { DossierStatusCard } from "@/components/dashboard/dossier-status-card";
 import { NextActionCard } from "@/components/dashboard/next-action-card";
 import { PaymentStatusCard } from "@/components/dashboard/payment-status-card";
-import { mockDashboardSummary } from "@/constants/dashboard";
+import { useDashboardSummary } from "@/hooks/use-dashboard-summary";
 
 export default function DashboardPage() {
-  const summary = mockDashboardSummary;
+  const { summary, loading, errorMessage } = useDashboardSummary();
 
   return (
     <DashboardLayout
@@ -16,6 +18,16 @@ export default function DashboardPage() {
       description="Suivez les priorites de votre dossier AVI CERTIFY depuis un espace client clair et securise."
     >
       <div className="grid gap-5">
+        {errorMessage ? (
+          <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+            {errorMessage}
+          </p>
+        ) : null}
+        {loading ? (
+          <p className="rounded-md border bg-muted/25 p-3 text-sm text-muted-foreground">
+            Chargement des donnees du dossier...
+          </p>
+        ) : null}
         <DashboardSummary summary={summary} />
 
         <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">

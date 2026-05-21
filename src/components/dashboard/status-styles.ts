@@ -5,14 +5,23 @@ import type {
   TimelineStepStatus,
 } from "@/types/application";
 
+type StatusStyle =
+  | ApplicationStatus
+  | DocumentStatus
+  | PaymentStatus
+  | TimelineStepStatus
+  | "uploaded";
+
 export function getApplicationStatusLabel(status: ApplicationStatus) {
   const labels: Record<ApplicationStatus, string> = {
-    draft: "Brouillon",
-    documents_pending: "Documents attendus",
-    in_review: "En analyse",
-    payment_pending: "Paiement attendu",
-    validated: "Valide",
-    blocked: "Action requise",
+    account_created: "Compte créé",
+    documents_pending: "Documents à fournir",
+    ready_for_payment: "Dossier prêt pour paiement",
+    payment_pending: "Paiement en attente",
+    payment_confirmed: "Paiement confirmé",
+    under_review: "Dossier en analyse",
+    approved: "Dossier validé",
+    rejected: "Correction requise",
   };
 
   return labels[status];
@@ -20,10 +29,10 @@ export function getApplicationStatusLabel(status: ApplicationStatus) {
 
 export function getDocumentStatusLabel(status: DocumentStatus) {
   const labels: Record<DocumentStatus, string> = {
-    missing: "A fournir",
-    pending_review: "En verification",
-    approved: "Valide",
-    rejected: "A corriger",
+    missing: "À fournir",
+    pending_review: "En vérification",
+    approved: "Validé",
+    rejected: "À corriger",
   };
 
   return labels[status];
@@ -31,27 +40,36 @@ export function getDocumentStatusLabel(status: DocumentStatus) {
 
 export function getPaymentStatusLabel(status: PaymentStatus) {
   const labels: Record<PaymentStatus, string> = {
-    not_started: "Non demarre",
+    not_started: "Non démarré",
     pending: "En attente",
-    paid: "Regle",
-    failed: "A reprendre",
+    paid: "Payé",
+    failed: "Échec",
+    refunded: "Remboursé",
   };
 
   return labels[status];
 }
 
-export function getStatusClassName(
-  status: ApplicationStatus | DocumentStatus | PaymentStatus | TimelineStepStatus,
-) {
-  if (status === "approved" || status === "paid" || status === "validated" || status === "completed") {
+export function getStatusClassName(status: StatusStyle) {
+  if (
+    status === "approved" ||
+    status === "paid" ||
+    status === "payment_confirmed" ||
+    status === "completed"
+  ) {
     return "border-accent/30 bg-accent/10 text-accent";
   }
 
-  if (status === "rejected" || status === "failed" || status === "blocked") {
+  if (status === "rejected" || status === "failed") {
     return "border-destructive/30 bg-destructive/10 text-destructive";
   }
 
-  if (status === "current" || status === "in_review" || status === "pending_review") {
+  if (
+    status === "under_review" ||
+    status === "uploaded" ||
+    status === "pending_review" ||
+    status === "current"
+  ) {
     return "border-primary/25 bg-primary/10 text-primary";
   }
 

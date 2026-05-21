@@ -21,7 +21,13 @@ export function DashboardSummary({ summary }: DashboardSummaryProps) {
     },
     {
       label: "Documents",
-      value: `${summary.documents.filter((document) => document.status === "approved").length}/${summary.documents.length}`,
+      value: `${
+        summary.documents.filter(
+          (document) =>
+            document.status === "pending_review" ||
+            document.status === "approved",
+        ).length
+      }/${summary.documents.length}`,
       icon: FileCheck2,
     },
   ];
