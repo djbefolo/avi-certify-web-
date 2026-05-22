@@ -74,3 +74,26 @@ body {
 .text-balance {
   text-wrap: balance;
 }
+
+@keyframes ecosystem-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.ecosystem-scroll {
+  animation: ecosystem-scroll 60s linear infinite;
+}
+
+.ecosystem-scroll:hover {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ecosystem-scroll {
+    animation: none;
+  }
+}

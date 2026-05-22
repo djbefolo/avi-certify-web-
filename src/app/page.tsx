@@ -4,7 +4,16 @@ import {
   Building2,
   FileCheck2,
   ShieldCheck,
+  MessageCircle,
+  Check,
+  UserCheck,
+  GraduationCap,
+  Linkedin,
+  Facebook,
+  Instagram,
+  Clock,
 } from "lucide-react";
+import Image from "next/image";
 import { TrackedCtaLink } from "@/components/analytics/tracked-cta-link";
 import { LeadFormSection } from "@/components/marketing/lead-form-section";
 import { SectionHeading } from "@/components/marketing/section-heading";
@@ -29,28 +38,43 @@ const processSteps = [
   "Suivez votre départ",
 ];
 
+const studentJourneySteps = [
+  {
+    icon: GraduationCap,
+    title: "Admission obtenue",
+    description: "Vous avez votre lettre d'admission, mais le parcours administratif commence.",
+  },
+  {
+    icon: FileCheck2,
+    title: "Documents à préparer",
+    description: "AVI, justificatif d'hébergement, ressources financières : chaque pièce doit être cohérente.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Dossier consulaire",
+    description: "Campus France, rendez-vous visa : le moindre manque peut retarder votre projet.",
+  },
+];
+
 export default function HomePage() {
   return (
     <>
-      <section className="border-b bg-muted/40">
-        <div className="container grid gap-10 py-12 md:grid-cols-[1.08fr_0.92fr] md:items-center md:py-20 lg:py-24">
-          <div className="max-w-3xl">
-            <div className="mb-5 inline-flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm font-medium text-muted-foreground">
-              <ShieldCheck className="h-4 w-4 text-accent" aria-hidden="true" />
-              Accompagnement étudiant structuré et sécurisé
+      <section className="relative overflow-hidden border-b">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/5" />
+        <div className="container relative grid gap-12 py-16 md:grid-cols-2 md:items-center md:gap-16 md:py-24 lg:py-32">
+          <div className="relative z-10">
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent/10 px-4 py-2 text-sm font-medium text-accent-dark">
+              <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+              Société immatriculée • Documents vérifiables
             </div>
-            <h1 className="text-balance text-4xl font-semibold tracking-normal text-foreground sm:text-5xl lg:text-6xl">
-              Construisez votre projet d'études internationales avec un
-              accompagnement financier et documentaire structuré, sécurisé et
-              vérifiable.
+            <h1 className="text-balance text-4xl font-semibold leading-tight tracking-tight text-foreground sm:text-5xl lg:text-6xl">
+              Votre projet d'études en France mérite un accompagnement sérieux
             </h1>
-            <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-foreground">
-              AVI, attestation d'hébergement, préfinancement et accompagnement
-              visa : AVI CERTIFY accompagne les étudiants d'Afrique francophone
-              avec des documents vérifiables et un espace client sécurisé.
+            <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
+              AVI CERTIFY structure votre dossier financier et documentaire pour vos démarches Campus France et consulaires. Documents vérifiables, paiement sécurisé, suivi transparent.
             </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Button size="lg" variant="cta" asChild>
+            <div className="mt-8 flex flex-col gap-4 sm:flex-row">
+              <Button size="lg" variant="cta" className="text-base" asChild>
                 <TrackedCtaLink
                   href="/contact"
                   analyticsLocation="home_hero"
@@ -60,69 +84,51 @@ export default function HomePage() {
                   <ArrowRight className="h-4 w-4" aria-hidden="true" />
                 </TrackedCtaLink>
               </Button>
-              <Button size="lg" variant="outline" asChild>
-                <TrackedCtaLink
-                  href="/services"
-                  analyticsLocation="home_hero"
-                  analyticsLabel="Voir les services"
+              <Button size="lg" variant="outline" className="text-base" asChild>
+                <a
+                  href="https://wa.me/REPLACE_WITH_PHONE"
+                  target="_blank"
+                  rel="noopener noreferrer"
                 >
-                  Voir les services
-                </TrackedCtaLink>
+                  <MessageCircle className="h-4 w-4" aria-hidden="true" />
+                  Parler à un conseiller
+                </a>
               </Button>
             </div>
-            <dl className="mt-10 grid grid-cols-1 gap-4 text-sm sm:grid-cols-3">
+            <dl className="mt-10 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
               {[
-                ["Présence", "Canada, France, Cameroun"],
-                ["Parcours", "Suivi étape par étape"],
-                ["Objectif", "Dossier clair et vérifiable"],
-              ].map(([label, value]) => (
-                <div key={label} className="rounded-md border bg-background p-4">
-                  <dt className="font-medium text-muted-foreground">{label}</dt>
-                  <dd className="mt-1 font-semibold">{value}</dd>
+                { icon: Check, label: "Documents vérifiables" },
+                { icon: ShieldCheck, label: "Paiement sécurisé" },
+                { icon: Building2, label: "Société immatriculée" },
+                { icon: UserCheck, label: "Accompagnement structuré" },
+              ].map((item) => (
+                <div key={item.label} className="flex items-center gap-2">
+                  <item.icon className="h-4 w-4 shrink-0 text-accent" aria-hidden="true" />
+                  <span className="text-xs font-medium text-muted-foreground">{item.label}</span>
                 </div>
               ))}
             </dl>
           </div>
 
-          <div className="rounded-md border bg-background p-4 shadow-sm">
-            <div className="rounded-md border bg-muted/35 p-5">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">
-                    Aperçu dossier
-                  </p>
-                  <h2 className="mt-1 text-2xl font-semibold">
-                    AVI étudiant
-                  </h2>
-                </div>
+          <div className="relative">
+            <div className="relative aspect-[4/5] overflow-hidden rounded-lg border shadow-2xl">
+              <Image
+                src="/assets/photos/beautifull-african-student-landed-france.jpg"
+                alt="Étudiante africaine arrivée en France pour ses études"
+                fill
+                className="object-cover"
+                priority
+                sizes="(max-width: 768px) 100vw, 50vw"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+            </div>
+            <div className="absolute -bottom-6 -left-6 rounded-lg border bg-background p-4 shadow-lg">
+              <div className="flex items-center gap-3">
                 <BadgeCheck className="h-8 w-8 text-accent" aria-hidden="true" />
-              </div>
-              <div className="mt-6 space-y-3">
-                {[
-                  ["Profil", "Informations reçues", "complete"],
-                  ["Documents", "Passeport et admission", "progress"],
-                  ["Paiement", "En attente de validation", "pending"],
-                ].map(([title, detail, state]) => (
-                  <div
-                    key={title}
-                    className="flex items-center justify-between gap-4 rounded-md border bg-background p-4"
-                  >
-                    <div>
-                      <p className="font-medium">{title}</p>
-                      <p className="text-sm text-muted-foreground">{detail}</p>
-                    </div>
-                    <span
-                      className={
-                        state === "complete"
-                          ? "h-3 w-3 rounded-full bg-accent"
-                          : state === "progress"
-                            ? "h-3 w-3 rounded-full bg-primary"
-                            : "h-3 w-3 rounded-full bg-amber-500"
-                      }
-                      aria-hidden="true"
-                    />
-                  </div>
-                ))}
+                <div>
+                  <p className="text-sm font-semibold">Dossiers traités</p>
+                  <p className="text-xs text-muted-foreground">Accompagnement vérifié</p>
+                </div>
               </div>
             </div>
           </div>
@@ -131,33 +137,74 @@ export default function HomePage() {
 
       <TrustBanner />
 
-      <section className="container py-14 md:py-20">
+      <section className="border-b bg-muted/30">
+        <div className="container py-16 md:py-24">
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="text-sm font-semibold uppercase tracking-wider text-accent">Le parcours étudiant</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+              Admission obtenue. Maintenant, le dossier administratif.
+            </h2>
+            <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
+              Entre l'acceptation de l'université et le départ, le parcours administratif peut créer du stress. AVI CERTIFY structure chaque étape.
+            </p>
+          </div>
+          <div className="mt-12 grid gap-6 md:grid-cols-3">
+            {studentJourneySteps.map((step, index) => (
+              <div key={step.title} className="relative rounded-lg border bg-background p-6 shadow-sm">
+                <div className="mb-4 flex items-center gap-4">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                    <step.icon className="h-6 w-6 text-primary" aria-hidden="true" />
+                  </div>
+                  <span className="text-sm font-bold text-muted-foreground">Étape {index + 1}</span>
+                </div>
+                <h3 className="text-xl font-semibold">{step.title}</h3>
+                <p className="mt-3 leading-relaxed text-muted-foreground">{step.description}</p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-12 overflow-hidden rounded-lg border shadow-lg">
+            <div className="relative aspect-[21/9]">
+              <Image
+                src="/assets/photos/fill-form-student-visa.jpg"
+                alt="Préparation du dossier de visa étudiant"
+                fill
+                className="object-cover"
+                sizes="(max-width: 1200px) 100vw, 1200px"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="container py-16 md:py-24">
         <SectionHeading
           eyebrow="Services"
-          title="Les démarches essentielles, organisées au même endroit."
+          title="Les démarches essentielles, organisées au même endroit"
           description="Choisissez le service adapté à votre projet d'études et avancez avec un parcours clair, documenté et suivi."
         />
-        <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {services.map((service) => (
             <ServiceCard key={service.href} service={service} />
           ))}
         </div>
       </section>
 
-      <section className="border-y bg-secondary/55">
-        <div className="container grid gap-10 py-14 md:grid-cols-[0.85fr_1.15fr] md:items-start md:py-20">
-          <SectionHeading
-            eyebrow="Méthode"
-            title="Un parcours lisible pour l'étudiant et pour l'équipe."
-            description="Vous savez quelles informations fournir, où en est votre dossier et quelle est la prochaine action attendue."
-          />
-          <div className="grid gap-3">
+      <section className="border-y bg-secondary/40">
+        <div className="container grid gap-12 py-16 md:grid-cols-[0.85fr_1.15fr] md:items-start md:py-24">
+          <div>
+            <SectionHeading
+              eyebrow="Méthode"
+              title="Un parcours lisible pour l'étudiant et pour l'équipe"
+              description="Vous savez quelles informations fournir, où en est votre dossier et quelle est la prochaine action attendue."
+            />
+          </div>
+          <div className="grid gap-4">
             {processSteps.map((step, index) => (
               <div
                 key={step}
-                className="flex items-center gap-4 rounded-md border bg-background p-4"
+                className="flex items-center gap-4 rounded-lg border bg-background p-5 shadow-sm transition-shadow hover:shadow-md"
               >
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-primary text-sm font-semibold text-primary-foreground">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground">
                   {index + 1}
                 </span>
                 <p className="font-medium">{step}</p>
@@ -167,7 +214,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="container grid gap-8 py-14 md:grid-cols-3 md:py-20">
+      <section className="container grid gap-8 py-16 md:grid-cols-3 md:py-24">
         {[
           {
             icon: FileCheck2,
@@ -182,15 +229,187 @@ export default function HomePage() {
           {
             icon: ShieldCheck,
             title: "Sécurité documentaire",
-            text: "Les pièces sensibles seront déposées dans un espace client protégé et contrôlé.",
+            text: "Les pièces sensibles sont déposées dans un espace client protégé et contrôlé.",
           },
         ].map((item) => (
-          <div key={item.title} className="rounded-md border p-5">
-            <item.icon className="h-6 w-6 text-primary" aria-hidden="true" />
-            <h3 className="mt-4 text-xl font-semibold">{item.title}</h3>
-            <p className="mt-2 leading-7 text-muted-foreground">{item.text}</p>
+          <div key={item.title} className="rounded-lg border bg-muted/30 p-6 shadow-sm">
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
+              <item.icon className="h-6 w-6 text-primary" aria-hidden="true" />
+            </div>
+            <h3 className="mt-5 text-xl font-semibold">{item.title}</h3>
+            <p className="mt-3 leading-relaxed text-muted-foreground">{item.text}</p>
           </div>
         ))}
+      </section>
+
+      <section className="border-y bg-gradient-to-br from-primary/5 to-accent/5">
+        <div className="container grid gap-12 py-16 md:grid-cols-2 md:items-center md:py-24">
+          <div className="relative overflow-hidden rounded-lg border shadow-xl">
+            <div className="relative aspect-[4/3]">
+              <Image
+                src="/assets/photos/customer-service-avi-certify.jpg"
+                alt="Équipe d'accompagnement AVI CERTIFY"
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, 50vw"
+              />
+            </div>
+          </div>
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-wider text-accent">Contact direct</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+              Besoin d'échanger avant de commencer ?
+            </h2>
+            <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
+              Notre équipe répond à vos questions sur les démarches, les délais et l'accompagnement adapté à votre situation.
+            </p>
+            <div className="mt-8 space-y-4">
+              <Button size="lg" variant="cta" className="w-full text-base sm:w-auto" asChild>
+                <a
+                  href="https://wa.me/REPLACE_WITH_PHONE"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <MessageCircle className="h-5 w-5" aria-hidden="true" />
+                  Parler sur WhatsApp
+                </a>
+              </Button>
+              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                <Clock className="h-4 w-4" aria-hidden="true" />
+                <span>Réponse sous 24h ouvrées</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-b bg-muted/30">
+        <div className="container py-16 md:py-24">
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="text-sm font-semibold uppercase tracking-wider text-accent">Direction</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+              Un accompagnement pensé par des professionnels de la mobilité internationale
+            </h2>
+            <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
+              AVI CERTIFY est une société immatriculée avec une expertise en accompagnement financier et documentaire pour étudiants internationaux.
+            </p>
+          </div>
+          <div className="mt-12 overflow-hidden rounded-lg border bg-background shadow-lg">
+            <div className="relative aspect-[21/9]">
+              <Image
+                src="/assets/photos/meetup-team.jpg"
+                alt="Équipe et étudiants AVI CERTIFY"
+                fill
+                className="object-cover"
+                sizes="(max-width: 1200px) 100vw, 1200px"
+              />
+            </div>
+            <div className="p-8 text-center">
+              <p className="text-sm font-medium text-muted-foreground">
+                Profil LinkedIn à intégrer • Accompagnement structuré et vérifiable
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="container py-16 md:py-24">
+        <div className="mx-auto max-w-3xl text-center">
+          <p className="text-sm font-semibold uppercase tracking-wider text-accent">Témoignages</p>
+          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+            Ce que disent les étudiants accompagnés
+          </h2>
+          <div className="mt-12 rounded-lg border bg-muted/30 p-8">
+            <p className="text-sm italic text-muted-foreground">
+              Section témoignages en préparation • Témoignages étudiants validés à intégrer
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="border-y bg-gradient-to-br from-muted/40 via-accent/5 to-muted/40">
+        <div className="container py-16 md:py-20">
+          <div className="mx-auto max-w-3xl text-center">
+            <p className="text-sm font-semibold uppercase tracking-wider text-accent">Environnement international</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+              Un écosystème financier et administratif connecté
+            </h2>
+            <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
+              Les parcours étudiants internationaux évoluent dans un environnement financier, administratif et académique nécessitant compréhension et coordination des démarches.
+            </p>
+          </div>
+
+          <div className="relative mt-12 overflow-hidden">
+            <div className="absolute inset-y-0 left-0 z-10 w-20 bg-gradient-to-r from-muted/40 to-transparent" />
+            <div className="absolute inset-y-0 right-0 z-10 w-20 bg-gradient-to-l from-muted/40 to-transparent" />
+
+            <div className="flex gap-12 py-8 ecosystem-scroll">
+              {[
+                { name: "UBA Group", logo: "/assets/photos/logo_uba.png", url: "https://www.ubagroup.com/", width: 120, height: 40 },
+                { name: "BGFI Bank", logo: "/assets/photos/logo_BGFI.png", url: "https://groupebgfibank.com/", width: 140, height: 40 },
+                { name: "RBC Royal Bank", logo: "/assets/photos/logo_RBC.png", url: "https://www.rbcroyalbank.com/", width: 100, height: 40 },
+                { name: "Boursorama Banque", logo: "/assets/photos/logo_boursorama.png", url: "https://www.boursorama.com/", width: 140, height: 40 },
+                { name: "BNP Paribas", logo: "/assets/photos/logo_bnpparibas.svg", url: "https://mabanque.bnpparibas/", width: 120, height: 40 },
+                { name: "Wise", logo: "/assets/photos/logo_wise.png", url: "https://wise.com/", width: 90, height: 40 },
+              ].concat([
+                { name: "UBA Group", logo: "/assets/photos/logo_uba.png", url: "https://www.ubagroup.com/", width: 120, height: 40 },
+                { name: "BGFI Bank", logo: "/assets/photos/logo_BGFI.png", url: "https://groupebgfibank.com/", width: 140, height: 40 },
+                { name: "RBC Royal Bank", logo: "/assets/photos/logo_RBC.png", url: "https://www.rbcroyalbank.com/", width: 100, height: 40 },
+                { name: "Boursorama Banque", logo: "/assets/photos/logo_boursorama.png", url: "https://www.boursorama.com/", width: 140, height: 40 },
+                { name: "BNP Paribas", logo: "/assets/photos/logo_bnpparibas.svg", url: "https://mabanque.bnpparibas/", width: 120, height: 40 },
+                { name: "Wise", logo: "/assets/photos/logo_wise.png", url: "https://wise.com/", width: 90, height: 40 },
+              ]).map((partner, index) => (
+                <a
+                  key={`${partner.name}-${index}`}
+                  href={partner.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex shrink-0 items-center justify-center grayscale opacity-60 transition-all duration-300 hover:grayscale-0 hover:opacity-100"
+                  aria-label={partner.name}
+                >
+                  <Image
+                    src={partner.logo}
+                    alt={partner.name}
+                    width={partner.width}
+                    height={partner.height}
+                    className="h-10 w-auto object-contain"
+                  />
+                </a>
+              ))}
+            </div>
+          </div>
+
+          <p className="mt-8 text-center text-sm text-muted-foreground">
+            Institutions financières internationales présentes dans les parcours de mobilité étudiante
+          </p>
+        </div>
+      </section>
+
+      <section className="border-b bg-gradient-to-br from-primary/5 to-accent/5">
+        <div className="container py-12 text-center">
+          <p className="text-sm font-semibold uppercase tracking-wider text-accent">Suivez-nous</p>
+          <div className="mt-6 flex items-center justify-center gap-4">
+            {[
+              { icon: Facebook, label: "Facebook", href: "https://www.facebook.com/share/1HoEpQytnw/?mibextid=wwXIfr" },
+              { icon: Instagram, label: "Instagram", href: "#" },
+              { icon: Linkedin, label: "LinkedIn", href: "#" },
+            ].map((social) => (
+              <a
+                key={social.label}
+                href={social.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-12 w-12 items-center justify-center rounded-lg border bg-background transition-colors hover:border-primary hover:bg-primary/5"
+                aria-label={social.label}
+              >
+                <social.icon className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+              </a>
+            ))}
+          </div>
+          <p className="mt-4 text-sm text-muted-foreground">
+            Instagram et LinkedIn à configurer
+          </p>
+        </div>
       </section>
 
       <LeadFormSection />

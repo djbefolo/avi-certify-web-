@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Shield, Mail, Building2 } from "lucide-react";
+import Image from "next/image";
+import { Shield, Mail, Building2, MessageCircle, Facebook, Instagram, Linkedin } from "lucide-react";
 import { navLinks } from "@/constants/navigation";
 
 export function Footer() {
@@ -11,12 +12,15 @@ export function Footer() {
         <div>
           <Link
             href="/"
-            className="inline-flex items-center gap-3 font-semibold"
+            className="inline-block"
           >
-            <span className="flex h-9 w-9 items-center justify-center rounded-md bg-white/10 backdrop-blur-sm text-sm font-bold text-white shadow-lg">
-              AVI
-            </span>
-            <span className="text-white">AVI CERTIFY</span>
+            <Image
+              src="/assets/photos/logo_avi_certify.png"
+              alt="AVI CERTIFY"
+              width={160}
+              height={40}
+              className="h-10 w-auto brightness-0 invert"
+            />
           </Link>
 
           <div className="mt-4 inline-flex items-center gap-2 rounded-md border border-accent/30 bg-accent/10 px-3 py-1.5">
@@ -70,6 +74,19 @@ export function Footer() {
               Activité déclarée et enregistrée
             </p>
           </div>
+
+          <div className="mt-6 border-t border-white/10 pt-6">
+            <p className="text-sm font-semibold text-accent-light">Contact direct</p>
+            <a
+              href="https://wa.me/REPLACE_WITH_PHONE"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-flex items-center gap-2 text-sm text-gray-300 transition-colors hover:text-white"
+            >
+              <MessageCircle className="h-4 w-4" aria-hidden="true" />
+              Discuter sur WhatsApp
+            </a>
+          </div>
         </div>
 
         <div>
@@ -115,6 +132,29 @@ export function Footer() {
               Support client
             </Link>
           </nav>
+
+          <div className="mt-6 border-t border-white/10 pt-6">
+            <p className="text-sm font-semibold text-white">Suivez-nous</p>
+            <div className="mt-3 flex items-center gap-3">
+              {[
+                { icon: Facebook, label: "Facebook", href: "https://www.facebook.com/share/1HoEpQytnw/?mibextid=wwXIfr" },
+                { icon: Instagram, label: "Instagram", href: "#" },
+                { icon: Linkedin, label: "LinkedIn", href: "#" },
+              ].map((social) => (
+                <a
+                  key={social.label}
+                  href={social.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex h-9 w-9 items-center justify-center rounded-md bg-white/10 transition-colors hover:bg-white/20"
+                  aria-label={social.label}
+                >
+                  <social.icon className="h-4 w-4 text-white" aria-hidden="true" />
+                </a>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-gray-400">Instagram et LinkedIn à configurer</p>
+          </div>
         </div>
       </div>
 

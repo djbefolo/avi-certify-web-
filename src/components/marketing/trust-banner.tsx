@@ -25,9 +25,9 @@ const trustPoints = [
 
 export function TrustBanner() {
   return (
-    <section className="border-y bg-muted/30">
-      <div className="container py-8">
-        <div className="grid grid-cols-2 gap-6 md:grid-cols-4 md:gap-8">
+    <section className="border-y bg-gradient-to-r from-muted/40 via-accent/5 to-muted/40">
+      <div className="container py-10">
+        <div className="grid grid-cols-2 gap-8 md:grid-cols-4 md:gap-10">
           {trustPoints.map((point) => {
             const Icon = point.icon;
             return (
@@ -35,13 +35,13 @@ export function TrustBanner() {
                 key={point.label}
                 className="flex flex-col items-center gap-3 text-center"
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-md bg-accent/10">
-                  <Icon className="h-5 w-5 text-accent" aria-hidden="true" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-accent/10 shadow-sm">
+                  <Icon className="h-6 w-6 text-accent" aria-hidden="true" />
                 </div>
                 <p className="text-sm font-semibold text-foreground">
                   {point.label}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs leading-relaxed text-muted-foreground">
                   {point.sublabel}
                 </p>
               </div>

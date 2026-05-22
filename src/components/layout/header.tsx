@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { LayoutDashboard, LogOut, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { navLinks } from "@/constants/navigation";
@@ -23,11 +24,15 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
       <div className="container flex h-16 items-center justify-between gap-4">
-        <Link href="/" className="flex items-center gap-3 font-semibold">
-          <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-sm font-bold text-primary-foreground">
-            AVI
-          </span>
-          <span>AVI CERTIFY</span>
+        <Link href="/" className="flex items-center gap-3">
+          <Image
+            src="/assets/photos/logo_avi_certify.png"
+            alt="AVI CERTIFY"
+            width={140}
+            height={36}
+            className="h-9 w-auto"
+            priority
+          />
         </Link>
 
         <nav className="hidden items-center gap-6 text-sm font-medium text-muted-foreground lg:flex">
