@@ -9,11 +9,11 @@ type DocumentStatusCardProps = {
 
 export function DocumentStatusCard({ documents }: DocumentStatusCardProps) {
   return (
-    <article className="rounded-md border bg-background p-5 shadow-sm">
+    <article className="rounded-md border bg-background p-5 shadow-sm md:p-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-sm font-medium text-muted-foreground">Documents</p>
-          <h2 className="mt-2 text-xl font-semibold">Pieces du dossier</h2>
+          <p className="text-sm font-medium text-muted-foreground">Pieces justificatives</p>
+          <h2 className="mt-2 text-xl font-semibold">Documents requis</h2>
         </div>
         <FileText className="h-5 w-5 text-primary" aria-hidden="true" />
       </div>

@@ -20,9 +20,9 @@ function StepIcon({ status }: { status: TimelineStep["status"] }) {
 
 export function ApplicationTimeline({ steps }: ApplicationTimelineProps) {
   return (
-    <article className="rounded-md border bg-background p-5 shadow-sm">
+    <article className="rounded-md border bg-background p-5 shadow-sm md:p-6">
       <div>
-        <p className="text-sm font-medium text-muted-foreground">Timeline</p>
+        <p className="text-sm font-medium text-muted-foreground">Parcours</p>
         <h2 className="mt-2 text-xl font-semibold">Avancement du dossier</h2>
       </div>
 

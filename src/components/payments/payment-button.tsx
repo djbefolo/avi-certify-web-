@@ -124,10 +124,9 @@ export function PaymentButton() {
       <div className="flex h-12 w-12 items-center justify-center rounded-md bg-primary/10">
         <CreditCard className="h-6 w-6 text-primary" aria-hidden="true" />
       </div>
-      <h2 className="mt-5 text-xl font-semibold">Démarrer un paiement</h2>
+      <h2 className="mt-5 text-xl font-semibold">Paiement sécurisé AVI CERTIFY</h2>
       <p className="mt-2 leading-7 text-muted-foreground">
-        Choisissez le service à régler. Le montant est contrôlé côté serveur
-        avant la création de la session Stripe Checkout.
+        Choisissez le service à régler avant d'être redirigé vers Stripe Checkout.
       </p>
 
       <div className="mt-5 grid gap-5">
@@ -188,7 +187,7 @@ export function PaymentButton() {
         ) : null}
 
         {selectedService ? (
-          <div className="rounded-md border bg-muted/25 p-4">
+          <div className="rounded-md border bg-muted/20 p-4">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="font-semibold">{selectedService.label}</p>
@@ -206,7 +205,7 @@ export function PaymentButton() {
           </div>
         ) : null}
 
-        <div className="flex items-start gap-3 rounded-md border bg-muted/25 p-4 text-sm text-muted-foreground">
+        <div className="flex items-start gap-3 rounded-md border border-accent/20 bg-accent/5 p-4 text-sm text-muted-foreground">
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
           <p>
             Vous serez redirigé vers Stripe Checkout. AVI CERTIFY ne stocke pas

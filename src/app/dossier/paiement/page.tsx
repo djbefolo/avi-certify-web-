@@ -85,8 +85,8 @@ export default function PaiementPage() {
 
   return (
     <DashboardLayout
-      title="Paiement"
-      description="Visualisez l'état du dernier paiement rattaché à votre dossier."
+      title="Paiement sécurisé"
+      description="Suivez votre règlement AVI CERTIFY et récupérez votre attestation lorsqu'elle est disponible."
     >
       {errorMessage ? (
         <p className="mb-5 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
@@ -108,10 +108,10 @@ export default function PaiementPage() {
                 <ReceiptText className="h-5 w-5 text-accent" aria-hidden="true" />
               </span>
               <div>
-                <h2 className="text-xl font-semibold">Suivi du paiement</h2>
+                <h2 className="text-xl font-semibold">Suivi financier</h2>
                 <p className="mt-3 leading-7 text-muted-foreground">
-                  Le statut est lu depuis Firestore et mis à jour par le webhook
-                  Stripe lorsqu'un événement de paiement est reçu.
+                  Votre statut de paiement est synchronisé automatiquement après
+                  confirmation par Stripe Checkout.
                 </p>
               </div>
             </div>
@@ -119,7 +119,7 @@ export default function PaiementPage() {
         </div>
 
         {certificate ? (
-          <section className="rounded-md border bg-background p-5 shadow-sm md:p-6">
+          <section className="rounded-md border border-accent/25 bg-accent/5 p-5 shadow-sm md:p-6">
             <div className="flex items-start gap-3">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-accent/10">
                 <CheckCircle2 className="h-5 w-5 text-accent" aria-hidden="true" />

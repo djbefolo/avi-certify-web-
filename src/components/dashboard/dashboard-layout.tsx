@@ -19,12 +19,12 @@ export function DashboardLayout({
 }: DashboardLayoutProps) {
   return (
     <ProtectedRoute>
-      <div className="flex min-h-screen bg-muted/30">
+      <div className="flex min-h-screen bg-muted/20">
         <DashboardSidebar />
         <div className="flex min-w-0 flex-1 flex-col">
           <DashboardHeader title={title} description={description} />
           <DashboardMobileNav />
-          <div className="flex-1 px-4 py-5 md:px-6 md:py-6">{children}</div>
+          <div className="flex-1 px-4 py-6 md:px-8 md:py-8">{children}</div>
         </div>
       </div>
     </ProtectedRoute>

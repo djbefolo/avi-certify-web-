@@ -18,19 +18,19 @@ export const dashboardNavItems: DashboardNavItem[] = [
   {
     href: "/dashboard",
     label: "Vue globale",
-    description: "Synthese du dossier",
+    description: "Centre de controle",
     icon: Home,
   },
   {
     href: "/dossier",
     label: "Dossier",
-    description: "Suivi et etapes",
+    description: "Parcours et etapes",
     icon: FolderKanban,
   },
   {
     href: "/dossier/documents",
-    label: "Documents",
-    description: "Pieces attendues",
+    label: "Pieces",
+    description: "Coffre documentaire",
     icon: FileText,
   },
   {
@@ -42,7 +42,7 @@ export const dashboardNavItems: DashboardNavItem[] = [
   {
     href: "/profil",
     label: "Profil",
-    description: "Informations personnelles",
+    description: "Identite client",
     icon: UserRound,
   },
 ];

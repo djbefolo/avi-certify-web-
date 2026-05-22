@@ -15,7 +15,7 @@ export default function DashboardPage() {
   return (
     <DashboardLayout
       title="Vue globale"
-      description="Suivez les priorites de votre dossier AVI CERTIFY depuis un espace client clair et securise."
+      description="Pilotez vos documents, votre paiement et les prochaines actions depuis un espace client securise."
     >
       <div className="grid gap-5">
         {errorMessage ? (
@@ -25,7 +25,7 @@ export default function DashboardPage() {
         ) : null}
         {loading ? (
           <p className="rounded-md border bg-muted/25 p-3 text-sm text-muted-foreground">
-            Chargement des donnees du dossier...
+            Chargement de votre dossier...
           </p>
         ) : null}
         <DashboardSummary summary={summary} />

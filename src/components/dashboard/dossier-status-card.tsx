@@ -17,10 +17,10 @@ export function DossierStatusCard({
   advisorName,
 }: DossierStatusCardProps) {
   return (
-    <article className="rounded-md border bg-background p-5 shadow-sm">
+    <article className="rounded-md border bg-background p-5 shadow-sm md:p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-medium text-muted-foreground">Statut dossier</p>
+          <p className="text-sm font-medium text-muted-foreground">Etat du dossier</p>
           <h2 className="mt-2 text-xl font-semibold">{currentStep}</h2>
         </div>
         <span
@@ -47,11 +47,11 @@ export function DossierStatusCard({
       </div>
 
       <div className="mt-6 grid gap-3 text-sm">
-        <div className="flex items-center gap-3 rounded-md border bg-muted/25 p-3">
+        <div className="flex items-center gap-3 rounded-md border bg-muted/20 p-3">
           <CheckCircle2 className="h-4 w-4 text-accent" aria-hidden="true" />
           <span>Profil client initialise</span>
         </div>
-        <div className="flex items-center gap-3 rounded-md border bg-muted/25 p-3">
+        <div className="flex items-center gap-3 rounded-md border bg-muted/20 p-3">
           <CircleDashed className="h-4 w-4 text-primary" aria-hidden="true" />
           <span>Conseiller : {advisorName}</span>
         </div>

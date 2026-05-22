@@ -29,8 +29,8 @@ export function DashboardMobileNav() {
               className={cn(
                 "flex min-w-24 flex-col items-center gap-1 rounded-md border px-3 py-2 text-xs font-medium",
                 active
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-input bg-background text-muted-foreground",
+                  ? "border-primary/20 bg-primary/10 text-primary"
+                  : "border-input bg-background text-muted-foreground hover:bg-muted/60",
               )}
             >
               <Icon className="h-4 w-4" aria-hidden="true" />

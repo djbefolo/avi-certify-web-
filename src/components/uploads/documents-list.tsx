@@ -111,9 +111,11 @@ export function DocumentsList({ refreshKey = 0 }: DocumentsListProps) {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-sm font-medium text-muted-foreground">
-            Documents envoyés
+            Documents du dossier
           </p>
-          <h2 className="mt-2 text-xl font-semibold">Pièces de votre dossier</h2>
+          <h2 className="mt-2 text-xl font-semibold">
+            Pièces justificatives et attestations
+          </h2>
         </div>
         <Button
           type="button"
@@ -145,7 +147,7 @@ export function DocumentsList({ refreshKey = 0 }: DocumentsListProps) {
           <FileText className="mx-auto h-8 w-8 text-muted-foreground" />
           <p className="mt-3 font-medium">Aucun document envoyé</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Vos fichiers apparaîtront ici après le premier upload.
+            Vos fichiers apparaîtront ici après le premier dépôt.
           </p>
         </div>
       ) : null}
@@ -153,7 +155,14 @@ export function DocumentsList({ refreshKey = 0 }: DocumentsListProps) {
       {!loading && documents.length > 0 ? (
         <div className="mt-5 grid gap-3">
           {documents.map((document) => (
-            <article key={document.id} className="rounded-md border bg-muted/20 p-4">
+            <article
+              key={document.id}
+              className={cn(
+                "rounded-md border bg-muted/20 p-4",
+                document.status === "generated" &&
+                  "border-accent/25 bg-accent/5 shadow-sm",
+              )}
+            >
               <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">

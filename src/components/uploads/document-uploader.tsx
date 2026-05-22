@@ -150,9 +150,9 @@ export function DocumentUploader({ onDocumentUploaded }: DocumentUploaderProps) 
       <div className="flex h-12 w-12 items-center justify-center rounded-md bg-primary/10">
         <UploadCloud className="h-6 w-6 text-primary" aria-hidden="true" />
       </div>
-      <h2 className="mt-5 text-xl font-semibold">Envoyer un document</h2>
+      <h2 className="mt-5 text-xl font-semibold">Déposer une pièce</h2>
       <p className="mt-2 leading-7 text-muted-foreground">
-        Formats acceptes : PDF, JPG ou PNG. Taille maximale : 5 MB.
+        Formats acceptés : PDF, JPG ou PNG. Taille maximale : 5 MB.
       </p>
 
       <div className="mt-5 grid gap-5">
@@ -215,7 +215,7 @@ export function DocumentUploader({ onDocumentUploaded }: DocumentUploaderProps) 
               <FileUp className="h-5 w-5 text-primary" aria-hidden="true" />
             </span>
             <span className="font-medium">
-              Glissez un fichier ici ou selectionnez-le
+              Glissez un fichier ici ou sélectionnez-le
             </span>
             <span className="text-sm text-muted-foreground">
               PDF, JPG ou PNG jusqu'a {getFileSizeLabel(maxDocumentFileSize)}

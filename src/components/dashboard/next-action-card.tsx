@@ -9,7 +9,7 @@ type NextActionCardProps = {
 
 export function NextActionCard({ action }: NextActionCardProps) {
   return (
-    <article className="rounded-md border bg-primary p-5 text-primary-foreground shadow-sm">
+    <article className="rounded-md border border-primary/20 bg-primary p-5 text-primary-foreground shadow-sm md:p-6">
       <div className="flex items-start gap-3">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary-foreground/10">
           <Sparkles className="h-5 w-5" aria-hidden="true" />
