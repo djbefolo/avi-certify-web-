@@ -53,11 +53,11 @@ export default function ContactPage() {
               <div className="text-center">
                 <div className="inline-block rounded-lg bg-white p-2">
                   <Image
-                    src="/assets/qr-code-whatsapp-avi-certify.png"
+                    src="/assets/photos/QRCODE_AVI_CERTIFY.jpeg"
                     alt="QR Code WhatsApp AVI CERTIFY"
                     width={160}
                     height={160}
-                    className="h-40 w-40"
+                    className="h-40 w-40 rounded-lg"
                   />
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground">
