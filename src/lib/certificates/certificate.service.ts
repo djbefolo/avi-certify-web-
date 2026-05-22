@@ -6,10 +6,12 @@ import {
 } from "@/lib/certificates/certificate-generator";
 import { getAdminAuth, getAdminFirestore, getAdminStorage } from "@/lib/firebase/admin";
 import { selectHousingAddress } from "@/lib/housing/housing-regions";
+import { sendCertificateAvailableEmail } from "@/lib/server/email.service";
 import type { PaymentServiceType } from "@/types/payment";
 
 const CERTIFICATES_COLLECTION = "certificates";
 const DOCUMENTS_COLLECTION = "documents";
+const CLIENT_DOCUMENTS_URL = "https://avi-certify-web.vercel.app/dossier/documents";
 const TARGET_SERVICE_TYPES: PaymentServiceType[] = ["accommodation_certificate"];
 
 type GenerateCertificateParams = {
@@ -24,6 +26,13 @@ type UserProfileData = {
   email: string | null;
   dateOfBirth: string | null;
   birthPlace: string | null;
+};
+
+type CertificateEmailParams = {
+  certificateRef: FirebaseFirestore.DocumentReference;
+  studentFullName: string;
+  recipientEmail: string | null;
+  verificationUrl: string | null;
 };
 
 function getAppUrl() {
@@ -81,6 +90,58 @@ async function getUserProfile(ownerId: string): Promise<UserProfileData> {
   };
 }
 
+async function sendCertificateEmailIfNeeded({
+  certificateRef,
+  studentFullName,
+  recipientEmail,
+  verificationUrl,
+}: CertificateEmailParams) {
+  if (!recipientEmail) {
+    console.info("[certificates] Certificate email skipped: missing recipient.", {
+      certificateId: certificateRef.id,
+    });
+    return false;
+  }
+
+  const snapshot = await certificateRef.get();
+
+  if (snapshot.get("certificateEmailSent") === true) {
+    return false;
+  }
+
+  const sent = await sendCertificateAvailableEmail({
+    recipientEmail,
+    studentFullName,
+    clientSpaceUrl: CLIENT_DOCUMENTS_URL,
+    verificationUrl,
+  });
+
+  if (!sent) {
+    console.warn("[certificates] Certificate email was not sent.", {
+      certificateId: certificateRef.id,
+      recipientEmail,
+    });
+    return false;
+  }
+
+  try {
+    await certificateRef.update({
+      certificateEmailSent: true,
+      certificateEmailSentAt: FieldValue.serverTimestamp(),
+      certificateEmailRecipient: recipientEmail,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+  } catch (error) {
+    console.warn("[certificates] Certificate email sent but metadata update failed.", {
+      certificateId: certificateRef.id,
+      recipientEmail,
+      error,
+    });
+  }
+
+  return true;
+}
+
 export async function generateHousingCertificateForPaidPayment({
   ownerId,
   paymentId,
@@ -96,6 +157,19 @@ export async function generateHousingCertificateForPaidPayment({
   const existingCertificate = await certificateRef.get();
 
   if (existingCertificate.exists) {
+    if (existingCertificate.get("certificateEmailSent") !== true) {
+      const profile = await getUserProfile(ownerId);
+
+      await sendCertificateEmailIfNeeded({
+        certificateRef,
+        studentFullName:
+          getStringField(existingCertificate.get("studentFullName")) ??
+          profile.fullName,
+        recipientEmail: profile.email,
+        verificationUrl: getStringField(existingCertificate.get("verificationUrl")),
+      });
+    }
+
     return { generated: false, reason: "certificate_already_exists" };
   }
 
@@ -189,6 +263,13 @@ export async function generateHousingCertificateForPaidPayment({
     },
     { merge: true },
   );
+
+  await sendCertificateEmailIfNeeded({
+    certificateRef,
+    studentFullName: profile.fullName,
+    recipientEmail: profile.email,
+    verificationUrl,
+  });
 
   return { generated: true, certificateId: paymentId };
 }

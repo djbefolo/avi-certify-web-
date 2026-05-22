@@ -10,6 +10,10 @@ import {
   renderAuthWelcomeEmail,
   type AuthWelcomeEmailInput,
 } from "@/lib/email/templates/auth-welcome";
+import {
+  renderCertificateAvailableEmail,
+  type CertificateAvailableEmailInput,
+} from "@/lib/email/templates/certificate-available";
 import { renderDocumentReceivedEmail } from "@/lib/email/templates/document-received";
 import { renderLeadConfirmationEmail } from "@/lib/email/templates/lead-confirmation";
 import { renderPaymentStartedEmail } from "@/lib/email/templates/payment-started";
@@ -115,5 +119,15 @@ export async function sendPaymentStartedEmail(
     to: payment.recipientEmail ?? null,
     template: renderPaymentStartedEmail(payment),
     context: "payment started",
+  });
+}
+
+export async function sendCertificateAvailableEmail(
+  certificate: CertificateAvailableEmailInput & { recipientEmail?: string | null },
+): Promise<boolean> {
+  return sendEmailSafely({
+    to: certificate.recipientEmail ?? null,
+    template: renderCertificateAvailableEmail(certificate),
+    context: "certificate available",
   });
 }
