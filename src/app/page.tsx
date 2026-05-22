@@ -18,6 +18,7 @@ import { TrackedCtaLink } from "@/components/analytics/tracked-cta-link";
 import { LeadFormSection } from "@/components/marketing/lead-form-section";
 import { SectionHeading } from "@/components/marketing/section-heading";
 import { ServiceCard } from "@/components/marketing/service-card";
+import { TestimonialsCarousel } from "@/components/marketing/testimonials-carousel";
 import { TrustBanner } from "@/components/marketing/trust-banner";
 import { Button } from "@/components/ui/button";
 import { services } from "@/constants/services";
@@ -86,7 +87,7 @@ export default function HomePage() {
               </Button>
               <Button size="lg" variant="outline" className="text-base" asChild>
                 <a
-                  href="https://wa.me/REPLACE_WITH_PHONE"
+                  href="https://wa.me/message/XOKRBYI3ZEQBM1"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -266,7 +267,7 @@ export default function HomePage() {
             <div className="mt-8 space-y-4">
               <Button size="lg" variant="cta" className="w-full text-base sm:w-auto" asChild>
                 <a
-                  href="https://wa.me/REPLACE_WITH_PHONE"
+                  href="https://wa.me/message/XOKRBYI3ZEQBM1"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -304,28 +305,32 @@ export default function HomePage() {
                 sizes="(max-width: 1200px) 100vw, 1200px"
               />
             </div>
-            <div className="p-8 text-center">
-              <p className="text-sm font-medium text-muted-foreground">
-                Profil LinkedIn à intégrer • Accompagnement structuré et vérifiable
+            <div className="p-8">
+              <div className="flex items-center justify-center gap-4">
+                <div className="rounded-lg border bg-muted/30 px-4 py-2">
+                  <p className="text-sm font-semibold text-muted-foreground">
+                    Présence professionnelle vérifiable
+                  </p>
+                </div>
+                <a
+                  href="https://www.linkedin.com/in/gabriel-emmanuel-befolo-nkoa/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-lg border bg-background px-4 py-2 text-sm font-medium transition-colors hover:border-accent hover:bg-accent/5"
+                >
+                  <Linkedin className="h-4 w-4 text-primary" aria-hidden="true" />
+                  <span>LinkedIn professionnel du fondateur</span>
+                </a>
+              </div>
+              <p className="mt-4 text-center text-sm text-muted-foreground">
+                Gabriel Emmanuel Befolo Nkoa
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="container py-16 md:py-24">
-        <div className="mx-auto max-w-3xl text-center">
-          <p className="text-sm font-semibold uppercase tracking-wider text-accent">Témoignages</p>
-          <h2 className="mt-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-            Ce que disent les étudiants accompagnés
-          </h2>
-          <div className="mt-12 rounded-lg border bg-muted/30 p-8">
-            <p className="text-sm italic text-muted-foreground">
-              Section témoignages en préparation • Témoignages étudiants validés à intégrer
-            </p>
-          </div>
-        </div>
-      </section>
+      <TestimonialsCarousel />
 
       <section className="border-y bg-gradient-to-br from-muted/40 via-accent/5 to-muted/40">
         <div className="container py-16 md:py-20">

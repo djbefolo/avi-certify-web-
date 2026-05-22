@@ -97,3 +97,26 @@ body {
     animation: none;
   }
 }
+
+@keyframes testimonials-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.testimonials-scroll {
+  animation: testimonials-scroll 90s linear infinite;
+}
+
+.testimonials-scroll:hover {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .testimonials-scroll {
+    animation: none;
+  }
+}

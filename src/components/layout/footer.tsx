@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Shield, Mail, Building2, MessageCircle, Facebook, Instagram, Linkedin } from "lucide-react";
+import { InstitutionalTrust } from "@/components/layout/institutional-trust";
 import { navLinks } from "@/constants/navigation";
 
 export function Footer() {
@@ -8,6 +9,7 @@ export function Footer() {
 
   return (
     <footer className="border-t bg-gradient-to-b from-primary to-primary-dark text-white">
+      <InstitutionalTrust />
       <div className="container grid gap-10 py-12 md:grid-cols-[1.2fr_0.9fr_0.9fr] md:py-16">
         <div>
           <Link
@@ -78,7 +80,7 @@ export function Footer() {
           <div className="mt-6 border-t border-white/10 pt-6">
             <p className="text-sm font-semibold text-accent-light">Contact direct</p>
             <a
-              href="https://wa.me/REPLACE_WITH_PHONE"
+              href="https://wa.me/message/XOKRBYI3ZEQBM1"
               target="_blank"
               rel="noopener noreferrer"
               className="mt-3 inline-flex items-center gap-2 text-sm text-gray-300 transition-colors hover:text-white"
