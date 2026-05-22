@@ -14,6 +14,7 @@ import {
   Clock,
 } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { TrackedCtaLink } from "@/components/analytics/tracked-cta-link";
 import { LeadFormSection } from "@/components/marketing/lead-form-section";
 import { SectionHeading } from "@/components/marketing/section-heading";
@@ -32,11 +33,11 @@ export const metadata = createPageMetadata({
 });
 
 const processSteps = [
-  "Créez votre dossier",
-  "Déposez vos informations",
-  "Payez ou planifiez votre dépôt",
-  "Recevez vos documents",
-  "Suivez votre départ",
+  { title: "Créez votre dossier", helper: "Inscription et qualification", href: "/inscription" },
+  { title: "Déposez vos informations", helper: "Documents et pièces justificatives", href: "/dossier" },
+  { title: "Payez ou planifiez votre dépôt", helper: "Paiement sécurisé", href: "/dossier/paiement" },
+  { title: "Recevez vos documents", helper: "Attestations et certificats", href: "/dossier/documents" },
+  { title: "Suivez votre départ", helper: "Suivi et accompagnement", href: "/dashboard" },
 ];
 
 const studentJourneySteps = [
@@ -44,16 +45,19 @@ const studentJourneySteps = [
     icon: GraduationCap,
     title: "Admission obtenue",
     description: "Vous avez votre lettre d'admission, mais le parcours administratif commence.",
+    href: "/parcours/qualification",
   },
   {
     icon: FileCheck2,
     title: "Documents à préparer",
     description: "AVI, justificatif d'hébergement, ressources financières : chaque pièce doit être cohérente.",
+    href: "/parcours/pieces",
   },
   {
     icon: ShieldCheck,
     title: "Dossier consulaire",
     description: "Campus France, rendez-vous visa : le moindre manque peut retarder votre projet.",
+    href: "/services/accompagnement-visa",
   },
 ];
 
@@ -138,41 +142,51 @@ export default function HomePage() {
 
       <TrustBanner />
 
-      <section className="border-b bg-muted/30">
-        <div className="container py-16 md:py-24">
+      <section className="relative overflow-hidden border-b">
+        <div className="absolute inset-0">
+          <Image
+            src="/assets/photos/sorbonne-univertsity-beautifull.jpg"
+            alt="Université Sorbonne Paris"
+            fill
+            className="object-cover"
+            sizes="100vw"
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/95 via-primary/90 to-primary-dark/95" />
+        </div>
+        <div className="container relative py-16 md:py-24">
           <div className="mx-auto max-w-3xl text-center">
-            <p className="text-sm font-semibold uppercase tracking-wider text-accent">Le parcours étudiant</p>
-            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
+            <p className="text-sm font-semibold uppercase tracking-wider text-accent-light">Le parcours étudiant</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
               Admission obtenue. Maintenant, le dossier administratif.
             </h2>
-            <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
+            <p className="mt-4 text-lg leading-relaxed text-gray-300">
               Entre l'acceptation de l'université et le départ, le parcours administratif peut créer du stress. AVI CERTIFY structure chaque étape.
             </p>
           </div>
           <div className="mt-12 grid gap-6 md:grid-cols-3">
             {studentJourneySteps.map((step, index) => (
-              <div key={step.title} className="relative rounded-lg border bg-background p-6 shadow-sm">
+              <Link
+                key={step.title}
+                href={step.href}
+                className="group relative overflow-hidden rounded-lg border border-white/20 bg-white/10 p-6 shadow-lg backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:bg-white/20 hover:shadow-xl"
+              >
                 <div className="mb-4 flex items-center gap-4">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                    <step.icon className="h-6 w-6 text-primary" aria-hidden="true" />
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-accent/20 transition-colors duration-300 group-hover:bg-accent/30">
+                    <step.icon className="h-6 w-6 text-accent-light" aria-hidden="true" />
                   </div>
-                  <span className="text-sm font-bold text-muted-foreground">Étape {index + 1}</span>
+                  <span className="text-sm font-bold text-accent-light">Étape {index + 1}</span>
                 </div>
-                <h3 className="text-xl font-semibold">{step.title}</h3>
-                <p className="mt-3 leading-relaxed text-muted-foreground">{step.description}</p>
-              </div>
+                <h3 className="text-xl font-semibold text-white">{step.title}</h3>
+                <p className="mt-3 leading-relaxed text-gray-300">{step.description}</p>
+                <span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-accent-light">
+                  En savoir plus
+                  <ArrowRight
+                    className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"
+                    aria-hidden="true"
+                  />
+                </span>
+              </Link>
             ))}
-          </div>
-          <div className="mt-12 overflow-hidden rounded-lg border shadow-lg">
-            <div className="relative aspect-[21/9]">
-              <Image
-                src="/assets/photos/fill-form-student-visa.jpg"
-                alt="Préparation du dossier de visa étudiant"
-                fill
-                className="object-cover"
-                sizes="(max-width: 1200px) 100vw, 1200px"
-              />
-            </div>
           </div>
         </div>
       </section>
@@ -201,15 +215,23 @@ export default function HomePage() {
           </div>
           <div className="grid gap-4">
             {processSteps.map((step, index) => (
-              <div
-                key={step}
-                className="flex items-center gap-4 rounded-lg border bg-background p-5 shadow-sm transition-shadow hover:shadow-md"
+              <Link
+                key={step.title}
+                href={step.href}
+                className="group flex items-center gap-4 rounded-lg border bg-background p-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md hover:border-primary/30"
               >
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground transition-colors duration-300 group-hover:bg-primary-dark">
                   {index + 1}
                 </span>
-                <p className="font-medium">{step}</p>
-              </div>
+                <div className="flex-1">
+                  <p className="font-medium">{step.title}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{step.helper}</p>
+                </div>
+                <ArrowRight
+                  className="h-5 w-5 text-muted-foreground transition-all duration-300 group-hover:translate-x-1 group-hover:text-primary"
+                  aria-hidden="true"
+                />
+              </Link>
             ))}
           </div>
         </div>
@@ -221,25 +243,42 @@ export default function HomePage() {
             icon: FileCheck2,
             title: "Dossier clarifié",
             text: "Les informations importantes sont structurées pour limiter les oublis et accélérer le traitement.",
+            href: "/a-propos/mission",
           },
           {
             icon: Building2,
             title: "Présence internationale",
             text: "Un accompagnement pensé pour les étudiants d'Afrique francophone visant l'Europe.",
+            href: "/a-propos/vision",
           },
           {
             icon: ShieldCheck,
             title: "Sécurité documentaire",
             text: "Les pièces sensibles sont déposées dans un espace client protégé et contrôlé.",
+            href: "/a-propos/confiance",
           },
         ].map((item) => (
-          <div key={item.title} className="rounded-lg border bg-muted/30 p-6 shadow-sm">
-            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10">
-              <item.icon className="h-6 w-6 text-primary" aria-hidden="true" />
+          <Link
+            key={item.title}
+            href={item.href}
+            className="group relative overflow-hidden rounded-lg border bg-muted/30 p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-primary/30"
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+            <div className="relative">
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 transition-colors duration-300 group-hover:bg-primary/20">
+                <item.icon className="h-6 w-6 text-primary" aria-hidden="true" />
+              </div>
+              <h3 className="mt-5 text-xl font-semibold">{item.title}</h3>
+              <p className="mt-3 leading-relaxed text-muted-foreground">{item.text}</p>
+              <span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary">
+                En savoir plus
+                <ArrowRight
+                  className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"
+                  aria-hidden="true"
+                />
+              </span>
             </div>
-            <h3 className="mt-5 text-xl font-semibold">{item.title}</h3>
-            <p className="mt-3 leading-relaxed text-muted-foreground">{item.text}</p>
-          </div>
+          </Link>
         ))}
       </section>
 
@@ -322,9 +361,6 @@ export default function HomePage() {
                   <span>LinkedIn professionnel du fondateur</span>
                 </a>
               </div>
-              <p className="mt-4 text-center text-sm text-muted-foreground">
-                Gabriel Emmanuel Befolo Nkoa
-              </p>
             </div>
           </div>
         </div>
