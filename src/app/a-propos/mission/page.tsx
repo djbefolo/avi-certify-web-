@@ -1,18 +1,14 @@
+"use client";
+
 import Image from "next/image";
-import Link from "next/link";
 import { ArrowRight, Target, Users, Globe } from "lucide-react";
 import { PageHeader } from "@/components/marketing/page-header";
+import { AuthAwareLink } from "@/components/navigation/auth-aware-link";
 import { Button } from "@/components/ui/button";
-import { createPageMetadata } from "@/lib/seo/metadata";
-
-export const metadata = createPageMetadata({
-  title: "Notre mission",
-  description:
-    "Simplifier les démarches financières et documentaires des étudiants qui préparent une mobilité internationale.",
-  path: "/a-propos/mission",
-});
+import { useAuth } from "@/hooks/use-auth";
 
 export default function MissionPage() {
+  const { isAuthenticated } = useAuth();
   return (
     <>
       <PageHeader
@@ -63,10 +59,13 @@ export default function MissionPage() {
 
           <div className="mt-8">
             <Button size="lg" variant="cta" asChild>
-              <Link href="/contact">
-                Commencer mon dossier
+              <AuthAwareLink
+                authenticatedHref="/dashboard"
+                unauthenticatedHref="/inscription"
+              >
+                {isAuthenticated ? "Accéder à mon espace" : "Créer mon espace étudiant"}
                 <ArrowRight className="h-4 w-4" aria-hidden="true" />
-              </Link>
+              </AuthAwareLink>
             </Button>
           </div>
         </div>

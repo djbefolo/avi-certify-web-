@@ -8,9 +8,9 @@ export function Footer() {
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="border-t bg-primary-dark text-white">
+    <footer className="border-t text-white">
       <InstitutionalTrust />
-      <div className="bg-gradient-to-b from-primary-dark to-primary">
+      <div className="bg-[hsl(222,72%,12%)]">
         <div className="container grid gap-10 py-12 md:grid-cols-[1.2fr_0.9fr_0.9fr] md:py-16">
         <div>
           <Link
@@ -162,8 +162,8 @@ export function Footer() {
       </div>
       </div>
 
-      <div className="border-t border-white/10 bg-primary-dark">
-        <div className="container flex flex-col gap-2 py-5 text-sm text-gray-400 sm:flex-row sm:items-center sm:justify-between">
+      <div className="border-t border-white/10 bg-[hsl(222,72%,10%)]">
+        <div className="container flex flex-col gap-2 py-5 text-sm text-gray-300 sm:flex-row sm:items-center sm:justify-between">
           <p>© {currentYear} AVI CERTIFY. Tous droits réservés.</p>
           <p className="text-xs">
             Service d'accompagnement étudiant et mobilité internationale

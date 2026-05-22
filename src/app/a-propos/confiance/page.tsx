@@ -1,18 +1,14 @@
+"use client";
+
 import Image from "next/image";
-import Link from "next/link";
 import { ArrowRight, Building2, FileCheck, Lock, Scale } from "lucide-react";
 import { PageHeader } from "@/components/marketing/page-header";
+import { AuthAwareLink } from "@/components/navigation/auth-aware-link";
 import { Button } from "@/components/ui/button";
-import { createPageMetadata } from "@/lib/seo/metadata";
-
-export const metadata = createPageMetadata({
-  title: "Confiance et conformité",
-  description:
-    "Mettre l'accent sur la clarté, la conformité et la protection des informations sensibles.",
-  path: "/a-propos/confiance",
-});
+import { useAuth } from "@/hooks/use-auth";
 
 export default function ConfiancePage() {
+  const { isAuthenticated } = useAuth();
   return (
     <>
       <PageHeader
@@ -73,12 +69,15 @@ export default function ConfiancePage() {
 
           <div className="mt-8 space-y-4">
             <Button size="lg" variant="cta" asChild>
-              <Link href="/contact">
-                Commencer en confiance
+              <AuthAwareLink
+                authenticatedHref="/dossier/documents"
+                unauthenticatedHref="/inscription"
+              >
+                {isAuthenticated ? "Ouvrir mon coffre documentaire" : "Déposer mes documents"}
                 <ArrowRight className="h-4 w-4" aria-hidden="true" />
-              </Link>
+              </AuthAwareLink>
             </Button>
-            <div className="flex gap-4 text-sm">
+            <div className="flex flex-wrap gap-4 text-sm">
               <a
                 href="https://www.orias.fr"
                 target="_blank"

@@ -1,18 +1,14 @@
+"use client";
+
 import Image from "next/image";
-import Link from "next/link";
 import { ArrowRight, Lightbulb, Shield, Smartphone } from "lucide-react";
 import { PageHeader } from "@/components/marketing/page-header";
+import { AuthAwareLink } from "@/components/navigation/auth-aware-link";
 import { Button } from "@/components/ui/button";
-import { createPageMetadata } from "@/lib/seo/metadata";
-
-export const metadata = createPageMetadata({
-  title: "Notre vision",
-  description:
-    "Créer une plateforme fiable où chaque étudiant peut suivre son dossier et comprendre les prochaines étapes.",
-  path: "/a-propos/vision",
-});
+import { useAuth } from "@/hooks/use-auth";
 
 export default function VisionPage() {
+  const { isAuthenticated } = useAuth();
   return (
     <>
       <PageHeader
@@ -50,11 +46,14 @@ export default function VisionPage() {
           </div>
 
           <div className="mt-8">
-            <Button size="lg" variant="outline" asChild>
-              <Link href="/comment-ca-marche">
-                Découvrir le parcours
+            <Button size="lg" variant="cta" asChild>
+              <AuthAwareLink
+                authenticatedHref="/dossier"
+                unauthenticatedHref="/services"
+              >
+                {isAuthenticated ? "Continuer mon dossier" : "Découvrir nos services"}
                 <ArrowRight className="h-4 w-4" aria-hidden="true" />
-              </Link>
+              </AuthAwareLink>
             </Button>
           </div>
         </div>

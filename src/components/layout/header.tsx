@@ -49,22 +49,72 @@ export function Header() {
 
         {isAuthenticated ? (
           <div className="hidden items-center gap-2 lg:flex">
-            <Button variant="ghost" asChild>
-              <Link href="/dashboard">
+            <div className="group relative">
+              <Button variant="ghost">
                 <LayoutDashboard className="h-4 w-4" aria-hidden="true" />
-                Tableau de bord
-              </Link>
-            </Button>
-            <Button variant="outline" type="button" onClick={handleLogout}>
-              <LogOut className="h-4 w-4" aria-hidden="true" />
-              Sortir
-            </Button>
+                Mon espace
+              </Button>
+              <div className="invisible absolute right-0 top-full z-50 mt-2 w-48 rounded-lg border bg-background py-2 shadow-lg opacity-0 transition-all duration-200 group-hover:visible group-hover:opacity-100">
+                <Link
+                  href="/dashboard"
+                  className="block px-4 py-2 text-sm transition-colors hover:bg-muted"
+                >
+                  Dashboard
+                </Link>
+                <Link
+                  href="/profil"
+                  className="block px-4 py-2 text-sm transition-colors hover:bg-muted"
+                >
+                  Profil
+                </Link>
+                <Link
+                  href="/dossier/documents"
+                  className="block px-4 py-2 text-sm transition-colors hover:bg-muted"
+                >
+                  Mes documents
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="w-full px-4 py-2 text-left text-sm transition-colors hover:bg-muted"
+                >
+                  Déconnexion
+                </button>
+              </div>
+            </div>
           </div>
         ) : (
           <div className="hidden items-center gap-2 lg:flex">
-            <Button variant="ghost" asChild>
-              <Link href="/connexion">Se connecter</Link>
-            </Button>
+            <div className="group relative">
+              <Button variant="ghost">
+                Compte
+              </Button>
+              <div className="invisible absolute right-0 top-full z-50 mt-2 w-48 rounded-lg border bg-background py-2 shadow-lg opacity-0 transition-all duration-200 group-hover:visible group-hover:opacity-100">
+                <Link
+                  href="/connexion"
+                  className="block px-4 py-2 text-sm transition-colors hover:bg-muted"
+                >
+                  Se connecter
+                </Link>
+                <Link
+                  href="/inscription"
+                  className="block px-4 py-2 text-sm transition-colors hover:bg-muted"
+                >
+                  Créer un compte
+                </Link>
+                <Link
+                  href="/mot-de-passe-oublie"
+                  className="block px-4 py-2 text-sm transition-colors hover:bg-muted"
+                >
+                  Mot de passe oublié
+                </Link>
+                <Link
+                  href="/verification-email"
+                  className="block px-4 py-2 text-sm transition-colors hover:bg-muted"
+                >
+                  Vérification email
+                </Link>
+              </div>
+            </div>
             <Button variant="cta" asChild>
               <Link
                 href="/contact"
