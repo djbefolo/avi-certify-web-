@@ -6,10 +6,13 @@ import {
   formatPaymentAmount,
   paymentServiceOptions,
 } from "@/constants/payments";
-import { housingRegions, type HousingRegionCode } from "@/lib/housing/housing-regions";
-import type { PaymentServiceType } from "@/types/payment";
 import { useAuth } from "@/hooks/use-auth";
 import { useAnalytics } from "@/hooks/use-analytics";
+import {
+  housingRegions,
+  type HousingRegionCode,
+} from "@/lib/housing/housing-regions";
+import type { PaymentServiceType } from "@/types/payment";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
@@ -23,7 +26,7 @@ type CheckoutResponse = {
 function getErrorMessage(error: unknown) {
   return error instanceof Error
     ? error.message
-    : "Impossible de demarrer le paiement pour le moment.";
+    : "Impossible de démarrer le paiement pour le moment.";
 }
 
 async function parseCheckoutError(response: Response) {
@@ -32,13 +35,13 @@ async function parseCheckoutError(response: Response) {
     | null;
 
   if (payload?.error === "EMAIL_NOT_VERIFIED") {
-    return "Verification email requise. Veuillez confirmer votre adresse email avant de demarrer un paiement.";
+    return "Vérification email requise. Veuillez confirmer votre adresse email avant de démarrer un paiement.";
   }
 
   return (
     payload?.message ??
     payload?.error ??
-    "Impossible de demarrer le paiement pour le moment. Veuillez reessayer."
+    "Impossible de démarrer le paiement pour le moment. Veuillez réessayer."
   );
 }
 
@@ -49,13 +52,13 @@ export function PaymentButton() {
   const [serviceType, setServiceType] = useState<PaymentServiceType>(
     "avi_support",
   );
-  const [housingRegion, setHousingRegion] =
-    useState<HousingRegionCode>("ile_de_france");
+  const [housingRegion, setHousingRegion] = useState<HousingRegionCode | "">("");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const selectedService = paymentServiceOptions.find(
     (service) => service.type === serviceType,
   );
+  const requiresHousingRegion = serviceType === "accommodation_certificate";
 
   const startCheckout = async () => {
     if (submitLockRef.current) {
@@ -68,12 +71,18 @@ export function PaymentButton() {
 
     try {
       if (!user) {
-        throw new Error("Vous devez etre connecte pour payer.");
+        throw new Error("Vous devez être connecté pour payer.");
       }
 
       if (!isEmailVerified) {
         throw new Error(
-          "Verification email requise. Veuillez confirmer votre adresse email avant de demarrer un paiement.",
+          "Vérification email requise. Veuillez confirmer votre adresse email avant de démarrer un paiement.",
+        );
+      }
+
+      if (requiresHousingRegion && !housingRegion) {
+        throw new Error(
+          "Sélectionnez une région académique pour l'attestation d'hébergement.",
         );
       }
 
@@ -87,7 +96,7 @@ export function PaymentButton() {
         },
         body: JSON.stringify({
           serviceType,
-          ...(serviceType === "accommodation_certificate" ? { housingRegion } : {}),
+          ...(requiresHousingRegion ? { housingRegion } : {}),
         }),
       });
 
@@ -98,7 +107,7 @@ export function PaymentButton() {
       const payload = (await response.json()) as CheckoutResponse;
 
       if (!payload.checkoutUrl) {
-        throw new Error("Stripe n'a pas retourne d'URL de paiement.");
+        throw new Error("Stripe n'a pas retourné d'URL de paiement.");
       }
 
       trackCheckoutStarted(serviceType);
@@ -115,10 +124,10 @@ export function PaymentButton() {
       <div className="flex h-12 w-12 items-center justify-center rounded-md bg-primary/10">
         <CreditCard className="h-6 w-6 text-primary" aria-hidden="true" />
       </div>
-      <h2 className="mt-5 text-xl font-semibold">Demarrer un paiement</h2>
+      <h2 className="mt-5 text-xl font-semibold">Démarrer un paiement</h2>
       <p className="mt-2 leading-7 text-muted-foreground">
-        Choisissez le service a regler. Le montant est controle cote serveur
-        avant la creation de la session Stripe Checkout.
+        Choisissez le service à régler. Le montant est contrôlé côté serveur
+        avant la création de la session Stripe Checkout.
       </p>
 
       <div className="mt-5 grid gap-5">
@@ -138,9 +147,14 @@ export function PaymentButton() {
             id="payment-service"
             value={serviceType}
             disabled={isLoading}
-            onChange={(event) =>
-              setServiceType(event.target.value as PaymentServiceType)
-            }
+            onChange={(event) => {
+              const nextServiceType = event.target.value as PaymentServiceType;
+
+              setServiceType(nextServiceType);
+              if (nextServiceType !== "accommodation_certificate") {
+                setHousingRegion("");
+              }
+            }}
           >
             {paymentServiceOptions.map((service) => (
               <option key={service.type} value={service.type}>
@@ -150,6 +164,28 @@ export function PaymentButton() {
             ))}
           </Select>
         </div>
+
+        {requiresHousingRegion ? (
+          <div className="grid gap-2">
+            <Label htmlFor="housing-region">Région académique</Label>
+            <Select
+              id="housing-region"
+              value={housingRegion}
+              required
+              disabled={isLoading}
+              onChange={(event) =>
+                setHousingRegion(event.target.value as HousingRegionCode)
+              }
+            >
+              <option value="">Sélectionner une région</option>
+              {housingRegions.map((region) => (
+                <option key={region.code} value={region.code}>
+                  {region.label}
+                </option>
+              ))}
+            </Select>
+          </div>
+        ) : null}
 
         {selectedService ? (
           <div className="rounded-md border bg-muted/25 p-4">
@@ -170,30 +206,10 @@ export function PaymentButton() {
           </div>
         ) : null}
 
-        {serviceType === "accommodation_certificate" ? (
-          <div className="grid gap-2">
-            <Label htmlFor="housing-region">Région académique</Label>
-            <Select
-              id="housing-region"
-              value={housingRegion}
-              disabled={isLoading}
-              onChange={(event) =>
-                setHousingRegion(event.target.value as HousingRegionCode)
-              }
-            >
-              {housingRegions.map((region) => (
-                <option key={region.code} value={region.code}>
-                  {region.label}
-                </option>
-              ))}
-            </Select>
-          </div>
-        ) : null}
-
         <div className="flex items-start gap-3 rounded-md border bg-muted/25 p-4 text-sm text-muted-foreground">
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
           <p>
-            Vous serez redirige vers Stripe Checkout. AVI CERTIFY ne stocke pas
+            Vous serez redirigé vers Stripe Checkout. AVI CERTIFY ne stocke pas
             vos informations de carte bancaire.
           </p>
         </div>
@@ -210,7 +226,7 @@ export function PaymentButton() {
           ) : (
             <CreditCard className="h-4 w-4" aria-hidden="true" />
           )}
-          {isLoading ? "Redirection..." : "Proceder au paiement"}
+          {isLoading ? "Redirection..." : "Procéder au paiement"}
         </Button>
       </div>
     </section>
