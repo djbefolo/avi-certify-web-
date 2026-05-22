@@ -3,8 +3,8 @@ import type { HousingInventoryAddress } from "@/lib/housing/housing-regions";
 export type HousingCertificateTemplateData = {
   certificateNumber: string;
   studentFullName: string;
-  dateOfBirth: string;
-  birthPlace: string;
+  dateOfBirth: string | null;
+  birthPlace: string | null;
   housing: HousingInventoryAddress;
   entryDate: string;
   durationMonths: number;
@@ -12,13 +12,29 @@ export type HousingCertificateTemplateData = {
   verificationUrl: string;
 };
 
+function getStudentIdentityText(data: HousingCertificateTemplateData) {
+  if (data.dateOfBirth && data.birthPlace) {
+    return `${data.studentFullName}, né(e) le ${data.dateOfBirth} à ${data.birthPlace}, bénéficiera d’un hébergement dans l’un des logements proposés par AVI CERTIFY, situé à l’adresse suivante :`;
+  }
+
+  if (data.dateOfBirth) {
+    return `${data.studentFullName}, né(e) le ${data.dateOfBirth}, bénéficiera d’un hébergement dans l’un des logements proposés par AVI CERTIFY, situé à l’adresse suivante :`;
+  }
+
+  if (data.birthPlace) {
+    return `${data.studentFullName}, né(e) à ${data.birthPlace}, bénéficiera d’un hébergement dans l’un des logements proposés par AVI CERTIFY, situé à l’adresse suivante :`;
+  }
+
+  return `${data.studentFullName} bénéficiera d’un hébergement dans l’un des logements proposés par AVI CERTIFY, situé à l’adresse suivante :`;
+}
+
 export function getHousingCertificateParagraphs(
   data: HousingCertificateTemplateData,
 ) {
   return [
     "AVI CERTIFY est une société par actions simplifiée au capital social de 10 000 euros, spécialisée dans l’accompagnement des étudiants internationaux dans leurs démarches administratives, financières et leur installation étudiante en France.",
-    "Nous soussignés, AVI CERTIFY, Société par actions simplifiée immatriculée au RCS de Besançon sous le numéro 942 370 545, dont le siège social est situé 75 Rue de Besançon, 25300 Pontarlier (France), agissant en qualité de Courtier en Opérations de Banque et Services de Paiement (COBSP), enregistré à l’ORIAS sous le n° 25005516 – www.orias.fr, attestons sur l’honneur que :",
-    `${data.studentFullName}, né(e) le ${data.dateOfBirth} à ${data.birthPlace}, logera dans l’un des logements proposés par AVI CERTIFY situé à l’adresse suivante :`,
+    "Nous soussignés, AVI CERTIFY, société par actions simplifiée immatriculée au RCS de Besançon sous le numéro 942 370 545, dont le siège social est situé 75 Rue de Besançon, 25300 Pontarlier (France), agissant en qualité de Courtier en Opérations de Banque et Services de Paiement (COBSP), enregistré à l’ORIAS sous le n° 25005516 – www.orias.fr, attestons sur l’honneur que :",
+    getStudentIdentityText(data),
     data.housing.fullAddress,
     `au loyer mensuel de ${data.housing.rent} €.`,
     `La date d’entrée envisagée est le ${data.entryDate}, avec une durée de location estimée de ${data.durationMonths} mois, dans des conditions normales d’installation et sous réserve de disponibilité au moment de l’entrée dans les lieux.`,

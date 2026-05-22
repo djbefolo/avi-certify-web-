@@ -22,8 +22,8 @@ type GenerateCertificateParams = {
 type UserProfileData = {
   fullName: string;
   email: string | null;
-  dateOfBirth: string;
-  birthPlace: string;
+  dateOfBirth: string | null;
+  birthPlace: string | null;
 };
 
 function getAppUrl() {
@@ -76,8 +76,8 @@ async function getUserProfile(ownerId: string): Promise<UserProfileData> {
   return {
     fullName,
     email: getStringField(profile?.email) ?? getStringField(userRecord?.email),
-    dateOfBirth: getStringField(profile?.dateOfBirth) ?? "Non renseigné",
-    birthPlace: getStringField(profile?.birthPlace) ?? "Non renseigné",
+    dateOfBirth: getStringField(profile?.dateOfBirth),
+    birthPlace: getStringField(profile?.birthPlace),
   };
 }
 
@@ -140,8 +140,8 @@ export async function generateHousingCertificateForPaidPayment({
     certificateType: "housing_accommodation",
     certificateNumber,
     studentFullName: profile.fullName,
-    dateOfBirth: profile.dateOfBirth,
-    birthPlace: profile.birthPlace,
+    ...(profile.dateOfBirth ? { dateOfBirth: profile.dateOfBirth } : {}),
+    ...(profile.birthPlace ? { birthPlace: profile.birthPlace } : {}),
     housingRegion: housing.region,
     housingAddress: housing.fullAddress,
     city: housing.city,
