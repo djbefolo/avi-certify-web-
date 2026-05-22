@@ -3,26 +3,53 @@
 @tailwind utilities;
 
 :root {
-  --background: 0 0% 100%;
-  --foreground: 222 32% 10%;
-  --card: 0 0% 100%;
-  --card-foreground: 222 32% 10%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 222 32% 10%;
-  --primary: 216 82% 35%;
+  /* Institutional Navy - Authority & Structure */
+  --primary: 222 64% 15%; /* #0F1F3D - Deep navy */
+  --primary-light: 222 57% 22%; /* #1A2F52 */
+  --primary-dark: 222 72% 10%; /* #0A1428 */
   --primary-foreground: 0 0% 100%;
-  --secondary: 44 75% 95%;
-  --secondary-foreground: 222 32% 10%;
-  --muted: 210 28% 96%;
-  --muted-foreground: 220 12% 43%;
-  --accent: 151 48% 39%;
+
+  /* Professional Blue - Information & Trust */
+  --secondary: 217 91% 60%; /* #2563EB - Institutional blue */
+  --secondary-light: 221 83% 68%; /* #3B82F6 */
+  --secondary-dark: 224 76% 48%; /* #1E40AF */
+  --secondary-foreground: 0 0% 100%;
+
+  /* Premium Green - Validation & CTA */
+  --accent: 160 84% 39%; /* #059669 - Secure green */
+  --accent-light: 160 84% 45%; /* #10B981 */
+  --accent-dark: 160 100% 33%; /* #047857 */
   --accent-foreground: 0 0% 100%;
+
+  /* Neutral Surfaces */
+  --background: 0 0% 100%; /* #FFFFFF */
+  --surface: 220 14% 98%; /* #F9FAFB */
+  --muted: 220 14% 96%; /* #F3F4F6 */
+  --muted-foreground: 217 10% 44%; /* #6B7280 */
+
+  /* Text Hierarchy */
+  --foreground: 220 26% 10%; /* #111827 */
+  --text-secondary: 218 11% 33%; /* #4B5563 */
+
+  /* UI Elements */
+  --card: 0 0% 100%;
+  --card-foreground: 220 26% 10%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 220 26% 10%;
+  --border: 220 13% 91%; /* #E5E7EB */
+  --input: 220 13% 91%;
+  --ring: 160 84% 39%; /* Green focus ring */
+
+  /* Semantic Colors */
   --destructive: 0 72% 48%;
   --destructive-foreground: 0 0% 100%;
-  --border: 214 24% 89%;
-  --input: 214 24% 89%;
-  --ring: 216 82% 35%;
+
+  /* Design Tokens */
   --radius: 0.5rem;
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
 }
 
 * {

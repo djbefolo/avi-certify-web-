@@ -13,25 +13,25 @@ export function DashboardSidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden min-h-screen w-72 shrink-0 border-r bg-background/95 lg:block">
-      <div className="sticky top-0 flex h-screen flex-col">
-        <div className="border-b px-5 py-6">
+    <aside className="hidden min-h-screen w-72 shrink-0 border-r bg-gradient-to-b from-primary to-primary-dark lg:block">
+      <div className="sticky top-0 flex h-screen flex-col text-white">
+        <div className="border-b border-white/10 px-5 py-6">
           <Link href="/dashboard" className="flex items-center gap-3">
-            <span className="flex h-11 w-11 items-center justify-center rounded-md bg-primary text-sm font-bold text-primary-foreground shadow-sm">
+            <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-white/10 backdrop-blur-sm text-sm font-bold text-white shadow-lg">
               AVI
             </span>
             <span>
-              <span className="block text-sm font-semibold tracking-wide">
+              <span className="block text-sm font-bold tracking-wide text-white">
                 AVI CERTIFY
               </span>
-              <span className="block text-xs text-muted-foreground">
-                Mobilite internationale
+              <span className="block text-xs text-gray-300">
+                Espace client sécurisé
               </span>
             </span>
           </Link>
-          <div className="mt-5 flex items-center gap-2 rounded-md border border-accent/20 bg-accent/10 px-3 py-2 text-sm font-medium text-accent">
-            <ShieldCheck className="h-4 w-4 text-accent" aria-hidden="true" />
-            Espace client securise
+          <div className="mt-4 flex items-center gap-2 rounded-md border border-accent/30 bg-accent/10 px-3 py-2 text-xs font-semibold text-accent-light">
+            <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
+            Accès protégé et authentifié
           </div>
         </div>
 
@@ -46,16 +46,18 @@ export function DashboardSidebar() {
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "grid grid-cols-[2.5rem_1fr] items-center rounded-md border border-transparent px-3 py-3 text-sm transition-colors",
+                  "grid grid-cols-[2.5rem_1fr] items-center rounded-md border px-3 py-3 text-sm transition-all duration-200",
                   active
-                    ? "border-primary/15 bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:border-border hover:bg-muted/60 hover:text-foreground",
+                    ? "border-accent/30 bg-white/10 text-white shadow-sm"
+                    : "border-transparent text-gray-300 hover:border-white/10 hover:bg-white/5 hover:text-white",
                 )}
               >
                 <span
                   className={cn(
                     "flex h-9 w-9 items-center justify-center rounded-md",
-                    active ? "bg-background text-primary" : "bg-muted/60",
+                    active
+                      ? "bg-accent/20 text-accent-light"
+                      : "bg-white/5 text-gray-400",
                   )}
                 >
                   <Icon className="h-4 w-4" aria-hidden="true" />
@@ -65,7 +67,7 @@ export function DashboardSidebar() {
                   <span
                     className={cn(
                       "mt-0.5 block text-xs",
-                      active ? "text-primary/75" : "text-muted-foreground",
+                      active ? "text-gray-200" : "text-gray-400",
                     )}
                   >
                     {item.description}
@@ -76,11 +78,15 @@ export function DashboardSidebar() {
           })}
         </nav>
 
-        <div className="mt-auto border-t p-5">
-          <div className="flex items-start gap-3 rounded-md border bg-muted/30 p-3 text-xs leading-5 text-muted-foreground">
-            <LockKeyhole className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+        <div className="mt-auto border-t border-white/10 p-5">
+          <div className="flex items-start gap-3 rounded-md border border-white/10 bg-white/5 p-3 text-xs leading-5 text-gray-300">
+            <LockKeyhole
+              className="mt-0.5 h-4 w-4 shrink-0 text-accent-light"
+              aria-hidden="true"
+            />
             <span>
-              Acces protege pour vos documents, paiements et attestations AVI CERTIFY.
+              Accès protégé pour vos documents, paiements et attestations AVI
+              CERTIFY.
             </span>
           </div>
         </div>

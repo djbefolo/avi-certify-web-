@@ -60,7 +60,7 @@ export function Header() {
             <Button variant="ghost" asChild>
               <Link href="/connexion">Se connecter</Link>
             </Button>
-            <Button asChild>
+            <Button variant="cta" asChild>
               <Link
                 href="/contact"
                 onClick={() =>
@@ -123,7 +123,7 @@ export function Header() {
                     Se connecter
                   </Link>
                 </Button>
-                <Button asChild>
+                <Button variant="cta" asChild>
                   <Link
                     href="/contact"
                     onClick={() => {

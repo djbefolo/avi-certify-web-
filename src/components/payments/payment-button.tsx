@@ -121,13 +121,43 @@ export function PaymentButton() {
 
   return (
     <section className="rounded-md border bg-background p-5 shadow-sm md:p-6">
-      <div className="flex h-12 w-12 items-center justify-center rounded-md bg-primary/10">
-        <CreditCard className="h-6 w-6 text-primary" aria-hidden="true" />
+      <div className="flex h-12 w-12 items-center justify-center rounded-md bg-accent/10">
+        <CreditCard className="h-6 w-6 text-accent" aria-hidden="true" />
       </div>
-      <h2 className="mt-5 text-xl font-semibold">Paiement sécurisé AVI CERTIFY</h2>
+      <h2 className="mt-5 text-xl font-semibold">Paiement sécurisé par Stripe</h2>
       <p className="mt-2 leading-7 text-muted-foreground">
-        Choisissez le service à régler avant d'être redirigé vers Stripe Checkout.
+        Choisissez le service à régler avant d'être redirigé vers Stripe
+        Checkout.
       </p>
+      <div className="mt-4 rounded-lg border border-accent/20 bg-gradient-to-br from-accent/5 to-accent/10 p-4">
+        <div className="mb-3 flex items-center gap-2">
+          <ShieldCheck className="h-5 w-5 text-accent" aria-hidden="true" />
+          <h3 className="font-semibold text-foreground">
+            Protection bancaire
+          </h3>
+        </div>
+        <div className="space-y-2 text-sm text-muted-foreground">
+          <div className="flex items-start gap-2">
+            <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+            <p>Cryptage bancaire certifié PCI-DSS niveau 3</p>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+            <p>Aucune donnée bancaire conservée par AVI CERTIFY</p>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+            <p>
+              Attestation générée et disponible dans votre espace documents
+              sous 24-48h ouvrées
+            </p>
+          </div>
+        </div>
+        <p className="mt-4 border-t border-accent/20 pt-4 text-xs text-muted-foreground">
+          En cas d'anomalie après paiement, notre support vérifie votre dossier
+          et vous accompagne dans la résolution.
+        </p>
+      </div>
 
       <div className="mt-5 grid gap-5">
         {errorMessage ? (
@@ -205,17 +235,10 @@ export function PaymentButton() {
           </div>
         ) : null}
 
-        <div className="flex items-start gap-3 rounded-md border border-accent/20 bg-accent/5 p-4 text-sm text-muted-foreground">
-          <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-accent" />
-          <p>
-            Vous serez redirigé vers Stripe Checkout. AVI CERTIFY ne stocke pas
-            vos informations de carte bancaire.
-          </p>
-        </div>
-
         <Button
           type="button"
           size="lg"
+          variant="cta"
           disabled={isLoading}
           aria-busy={isLoading}
           onClick={startCheckout}
@@ -225,8 +248,18 @@ export function PaymentButton() {
           ) : (
             <CreditCard className="h-4 w-4" aria-hidden="true" />
           )}
-          {isLoading ? "Redirection..." : "Procéder au paiement"}
+          {isLoading ? "Redirection en cours..." : "Procéder au paiement sécurisé"}
         </Button>
+
+        <p className="text-center text-xs text-muted-foreground">
+          Besoin d'aide ? Contactez-nous à{" "}
+          <a
+            href="mailto:contact@avicertify.com"
+            className="font-medium text-foreground transition-colors hover:text-accent"
+          >
+            contact@avicertify.com
+          </a>
+        </p>
       </div>
     </section>
   );

@@ -137,6 +137,7 @@ export default function PaiementPage() {
                 <div className="mt-5 flex flex-wrap gap-3">
                   <Button
                     type="button"
+                    variant="cta"
                     disabled={openingCertificate}
                     onClick={() => void openCertificate()}
                   >

@@ -6,6 +6,14 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { defaultRobots, siteConfig } from "@/lib/seo/metadata";
 import { organizationJsonLd, websiteJsonLd } from "@/lib/seo/schema";
 import "./globals.css";
+import { IBM_Plex_Sans } from "next/font/google";
+
+const ibmPlexSans = IBM_Plex_Sans({
+  weight: ["300", "400", "500", "600", "700"],
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-ibm-plex-sans",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
@@ -56,7 +64,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr">
+    <html lang="fr" className={ibmPlexSans.variable}>
       <body>
         <JsonLd data={[organizationJsonLd(), websiteJsonLd()]} />
         <AuthProvider>

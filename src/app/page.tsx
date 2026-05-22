@@ -9,6 +9,7 @@ import { TrackedCtaLink } from "@/components/analytics/tracked-cta-link";
 import { LeadFormSection } from "@/components/marketing/lead-form-section";
 import { SectionHeading } from "@/components/marketing/section-heading";
 import { ServiceCard } from "@/components/marketing/service-card";
+import { TrustBanner } from "@/components/marketing/trust-banner";
 import { Button } from "@/components/ui/button";
 import { services } from "@/constants/services";
 import { createPageMetadata } from "@/lib/seo/metadata";
@@ -39,15 +40,17 @@ export default function HomePage() {
               Accompagnement étudiant structuré et sécurisé
             </div>
             <h1 className="text-balance text-4xl font-semibold tracking-normal text-foreground sm:text-5xl lg:text-6xl">
-              Étudiez en Europe avec un dossier financier et visa mieux préparé.
+              Construisez votre projet d'études internationales avec un
+              accompagnement financier et documentaire structuré, sécurisé et
+              vérifiable.
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-foreground">
-              AVI, attestation d'hébergement, préfinancement étudiant et
-              accompagnement visa : AVI CERTIFY centralise les étapes clés pour
-              les étudiants d'Afrique francophone.
+              AVI, attestation d'hébergement, préfinancement et accompagnement
+              visa : AVI CERTIFY accompagne les étudiants d'Afrique francophone
+              avec des documents vérifiables et un espace client sécurisé.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Button size="lg" asChild>
+              <Button size="lg" variant="cta" asChild>
                 <TrackedCtaLink
                   href="/contact"
                   analyticsLocation="home_hero"
@@ -125,6 +128,8 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      <TrustBanner />
 
       <section className="container py-14 md:py-20">
         <SectionHeading

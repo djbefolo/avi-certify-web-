@@ -10,7 +10,7 @@ export function ServiceCard({ service }: ServiceCardProps) {
   return (
     <Link
       href={service.href}
-      className="group rounded-md border bg-card p-5 text-card-foreground shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+      className="group rounded-md border bg-card p-5 text-card-foreground shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
     >
       <div className="flex h-full min-h-56 flex-col">
         <p className="text-sm font-semibold text-accent">{service.kicker}</p>
@@ -21,7 +21,7 @@ export function ServiceCard({ service }: ServiceCardProps) {
         <span className="mt-auto inline-flex items-center gap-2 pt-6 text-sm font-semibold text-primary">
           En savoir plus
           <ArrowRight
-            className="h-4 w-4 transition group-hover:translate-x-1"
+            className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-1"
             aria-hidden="true"
           />
         </span>
