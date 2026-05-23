@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Shield, Mail, Building2, MessageCircle, Facebook, Instagram, Linkedin } from "lucide-react";
+import { Shield, Mail, Building2, MessageCircle, Facebook, Instagram, Linkedin, ExternalLink } from "lucide-react";
 import { InstitutionalTrust } from "@/components/layout/institutional-trust";
 import { navLinks } from "@/constants/navigation";
 
@@ -104,6 +104,15 @@ export function Footer() {
                 {link.label}
               </Link>
             ))}
+            <a
+              href="https://verify.avicertify.fr/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-gray-300 transition-colors hover:text-white"
+            >
+              Vérifier une AVI
+              <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+            </a>
           </nav>
         </div>
 

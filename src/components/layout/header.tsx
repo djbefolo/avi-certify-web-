@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, LogOut, Menu, X } from "lucide-react";
+import { ExternalLink, LayoutDashboard, LogOut, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { navLinks } from "@/constants/navigation";
 import { useAuth } from "@/hooks/use-auth";
@@ -58,6 +58,15 @@ export function Header() {
               </Link>
             );
           })}
+          <a
+            href="https://verify.avicertify.fr/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 rounded-md px-3 py-2 text-primary transition-colors hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
+          >
+            Vérifier une AVI
+            <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+          </a>
         </nav>
 
         {isAuthenticated ? (
@@ -182,6 +191,16 @@ export function Header() {
                 </Link>
               );
             })}
+            <a
+              href="https://verify.avicertify.fr/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-md px-2 py-3 text-sm font-medium text-primary hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
+              onClick={() => setIsOpen(false)}
+            >
+              Vérifier une AVI
+              <ExternalLink className="h-4 w-4" aria-hidden="true" />
+            </a>
             {isAuthenticated ? (
               <div className="mt-2 grid gap-2 border-t pt-3">
                 <p className="px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
