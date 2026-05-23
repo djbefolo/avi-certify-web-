@@ -37,7 +37,7 @@ describe("DocumentUploader", () => {
     );
 
     expect(
-      await screen.findByText(/Formats acceptes : PDF, JPG ou PNG/i),
+      await screen.findByText(/Formats acceptés : PDF, JPG ou PNG/i),
     ).toBeInTheDocument();
   });
 });

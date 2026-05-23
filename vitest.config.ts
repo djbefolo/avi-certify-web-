@@ -10,6 +10,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": resolve(rootDir, "src"),
+      "server-only": resolve(rootDir, "src/test/server-only.ts"),
     },
   },
   test: {
@@ -33,4 +34,3 @@ export default defineConfig({
     },
   },
 });
-

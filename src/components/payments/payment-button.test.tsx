@@ -27,7 +27,7 @@ describe("PaymentButton", () => {
     render(<PaymentButton />);
 
     const button = screen.getByRole("button", {
-      name: /proceder au paiement/i,
+      name: /procéder au paiement/i,
     });
 
     await user.click(button);
