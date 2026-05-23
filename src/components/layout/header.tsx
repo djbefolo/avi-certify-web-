@@ -160,22 +160,53 @@ export function Header() {
             ))}
             {isAuthenticated ? (
               <div className="mt-2 grid gap-2 border-t pt-3">
+                <p className="px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Mon espace
+                </p>
                 <Button variant="outline" asChild>
                   <Link href="/dashboard" onClick={() => setIsOpen(false)}>
                     <LayoutDashboard className="h-4 w-4" aria-hidden="true" />
-                    Tableau de bord
+                    Dashboard
+                  </Link>
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link href="/profil" onClick={() => setIsOpen(false)}>
+                    Profil
+                  </Link>
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link href="/dossier/documents" onClick={() => setIsOpen(false)}>
+                    Documents
                   </Link>
                 </Button>
                 <Button variant="outline" type="button" onClick={handleLogout}>
                   <LogOut className="h-4 w-4" aria-hidden="true" />
-                  Se déconnecter
+                  Déconnexion
                 </Button>
               </div>
             ) : (
               <div className="mt-2 grid gap-2 border-t pt-3">
+                <p className="px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Compte
+                </p>
                 <Button variant="outline" asChild>
                   <Link href="/connexion" onClick={() => setIsOpen(false)}>
-                    Se connecter
+                    Connexion
+                  </Link>
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link href="/inscription" onClick={() => setIsOpen(false)}>
+                    Inscription
+                  </Link>
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link href="/mot-de-passe-oublie" onClick={() => setIsOpen(false)}>
+                    Mot de passe oublié
+                  </Link>
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link href="/verification-email" onClick={() => setIsOpen(false)}>
+                    Vérification email
                   </Link>
                 </Button>
                 <Button variant="cta" asChild>

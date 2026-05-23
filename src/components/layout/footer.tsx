@@ -10,7 +10,7 @@ export function Footer() {
   return (
     <footer className="border-t text-white">
       <InstitutionalTrust />
-      <div className="bg-[hsl(222,72%,12%)]">
+      <div className="bg-[hsl(222,75%,8%)]">
         <div className="container grid gap-10 py-12 md:grid-cols-[1.2fr_0.9fr_0.9fr] md:py-16">
         <div>
           <Link
@@ -139,30 +139,38 @@ export function Footer() {
           <div className="mt-6 border-t border-white/10 pt-6">
             <p className="text-sm font-semibold text-white">Suivez-nous</p>
             <div className="mt-3 flex items-center gap-3">
-              {[
-                { icon: Facebook, label: "Facebook", href: "https://www.facebook.com/share/1HoEpQytnw/?mibextid=wwXIfr" },
-                { icon: Instagram, label: "Instagram", href: "#" },
-                { icon: Linkedin, label: "LinkedIn", href: "#" },
-              ].map((social) => (
-                <a
-                  key={social.label}
-                  href={social.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex h-9 w-9 items-center justify-center rounded-md bg-white/10 transition-colors hover:bg-white/20"
-                  aria-label={social.label}
-                >
-                  <social.icon className="h-4 w-4 text-white" aria-hidden="true" />
-                </a>
-              ))}
+              <a
+                href="https://www.facebook.com/share/1HoEpQytnw/?mibextid=wwXIfr"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-9 w-9 items-center justify-center rounded-md bg-white/10 transition-colors hover:bg-white/20"
+                aria-label="Facebook"
+              >
+                <Facebook className="h-4 w-4 text-white" aria-hidden="true" />
+              </a>
+              <button
+                type="button"
+                disabled
+                className="flex h-9 w-9 items-center justify-center rounded-md bg-white/5 opacity-40 cursor-not-allowed"
+                aria-label="Instagram (prochainement)"
+              >
+                <Instagram className="h-4 w-4 text-white" aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                disabled
+                className="flex h-9 w-9 items-center justify-center rounded-md bg-white/5 opacity-40 cursor-not-allowed"
+                aria-label="LinkedIn (prochainement)"
+              >
+                <Linkedin className="h-4 w-4 text-white" aria-hidden="true" />
+              </button>
             </div>
-            <p className="mt-2 text-xs text-gray-400">Instagram et LinkedIn à configurer</p>
           </div>
         </div>
       </div>
       </div>
 
-      <div className="border-t border-white/10 bg-[hsl(222,72%,10%)]">
+      <div className="border-t border-white/10 bg-[hsl(222,75%,6%)]">
         <div className="container flex flex-col gap-2 py-5 text-sm text-gray-300 sm:flex-row sm:items-center sm:justify-between">
           <p>© {currentYear} AVI CERTIFY. Tous droits réservés.</p>
           <p className="text-xs">

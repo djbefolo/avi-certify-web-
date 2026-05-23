@@ -1,24 +1,55 @@
 "use client";
 
 import { ArrowRight, GraduationCap, FileCheck2, ShieldCheck } from "lucide-react";
-import { AuthAwareLink } from "@/components/navigation/auth-aware-link";
+import { WorkflowAwareLink } from "@/components/navigation/workflow-aware-link";
 
 const processSteps = [
-  { title: "Créez votre dossier", helper: "Inscription et qualification", authHref: "/dashboard", unauthHref: "/inscription" },
-  { title: "Déposez vos informations", helper: "Documents et pièces justificatives", authHref: "/dossier", unauthHref: "/connexion" },
-  { title: "Payez ou planifiez votre dépôt", helper: "Paiement sécurisé", authHref: "/dossier/paiement", unauthHref: "/connexion" },
-  { title: "Recevez vos documents", helper: "Attestations et certificats", authHref: "/dossier/documents", unauthHref: "/connexion" },
-  { title: "Suivez votre départ", helper: "Suivi et accompagnement", authHref: "/dashboard", unauthHref: "/connexion" },
+  {
+    title: "Créez votre dossier",
+    helper: "Inscription et qualification",
+    unauthHref: "/inscription",
+    profileIncompleteHref: "/profil",
+    authenticatedHref: "/dashboard",
+  },
+  {
+    title: "Déposez vos informations",
+    helper: "Documents et pièces justificatives",
+    unauthHref: "/connexion",
+    documentsMissingHref: "/dossier/documents",
+    authenticatedHref: "/dashboard",
+  },
+  {
+    title: "Payez ou planifiez votre dépôt",
+    helper: "Paiement sécurisé",
+    unauthHref: "/connexion",
+    paymentPendingHref: "/dossier/paiement",
+    authenticatedHref: "/dashboard",
+  },
+  {
+    title: "Recevez vos documents",
+    helper: "Attestations et certificats",
+    unauthHref: "/connexion",
+    authenticatedHref: "/dossier/documents",
+  },
+  {
+    title: "Suivez votre départ",
+    helper: "Suivi et accompagnement",
+    unauthHref: "/connexion",
+    authenticatedHref: "/dashboard",
+  },
 ];
 
 export function ProcessSteps() {
   return (
     <div className="grid gap-4">
       {processSteps.map((step, index) => (
-        <AuthAwareLink
+        <WorkflowAwareLink
           key={step.title}
-          authenticatedHref={step.authHref}
           unauthenticatedHref={step.unauthHref}
+          profileIncompleteHref={step.profileIncompleteHref}
+          documentsMissingHref={step.documentsMissingHref}
+          paymentPendingHref={step.paymentPendingHref}
+          authenticatedHref={step.authenticatedHref}
           className="group flex items-center gap-4 rounded-lg border bg-background p-5 shadow-sm transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md hover:border-primary/30"
         >
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-semibold text-primary-foreground transition-colors duration-300 group-hover:bg-primary-dark">
@@ -32,7 +63,7 @@ export function ProcessSteps() {
             className="h-5 w-5 text-muted-foreground transition-all duration-300 group-hover:translate-x-1 group-hover:text-primary"
             aria-hidden="true"
           />
-        </AuthAwareLink>
+        </WorkflowAwareLink>
       ))}
     </div>
   );
@@ -43,22 +74,24 @@ const studentJourneySteps = [
     icon: GraduationCap,
     title: "Admission obtenue",
     description: "Vous avez votre lettre d'admission, mais le parcours administratif commence.",
-    authHref: "/dashboard",
     unauthHref: "/inscription",
+    profileIncompleteHref: "/profil",
+    authenticatedHref: "/dashboard",
   },
   {
     icon: FileCheck2,
     title: "Documents à préparer",
     description: "AVI, justificatif d'hébergement, ressources financières : chaque pièce doit être cohérente.",
-    authHref: "/dossier/documents",
     unauthHref: "/connexion",
+    documentsMissingHref: "/dossier/documents",
+    authenticatedHref: "/dashboard",
   },
   {
     icon: ShieldCheck,
     title: "Dossier consulaire",
     description: "Campus France, rendez-vous visa : le moindre manque peut retarder votre projet.",
-    authHref: "/services/accompagnement-visa",
-    unauthHref: "/connexion",
+    unauthHref: "/services/accompagnement-visa",
+    authenticatedHref: "/services/accompagnement-visa",
   },
 ];
 
@@ -66,10 +99,12 @@ export function StudentJourneyCards() {
   return (
     <div className="mt-12 grid gap-6 md:grid-cols-3">
       {studentJourneySteps.map((step, index) => (
-        <AuthAwareLink
+        <WorkflowAwareLink
           key={step.title}
-          authenticatedHref={step.authHref}
           unauthenticatedHref={step.unauthHref}
+          profileIncompleteHref={step.profileIncompleteHref}
+          documentsMissingHref={step.documentsMissingHref}
+          authenticatedHref={step.authenticatedHref}
           className="group relative overflow-hidden rounded-lg border border-white/20 bg-white/10 p-6 shadow-lg backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:bg-white/20 hover:shadow-xl"
         >
           <div className="mb-4 flex items-center gap-4">
@@ -87,7 +122,7 @@ export function StudentJourneyCards() {
               aria-hidden="true"
             />
           </span>
-        </AuthAwareLink>
+        </WorkflowAwareLink>
       ))}
     </div>
   );

@@ -358,26 +358,32 @@ export default function HomePage() {
         <div className="container py-12 text-center">
           <p className="text-sm font-semibold uppercase tracking-wider text-accent">Suivez-nous</p>
           <div className="mt-6 flex items-center justify-center gap-4">
-            {[
-              { icon: Facebook, label: "Facebook", href: "https://www.facebook.com/share/1HoEpQytnw/?mibextid=wwXIfr" },
-              { icon: Instagram, label: "Instagram", href: "#" },
-              { icon: Linkedin, label: "LinkedIn", href: "#" },
-            ].map((social) => (
-              <a
-                key={social.label}
-                href={social.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex h-12 w-12 items-center justify-center rounded-lg border bg-background transition-colors hover:border-primary hover:bg-primary/5"
-                aria-label={social.label}
-              >
-                <social.icon className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-              </a>
-            ))}
+            <a
+              href="https://www.facebook.com/share/1HoEpQytnw/?mibextid=wwXIfr"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex h-12 w-12 items-center justify-center rounded-lg border bg-background transition-colors hover:border-primary hover:bg-primary/5"
+              aria-label="Facebook"
+            >
+              <Facebook className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+            </a>
+            <button
+              type="button"
+              disabled
+              className="flex h-12 w-12 items-center justify-center rounded-lg border border-border/50 bg-muted/20 opacity-40 cursor-not-allowed"
+              aria-label="Instagram (prochainement)"
+            >
+              <Instagram className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              disabled
+              className="flex h-12 w-12 items-center justify-center rounded-lg border border-border/50 bg-muted/20 opacity-40 cursor-not-allowed"
+              aria-label="LinkedIn (prochainement)"
+            >
+              <Linkedin className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+            </button>
           </div>
-          <p className="mt-4 text-sm text-muted-foreground">
-            Instagram et LinkedIn à configurer
-          </p>
         </div>
       </section>
 
