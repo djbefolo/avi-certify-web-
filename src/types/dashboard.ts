@@ -4,6 +4,7 @@ import type {
   ApplicationStatus,
   TimelineStep,
 } from "@/types/application";
+import type { StudentProfile } from "@/types/student-profile";
 
 export type DashboardSummary = {
   applicationStatus: ApplicationStatus;
@@ -15,6 +16,11 @@ export type DashboardSummary = {
   advisorName: string;
   documents: ApplicationDocument[];
   payment: ApplicationPayment;
+  profile: {
+    data: StudentProfile | null;
+    completionPercent: number;
+    completionState: "incomplete" | "partial" | "complete";
+  };
   timeline: TimelineStep[];
   nextAction: {
     title: string;

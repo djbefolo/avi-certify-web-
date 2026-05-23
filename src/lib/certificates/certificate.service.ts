@@ -26,6 +26,13 @@ type UserProfileData = {
   email: string | null;
   dateOfBirth: string | null;
   birthPlace: string | null;
+  nationality: string | null;
+  intendedArrivalDate: string | null;
+  expectedStayDuration: string | null;
+  preferredHousingCity: string | null;
+  destinationCity: string | null;
+  targetSchoolName: string | null;
+  selectedService: string | null;
 };
 
 type CertificateEmailParams = {
@@ -69,6 +76,33 @@ function getStringField(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
+function formatProfileDate(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(`${value}T00:00:00`);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("fr-FR", {
+    dateStyle: "long",
+  }).format(date);
+}
+
+function getDurationMonths(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const match = value.match(/\d+/);
+  const months = match ? Number(match[0]) : Number(value);
+
+  return Number.isFinite(months) && months > 0 ? months : null;
+}
+
 async function getUserProfile(ownerId: string): Promise<UserProfileData> {
   const db = getAdminFirestore();
   const [profileSnapshot, userRecord] = await Promise.all([
@@ -86,8 +120,50 @@ async function getUserProfile(ownerId: string): Promise<UserProfileData> {
     fullName,
     email: getStringField(profile?.email) ?? getStringField(userRecord?.email),
     dateOfBirth: getStringField(profile?.dateOfBirth),
-    birthPlace: getStringField(profile?.birthPlace),
+    birthPlace:
+      getStringField(profile?.placeOfBirth) ?? getStringField(profile?.birthPlace),
+    nationality: getStringField(profile?.nationality),
+    intendedArrivalDate: getStringField(profile?.intendedArrivalDate),
+    expectedStayDuration: getStringField(profile?.expectedStayDuration),
+    preferredHousingCity: getStringField(profile?.preferredHousingCity),
+    destinationCity: getStringField(profile?.destinationCity),
+    targetSchoolName: getStringField(profile?.targetSchoolName),
+    selectedService: getStringField(profile?.selectedService),
   };
+}
+
+function getMissingHousingCertificateFields(profile: UserProfileData) {
+  const missingFields: string[] = [];
+
+  if (!profile.fullName || profile.fullName === "Étudiant AVI CERTIFY") {
+    missingFields.push("fullName");
+  }
+
+  if (!profile.dateOfBirth) {
+    missingFields.push("dateOfBirth");
+  }
+
+  if (!profile.birthPlace) {
+    missingFields.push("placeOfBirth");
+  }
+
+  if (!profile.nationality) {
+    missingFields.push("nationality");
+  }
+
+  if (!profile.intendedArrivalDate) {
+    missingFields.push("intendedArrivalDate");
+  }
+
+  if (!getDurationMonths(profile.expectedStayDuration)) {
+    missingFields.push("expectedStayDuration");
+  }
+
+  if (!profile.preferredHousingCity && !profile.destinationCity) {
+    missingFields.push("preferredHousingCity");
+  }
+
+  return missingFields;
 }
 
 async function sendCertificateEmailIfNeeded({
@@ -155,11 +231,10 @@ export async function generateHousingCertificateForPaidPayment({
   const db = getAdminFirestore();
   const certificateRef = db.collection(CERTIFICATES_COLLECTION).doc(paymentId);
   const existingCertificate = await certificateRef.get();
+  const profile = await getUserProfile(ownerId);
 
-  if (existingCertificate.exists) {
+  if (existingCertificate.exists && existingCertificate.get("status") === "generated") {
     if (existingCertificate.get("certificateEmailSent") !== true) {
-      const profile = await getUserProfile(ownerId);
-
       await sendCertificateEmailIfNeeded({
         certificateRef,
         studentFullName:
@@ -173,22 +248,50 @@ export async function generateHousingCertificateForPaidPayment({
     return { generated: false, reason: "certificate_already_exists" };
   }
 
-  const profile = await getUserProfile(ownerId);
+  const missingProfileFields = getMissingHousingCertificateFields(profile);
+
+  if (missingProfileFields.length > 0) {
+    const now = FieldValue.serverTimestamp();
+
+    await certificateRef.set(
+      {
+        ownerId,
+        paymentId,
+        certificateType: "housing_accommodation",
+        status: "pending_profile",
+        missingProfileFields,
+        generationBlockedReason:
+          "Votre attestation ne peut pas encore être générée. Veuillez compléter les informations obligatoires de votre profil.",
+        createdAt: existingCertificate.exists
+          ? existingCertificate.get("createdAt") ?? now
+          : now,
+        updatedAt: now,
+      },
+      { merge: true },
+    );
+
+    return { generated: false, reason: "missing_profile_data" };
+  }
+
   const housing = selectHousingAddress({
     region: housingRegion,
+    city: profile.preferredHousingCity ?? profile.destinationCity,
     seed: `${ownerId}:${paymentId}`,
   });
   const verificationToken = buildToken(ownerId, paymentId);
   const verificationUrl = `${getAppUrl()}/verifier/${verificationToken}`;
   const certificateNumber = buildCertificateNumber(paymentId);
-  const { issueDate, entryDate } = getDefaultCertificateDates();
-  const durationMonths = 12;
+  const { issueDate, entryDate: defaultEntryDate } = getDefaultCertificateDates();
+  const entryDate = formatProfileDate(profile.intendedArrivalDate) ?? defaultEntryDate;
+  const durationMonths = getDurationMonths(profile.expectedStayDuration) ?? 12;
   const storagePath = `users/${ownerId}/documents/${paymentId}-attestation-hebergement.pdf`;
   const pdfBuffer = await generateHousingCertificatePdf({
     certificateNumber,
     studentFullName: profile.fullName,
-    dateOfBirth: profile.dateOfBirth,
-    birthPlace: profile.birthPlace,
+    dateOfBirth: formatProfileDate(profile.dateOfBirth) ?? profile.dateOfBirth ?? "",
+    birthPlace: profile.birthPlace ?? "",
+    nationality: profile.nationality ?? "",
+    targetSchoolName: profile.targetSchoolName,
     housing,
     entryDate,
     durationMonths,
@@ -214,8 +317,11 @@ export async function generateHousingCertificateForPaidPayment({
     certificateType: "housing_accommodation",
     certificateNumber,
     studentFullName: profile.fullName,
-    ...(profile.dateOfBirth ? { dateOfBirth: profile.dateOfBirth } : {}),
-    ...(profile.birthPlace ? { birthPlace: profile.birthPlace } : {}),
+    dateOfBirth: profile.dateOfBirth,
+    birthPlace: profile.birthPlace,
+    nationality: profile.nationality,
+    targetSchoolName: profile.targetSchoolName,
+    selectedService: profile.selectedService,
     housingRegion: housing.region,
     housingAddress: housing.fullAddress,
     city: housing.city,
@@ -231,7 +337,11 @@ export async function generateHousingCertificateForPaidPayment({
   };
 
   try {
-    await certificateRef.create(certificateData);
+    if (existingCertificate.exists) {
+      await certificateRef.set(certificateData, { merge: true });
+    } else {
+      await certificateRef.create(certificateData);
+    }
   } catch (error) {
     if (
       typeof error === "object" &&

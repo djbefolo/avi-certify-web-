@@ -9,6 +9,10 @@ import {
   type DocumentData,
 } from "firebase/firestore";
 import { getFirebaseDb } from "@/lib/firebase/client";
+import {
+  getProfileCompletion,
+  mapStudentProfile,
+} from "@/lib/profile/student-profile";
 import type {
   ApplicationDocument,
   ApplicationPayment,
@@ -20,6 +24,7 @@ import type {
   UserDocument,
 } from "@/types/document";
 import type { PaymentRecord, PaymentStatus } from "@/types/payment";
+import type { StudentProfile } from "@/types/student-profile";
 
 type RequiredDocumentDefinition = {
   id: string;
@@ -28,12 +33,9 @@ type RequiredDocumentDefinition = {
   firestoreTypes: DocumentType[];
 };
 
-export type UserProfileSummary = {
-  fullName: string | null;
-  email: string | null;
-  uid: string;
-  role: string | null;
-  createdAt: Date | null;
+export type UserProfileSummary = StudentProfile & {
+  completionPercent: number;
+  completionState: "incomplete" | "partial" | "complete";
 };
 
 export const REQUIRED_DOCUMENTS: RequiredDocumentDefinition[] = [
@@ -269,12 +271,12 @@ export async function getUserProfileSummary(
   }
 
   const data = profileSnapshot.data();
+  const profile = mapStudentProfile(uid, data);
+  const completion = getProfileCompletion(profile);
 
   return {
-    uid: String(data.uid ?? uid),
-    fullName: typeof data.fullName === "string" ? data.fullName : null,
-    email: typeof data.email === "string" ? data.email : null,
-    role: typeof data.role === "string" ? data.role : null,
-    createdAt: toDate(data.createdAt),
+    ...profile,
+    completionPercent: completion.percent,
+    completionState: completion.state,
   };
 }

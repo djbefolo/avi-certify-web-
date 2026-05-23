@@ -1,4 +1,11 @@
-import { ArrowRight, FileCheck2, FolderKanban, Gauge, MapPin } from "lucide-react";
+import {
+  ArrowRight,
+  BriefcaseBusiness,
+  FileCheck2,
+  FolderKanban,
+  Gauge,
+  MapPin,
+} from "lucide-react";
 import Link from "next/link";
 import type { DashboardSummary as DashboardSummaryType } from "@/types/dashboard";
 import { Button } from "@/components/ui/button";
@@ -18,6 +25,11 @@ export function DashboardSummary({ summary }: DashboardSummaryProps) {
       label: "Destination",
       value: summary.destinationCountry,
       icon: MapPin,
+    },
+    {
+      label: "Service",
+      value: summary.requestedService,
+      icon: BriefcaseBusiness,
     },
     {
       label: "Documents recus",
@@ -56,7 +68,7 @@ export function DashboardSummary({ summary }: DashboardSummaryProps) {
         </Button>
       </div>
 
-      <div className="mt-7 grid gap-3 md:grid-cols-3">
+      <div className="mt-7 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         {metrics.map((metric) => (
           <div key={metric.label} className="rounded-md border bg-muted/20 p-4">
             <div className="flex items-center justify-between gap-3">

@@ -6,7 +6,7 @@ import {
   getLatestPaymentSummary,
   getRequiredDocumentSummary,
   getUserProfileSummary,
-  type UserProfileSummary
+  type UserProfileSummary,
 } from "@/lib/dashboard/dashboard-data.service";
 import { getDossierWorkflowStatus } from "@/lib/workflow/workflow-engine";
 import type { ApplicationDocument, ApplicationPayment, ApplicationStatus } from "@/types/application";
@@ -92,7 +92,7 @@ export function useWorkflowState(): WorkflowState {
     };
   }, [user, isEmailVerified]);
 
-  const profileComplete = Boolean(profile?.fullName);
+  const profileComplete = profile?.completionState === "complete";
   const hasDocuments = documents.some((doc) =>
     doc.workflowStatus && doc.workflowStatus !== "missing"
   );

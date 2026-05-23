@@ -1,16 +1,106 @@
 "use client";
 
-import { CalendarDays, Mail, ShieldCheck, UserRound, FileText, CreditCard } from "lucide-react";
-import Link from "next/link";
-import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
-import { useAuth } from "@/hooks/use-auth";
-import { useDashboardSummary } from "@/hooks/use-dashboard-summary";
 import {
-  getUserProfileSummary,
-  type UserProfileSummary,
-} from "@/lib/dashboard/dashboard-data.service";
+  AlertCircle,
+  ArrowLeft,
+  CalendarDays,
+  CheckCircle2,
+  Loader2,
+  Mail,
+  Save,
+  ShieldCheck,
+  UserRound,
+} from "lucide-react";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import type { ReactNode } from "react";
+import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
+import { useAuth } from "@/hooks/use-auth";
+import {
+  admissionDocumentStatusOptions,
+  admissionStatusOptions,
+  createEmptyEditableProfile,
+  financialNeedTypeOptions,
+  getProfileCompletion,
+  getStudentProfile,
+  housingNeedOptions,
+  profileFieldLabels,
+  selectedServiceOptions,
+  updateStudentProfile,
+} from "@/lib/profile/student-profile";
+import type {
+  AdmissionDocumentStatus,
+  AdmissionStatus,
+  EditableStudentProfile,
+  FinancialNeedType,
+  HousingNeed,
+  SelectedStudentService,
+  StudentProfile,
+} from "@/types/student-profile";
+
+type FieldConfig = {
+  name: keyof EditableStudentProfile;
+  label: string;
+  type?: "text" | "date" | "email" | "tel" | "number";
+  placeholder?: string;
+};
+
+type SelectConfig<T extends string> = {
+  name: keyof EditableStudentProfile;
+  label: string;
+  options: { value: T; label: string }[];
+};
+
+const identityFields: FieldConfig[] = [
+  { name: "fullName", label: "Nom complet", placeholder: "Ex. Jean Dreyfus" },
+  { name: "phoneWhatsApp", label: "Téléphone WhatsApp", type: "tel" },
+  { name: "dateOfBirth", label: "Date de naissance", type: "date" },
+  { name: "placeOfBirth", label: "Lieu de naissance" },
+  { name: "nationality", label: "Nationalité" },
+  { name: "countryOfResidence", label: "Pays de résidence" },
+];
+
+const studyFields: FieldConfig[] = [
+  { name: "destinationCountry", label: "Pays de destination" },
+  { name: "destinationCity", label: "Ville d’arrivée" },
+  { name: "targetSchoolName", label: "École / établissement visé" },
+  { name: "intendedProgram", label: "Programme visé" },
+  { name: "intendedAcademicYear", label: "Année universitaire" },
+];
+
+const mobilityFields: FieldConfig[] = [
+  { name: "intendedArrivalDate", label: "Date prévue d’arrivée", type: "date" },
+  {
+    name: "expectedStayDuration",
+    label: "Durée estimée du séjour",
+    placeholder: "Ex. 12 mois",
+  },
+];
+
+const financialFields: FieldConfig[] = [
+  {
+    name: "requestedAviAmount",
+    label: "Montant AVI souhaité",
+    type: "number",
+    placeholder: "Ex. 7380",
+  },
+];
+
+const housingFields: FieldConfig[] = [
+  {
+    name: "preferredHousingCity",
+    label: "Ville souhaitée pour l’hébergement",
+  },
+];
+
+const contactFields: FieldConfig[] = [
+  { name: "emergencyContactName", label: "Contact d’urgence" },
+  { name: "emergencyContactPhone", label: "Téléphone du contact d’urgence", type: "tel" },
+];
 
 function getDateLabel(date: Date | null) {
   if (!date) {
@@ -22,12 +112,148 @@ function getDateLabel(date: Date | null) {
   }).format(date);
 }
 
+function toEditableProfile(profile: StudentProfile | null): EditableStudentProfile {
+  const emptyProfile = createEmptyEditableProfile();
+
+  if (!profile) {
+    return emptyProfile;
+  }
+
+  return {
+    ...emptyProfile,
+    fullName: profile.fullName,
+    phoneWhatsApp: profile.phoneWhatsApp,
+    dateOfBirth: profile.dateOfBirth,
+    placeOfBirth: profile.placeOfBirth,
+    nationality: profile.nationality,
+    countryOfResidence: profile.countryOfResidence,
+    destinationCountry: profile.destinationCountry,
+    destinationCity: profile.destinationCity,
+    targetSchoolName: profile.targetSchoolName,
+    admissionStatus: profile.admissionStatus,
+    admissionDocumentStatus: profile.admissionDocumentStatus,
+    intendedProgram: profile.intendedProgram,
+    intendedAcademicYear: profile.intendedAcademicYear,
+    intendedArrivalDate: profile.intendedArrivalDate,
+    expectedStayDuration: profile.expectedStayDuration,
+    financialNeedType: profile.financialNeedType,
+    requestedAviAmount: profile.requestedAviAmount,
+    selectedService: profile.selectedService,
+    housingNeed: profile.housingNeed,
+    preferredHousingCity: profile.preferredHousingCity,
+    emergencyContactName: profile.emergencyContactName,
+    emergencyContactPhone: profile.emergencyContactPhone,
+  };
+}
+
+function FormField({
+  field,
+  form,
+  disabled,
+  onChange,
+}: {
+  field: FieldConfig;
+  form: EditableStudentProfile;
+  disabled: boolean;
+  onChange: (name: keyof EditableStudentProfile, value: string | number | null) => void;
+}) {
+  const value = form[field.name];
+  const inputValue = typeof value === "number" ? value : value ?? "";
+
+  return (
+    <div className="grid gap-2">
+      <Label htmlFor={field.name}>{field.label}</Label>
+      <Input
+        id={field.name}
+        type={field.type ?? "text"}
+        value={inputValue}
+        placeholder={field.placeholder}
+        disabled={disabled}
+        onChange={(event) => {
+          const nextValue =
+            field.type === "number"
+              ? Number(event.target.value) || null
+              : event.target.value;
+
+          onChange(field.name, nextValue);
+        }}
+      />
+    </div>
+  );
+}
+
+function FormSelect<T extends string>({
+  field,
+  form,
+  disabled,
+  onChange,
+}: {
+  field: SelectConfig<T>;
+  form: EditableStudentProfile;
+  disabled: boolean;
+  onChange: (name: keyof EditableStudentProfile, value: T | null) => void;
+}) {
+  const value = form[field.name];
+
+  return (
+    <div className="grid gap-2">
+      <Label htmlFor={field.name}>{field.label}</Label>
+      <Select
+        id={field.name}
+        value={typeof value === "string" ? value : ""}
+        disabled={disabled}
+        onChange={(event) =>
+          onChange(field.name, event.target.value ? (event.target.value as T) : null)
+        }
+      >
+        <option value="">Sélectionner</option>
+        {field.options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </Select>
+    </div>
+  );
+}
+
+function FormSection({
+  title,
+  description,
+  fields,
+  children,
+}: {
+  title: string;
+  description?: string;
+  fields?: ReactNode;
+  children?: ReactNode;
+}) {
+  return (
+    <section className="rounded-md border bg-background p-5 shadow-sm md:p-6">
+      <div className="mb-5">
+        <h2 className="text-xl font-semibold">{title}</h2>
+        {description ? (
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            {description}
+          </p>
+        ) : null}
+      </div>
+      {fields}
+      {children}
+    </section>
+  );
+}
+
 export default function ProfilPage() {
   const { user, isEmailVerified } = useAuth();
-  const { summary } = useDashboardSummary();
-  const [profile, setProfile] = useState<UserProfileSummary | null>(null);
+  const [profile, setProfile] = useState<StudentProfile | null>(null);
+  const [form, setForm] = useState<EditableStudentProfile>(
+    createEmptyEditableProfile,
+  );
   const [loadingProfile, setLoadingProfile] = useState(true);
+  const [savingProfile, setSavingProfile] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -35,6 +261,7 @@ export default function ProfilPage() {
     async function loadProfile() {
       if (!user || !isEmailVerified) {
         setProfile(null);
+        setForm(createEmptyEditableProfile());
         setLoadingProfile(false);
         return;
       }
@@ -43,10 +270,11 @@ export default function ProfilPage() {
       setErrorMessage(null);
 
       try {
-        const nextProfile = await getUserProfileSummary(user.uid);
+        const nextProfile = await getStudentProfile(user.uid);
 
         if (!cancelled) {
           setProfile(nextProfile);
+          setForm(toEditableProfile(nextProfile));
         }
       } catch {
         if (!cancelled) {
@@ -66,140 +294,305 @@ export default function ProfilPage() {
     };
   }, [isEmailVerified, user]);
 
-  const email = profile?.email ?? user?.email ?? "Non renseigne";
+  const completion = useMemo(() => getProfileCompletion(profile), [profile]);
+  const email = profile?.email ?? user?.email ?? "Non renseigné";
   const uid = profile?.uid ?? user?.uid ?? "Non disponible";
+  const canSave = Boolean(user && isEmailVerified && profile);
+
+  const updateField = (
+    name: keyof EditableStudentProfile,
+    value: string | number | null,
+  ) => {
+    setForm((current) => ({ ...current, [name]: value }));
+    setSuccessMessage(null);
+  };
+
+  const saveProfile = async () => {
+    if (!user || !canSave) {
+      setErrorMessage("Le profil doit exister avant de pouvoir être mis à jour.");
+      return;
+    }
+
+    setSavingProfile(true);
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    try {
+      await updateStudentProfile(user.uid, form);
+      const nextProfile = await getStudentProfile(user.uid);
+
+      setProfile(nextProfile);
+      setForm(toEditableProfile(nextProfile));
+      setSuccessMessage("Profil mis à jour avec succès.");
+    } catch {
+      setErrorMessage("Impossible d’enregistrer le profil pour le moment.");
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  const disabled = loadingProfile || savingProfile || !canSave;
 
   return (
     <DashboardLayout
-      title="Profil"
-      description="Consultez les informations d'identite rattachees a votre espace client AVI CERTIFY."
+      title="Profil étudiant"
+      description="Complétez les informations utilisées pour votre dossier, vos documents et votre attestation."
     >
-      <section className="rounded-md border bg-background p-5 shadow-sm md:p-7">
-        <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
-          <div>
-            <div className="flex h-12 w-12 items-center justify-center rounded-md bg-primary/10">
-              <UserRound className="h-6 w-6 text-primary" aria-hidden="true" />
+      <div className="grid gap-5">
+        <section className="rounded-md border bg-background p-5 shadow-sm md:p-7">
+          <div className="flex flex-col gap-5 md:flex-row md:items-start md:justify-between">
+            <div>
+              <div className="flex h-12 w-12 items-center justify-center rounded-md bg-primary/10">
+                <UserRound className="h-6 w-6 text-primary" aria-hidden="true" />
+              </div>
+              <h2 className="mt-5 text-xl font-semibold">
+                Informations personnelles et académiques
+              </h2>
+              <p className="mt-2 leading-7 text-muted-foreground">
+                Ces données restent rattachées à votre compte sécurisé et servent
+                à préparer les documents AVI CERTIFY.
+              </p>
             </div>
-            <h2 className="mt-5 text-xl font-semibold">Identite du compte</h2>
-            <p className="mt-2 leading-7 text-muted-foreground">
-              Ces informations servent a identifier votre dossier dans l'espace
-              client securise.
-            </p>
+            <div className="min-w-56 rounded-md border bg-muted/20 p-4">
+              <p className="text-sm font-medium text-muted-foreground">
+                Profil complété à
+              </p>
+              <p className="mt-2 text-3xl font-semibold">{completion.percent} %</p>
+              <div className="mt-3 h-2 rounded-full bg-muted">
+                <div
+                  className="h-2 rounded-full bg-accent"
+                  style={{ width: `${completion.percent}%` }}
+                />
+              </div>
+              <p className="mt-3 text-sm text-muted-foreground">
+                {completion.state === "complete"
+                  ? "Profil complet"
+                  : "Informations à compléter"}
+              </p>
+            </div>
           </div>
-          <span className="inline-flex items-center gap-2 rounded-md border border-accent/30 bg-accent/10 px-3 py-2 text-sm font-medium text-accent">
-            <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-            Compte actif
-          </span>
-        </div>
+
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
+            <div className="rounded-md border bg-muted/20 p-4">
+              <p className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                <Mail className="h-4 w-4" aria-hidden="true" />
+                Email
+              </p>
+              <p className="mt-2 break-all font-semibold">{email}</p>
+            </div>
+            <div className="rounded-md border bg-muted/20 p-4">
+              <p className="text-sm font-medium text-muted-foreground">
+                Identifiant Firebase
+              </p>
+              <p className="mt-2 break-all font-semibold">{uid}</p>
+            </div>
+            <div className="rounded-md border bg-muted/20 p-4">
+              <p className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                <CalendarDays className="h-4 w-4" aria-hidden="true" />
+                Créé le
+              </p>
+              <p className="mt-2 font-semibold">
+                {getDateLabel(profile?.createdAt ?? null)}
+              </p>
+            </div>
+          </div>
+
+          {completion.missingFields.length > 0 ? (
+            <div className="mt-5 rounded-md border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-800">
+              <p className="font-semibold">Informations à compléter</p>
+              <p className="mt-2 leading-6">
+                {completion.missingFields
+                  .map((field) => profileFieldLabels[field])
+                  .join(", ")}
+              </p>
+            </div>
+          ) : null}
+        </section>
 
         {errorMessage ? (
-          <p className="mt-5 rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+          <p className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+            <AlertCircle className="mr-2 inline h-4 w-4" aria-hidden="true" />
             {errorMessage}
           </p>
         ) : null}
-
+        {successMessage ? (
+          <p className="rounded-md border border-accent/30 bg-accent/10 p-3 text-sm text-accent">
+            <CheckCircle2 className="mr-2 inline h-4 w-4" aria-hidden="true" />
+            {successMessage}
+          </p>
+        ) : null}
         {loadingProfile ? (
-          <p className="mt-5 rounded-md border bg-muted/25 p-3 text-sm text-muted-foreground">
+          <p className="rounded-md border bg-muted/25 p-3 text-sm text-muted-foreground">
+            <Loader2 className="mr-2 inline h-4 w-4 animate-spin" aria-hidden="true" />
             Chargement du profil...
           </p>
         ) : null}
 
-        <dl className="mt-6 grid gap-4 md:grid-cols-2">
-          <div className="rounded-md border bg-muted/20 p-4">
-            <dt className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <UserRound className="h-4 w-4" aria-hidden="true" />
-              Nom complet
-            </dt>
-            <dd className="mt-2 break-all font-semibold">
-              {profile?.fullName ?? "Non renseigne"}
-            </dd>
+        <FormSection title="Identité étudiant">
+          <div className="grid gap-4 md:grid-cols-2">
+            {identityFields.map((field) => (
+              <FormField
+                key={field.name}
+                field={field}
+                form={form}
+                disabled={disabled}
+                onChange={updateField}
+              />
+            ))}
           </div>
-          <div className="rounded-md border bg-muted/20 p-4">
-            <dt className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <Mail className="h-4 w-4" aria-hidden="true" />
-              Email
-            </dt>
-            <dd className="mt-2 break-all font-semibold">{email}</dd>
-          </div>
-          <div className="rounded-md border bg-muted/20 p-4">
-            <dt className="text-sm font-medium text-muted-foreground">
-              Identifiant Firebase
-            </dt>
-            <dd className="mt-2 break-all font-semibold">{uid}</dd>
-          </div>
-          <div className="rounded-md border bg-muted/20 p-4">
-            <dt className="text-sm font-medium text-muted-foreground">Role</dt>
-            <dd className="mt-2 break-all font-semibold">
-              {profile?.role ?? "Non renseigne"}
-            </dd>
-          </div>
-          <div className="rounded-md border bg-muted/20 p-4">
-            <dt className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-              <CalendarDays className="h-4 w-4" aria-hidden="true" />
-              Cree le
-            </dt>
-            <dd className="mt-2 break-all font-semibold">
-              {getDateLabel(profile?.createdAt ?? null)}
-            </dd>
-          </div>
-        </dl>
-      </section>
+        </FormSection>
 
-      <section className="mt-5 rounded-md border bg-gradient-to-br from-muted/30 to-muted/10 p-5 shadow-sm md:p-7">
-        <h2 className="text-xl font-semibold">Progression du dossier</h2>
-        <p className="mt-2 leading-7 text-muted-foreground">
-          Suivez l'avancement de votre dossier étudiant depuis votre profil.
-        </p>
-
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
-          <div className="rounded-md border bg-background p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-primary/10">
-                <FileText className="h-5 w-5 text-primary" aria-hidden="true" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-muted-foreground">Documents</p>
-                <p className="mt-1 font-semibold">
-                  {summary.documents.filter((d) => d.status === "approved").length} / {summary.documents.length} validés
-                </p>
-              </div>
-            </div>
-            <Button variant="outline" size="sm" className="mt-4 w-full" asChild>
-              <Link href="/dossier/documents">Voir mes documents</Link>
-            </Button>
-          </div>
-
-          <div className="rounded-md border bg-background p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-accent/10">
-                <CreditCard className="h-5 w-5 text-accent" aria-hidden="true" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-muted-foreground">Paiement</p>
-                <p className="mt-1 font-semibold">
-                  {summary.payment.status === "paid" ? "Confirmé" : summary.payment.status === "pending" ? "En attente" : "Non démarré"}
-                </p>
-              </div>
-            </div>
-            <Button variant="outline" size="sm" className="mt-4 w-full" asChild>
-              <Link href="/dossier/paiement">Voir le paiement</Link>
-            </Button>
-          </div>
-        </div>
-
-        <div className="mt-6 rounded-md border border-primary/20 bg-primary/5 p-4">
-          <p className="text-sm font-medium">Statut global : <span className="font-semibold text-primary">{summary.applicationStatusLabel}</span></p>
-          <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full bg-primary transition-all duration-500"
-              style={{ width: `${summary.completionPercent}%` }}
+        <FormSection title="Projet d’études">
+          <div className="grid gap-4 md:grid-cols-2">
+            {studyFields.map((field) => (
+              <FormField
+                key={field.name}
+                field={field}
+                form={form}
+                disabled={disabled}
+                onChange={updateField}
+              />
+            ))}
+            <FormSelect<AdmissionStatus>
+              field={{
+                name: "admissionStatus",
+                label: "Statut d’admission",
+                options: admissionStatusOptions,
+              }}
+              form={form}
+              disabled={disabled}
+              onChange={updateField}
+            />
+            <FormSelect<AdmissionDocumentStatus>
+              field={{
+                name: "admissionDocumentStatus",
+                label: "Statut du document d’admission",
+                options: admissionDocumentStatusOptions,
+              }}
+              form={form}
+              disabled={disabled}
+              onChange={updateField}
             />
           </div>
-          <p className="mt-2 text-xs text-muted-foreground">
-            {summary.completionPercent}% complété
-          </p>
+        </FormSection>
+
+        <FormSection title="Mobilité et arrivée">
+          <div className="grid gap-4 md:grid-cols-2">
+            {mobilityFields.map((field) => (
+              <FormField
+                key={field.name}
+                field={field}
+                form={form}
+                disabled={disabled}
+                onChange={updateField}
+              />
+            ))}
+            <FormSelect<SelectedStudentService>
+              field={{
+                name: "selectedService",
+                label: "Service choisi",
+                options: selectedServiceOptions,
+              }}
+              form={form}
+              disabled={disabled}
+              onChange={updateField}
+            />
+          </div>
+        </FormSection>
+
+        <FormSection title="Besoin financier">
+          <div className="grid gap-4 md:grid-cols-2">
+            <FormSelect<FinancialNeedType>
+              field={{
+                name: "financialNeedType",
+                label: "Besoin financier",
+                options: financialNeedTypeOptions,
+              }}
+              form={form}
+              disabled={disabled}
+              onChange={updateField}
+            />
+            {financialFields.map((field) => (
+              <FormField
+                key={field.name}
+                field={field}
+                form={form}
+                disabled={disabled}
+                onChange={updateField}
+              />
+            ))}
+          </div>
+        </FormSection>
+
+        <FormSection title="Hébergement">
+          <div className="grid gap-4 md:grid-cols-2">
+            <FormSelect<HousingNeed>
+              field={{
+                name: "housingNeed",
+                label: "Besoin d’hébergement",
+                options: housingNeedOptions,
+              }}
+              form={form}
+              disabled={disabled}
+              onChange={updateField}
+            />
+            {housingFields.map((field) => (
+              <FormField
+                key={field.name}
+                field={field}
+                form={form}
+                disabled={disabled}
+                onChange={updateField}
+              />
+            ))}
+          </div>
+        </FormSection>
+
+        <FormSection title="Contact">
+          <div className="grid gap-4 md:grid-cols-2">
+            {contactFields.map((field) => (
+              <FormField
+                key={field.name}
+                field={field}
+                form={form}
+                disabled={disabled}
+                onChange={updateField}
+              />
+            ))}
+          </div>
+        </FormSection>
+
+        <div className="flex flex-col gap-3 rounded-md border bg-background p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3 text-sm text-muted-foreground">
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-accent" aria-hidden="true" />
+            <p>
+              Les champs incomplets restent visibles dans le tableau de bord afin
+              de sécuriser la génération des documents.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Button variant="outline" asChild>
+              <Link href="/dashboard">
+                <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+                Retour au tableau de bord
+              </Link>
+            </Button>
+            <Button
+              type="button"
+              disabled={disabled}
+              aria-busy={savingProfile}
+              onClick={() => void saveProfile()}
+            >
+              {savingProfile ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <Save className="h-4 w-4" aria-hidden="true" />
+              )}
+              Enregistrer mon profil
+            </Button>
+          </div>
         </div>
-      </section>
+      </div>
     </DashboardLayout>
   );
 }

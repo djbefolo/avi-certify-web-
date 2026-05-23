@@ -4,9 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import {
   getLatestPaymentSummary,
   getRequiredDocumentSummary,
+  getUserProfileSummary,
   REQUIRED_DOCUMENTS,
 } from "@/lib/dashboard/dashboard-data.service";
 import { buildDossierWorkflow } from "@/lib/workflow/workflow-engine";
+import { getSelectedServiceLabel } from "@/lib/profile/student-profile";
 import type { ApplicationDocument, ApplicationPayment } from "@/types/application";
 import type { DashboardSummary } from "@/types/dashboard";
 import { useAuth } from "@/hooks/use-auth";
@@ -33,11 +35,18 @@ const emptyPayment: ApplicationPayment = {
   description: "Aucun paiement n'a encore ete demarre pour ce dossier.",
 };
 
+const emptyProfile = {
+  data: null,
+  completionPercent: 0,
+  completionState: "incomplete" as const,
+};
+
 export function useDashboardSummary(): DashboardSummaryState {
   const { user, isEmailVerified } = useAuth();
   const [documents, setDocuments] =
     useState<ApplicationDocument[]>(emptyRequiredDocuments);
   const [payment, setPayment] = useState<ApplicationPayment>(emptyPayment);
+  const [profile, setProfile] = useState<DashboardSummary["profile"]>(emptyProfile);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -48,6 +57,7 @@ export function useDashboardSummary(): DashboardSummaryState {
       if (!user || !isEmailVerified) {
         setDocuments(emptyRequiredDocuments);
         setPayment(emptyPayment);
+        setProfile(emptyProfile);
         setLoading(false);
         return;
       }
@@ -56,14 +66,24 @@ export function useDashboardSummary(): DashboardSummaryState {
       setErrorMessage(null);
 
       try {
-        const [nextDocuments, nextPayment] = await Promise.all([
+        const [nextDocuments, nextPayment, nextProfile] = await Promise.all([
           getRequiredDocumentSummary(user.uid),
           getLatestPaymentSummary(user.uid),
+          getUserProfileSummary(user.uid),
         ]);
 
         if (!cancelled) {
           setDocuments(nextDocuments);
           setPayment(nextPayment);
+          setProfile(
+            nextProfile
+              ? {
+                  data: nextProfile,
+                  completionPercent: nextProfile.completionPercent,
+                  completionState: nextProfile.completionState,
+                }
+              : emptyProfile,
+          );
         }
       } catch {
         if (!cancelled) {
@@ -87,21 +107,32 @@ export function useDashboardSummary(): DashboardSummaryState {
 
   const summary = useMemo<DashboardSummary>(() => {
     const workflow = buildDossierWorkflow({ documents, payment });
+    const shouldCompleteProfile = profile.completionState !== "complete";
+    const nextAction = shouldCompleteProfile
+      ? {
+          title: "Compléter votre profil étudiant",
+          description:
+            "Certaines informations personnelles ou académiques sont nécessaires pour sécuriser votre dossier et vos documents.",
+          href: "/profil",
+          ctaLabel: "Compléter mon profil",
+        }
+      : workflow.nextAction;
 
     return {
       applicationStatus: workflow.status,
       applicationStatusLabel: workflow.label,
       currentStep: workflow.currentStep,
       completionPercent: workflow.completionPercent,
-      destinationCountry: "Non renseignee",
-      requestedService: "Non renseigne",
+      destinationCountry: profile.data?.destinationCountry ?? "Non renseignée",
+      requestedService: getSelectedServiceLabel(profile.data?.selectedService ?? null),
       advisorName: "Equipe AVI CERTIFY",
       documents,
       payment,
+      profile,
       timeline: workflow.timeline,
-      nextAction: workflow.nextAction,
+      nextAction,
     };
-  }, [documents, payment]);
+  }, [documents, payment, profile]);
 
   return {
     summary,

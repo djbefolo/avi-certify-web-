@@ -27,8 +27,28 @@ service cloud.firestore {
       return [
         "fullName",
         "phone",
+        "phoneWhatsApp",
+        "dateOfBirth",
+        "placeOfBirth",
+        "nationality",
+        "countryOfResidence",
         "residenceCountry",
         "destinationCountry",
+        "destinationCity",
+        "targetSchoolName",
+        "admissionStatus",
+        "admissionDocumentStatus",
+        "intendedProgram",
+        "intendedAcademicYear",
+        "intendedArrivalDate",
+        "expectedStayDuration",
+        "financialNeedType",
+        "requestedAviAmount",
+        "selectedService",
+        "housingNeed",
+        "preferredHousingCity",
+        "emergencyContactName",
+        "emergencyContactPhone",
         "updatedAt"
       ];
     }

@@ -7,6 +7,7 @@ import { DocumentStatusCard } from "@/components/dashboard/document-status-card"
 import { DossierStatusCard } from "@/components/dashboard/dossier-status-card";
 import { NextActionCard } from "@/components/dashboard/next-action-card";
 import { PaymentStatusCard } from "@/components/dashboard/payment-status-card";
+import { ProfileStatusCard } from "@/components/dashboard/profile-status-card";
 import { useDashboardSummary } from "@/hooks/use-dashboard-summary";
 
 export default function DashboardPage() {
@@ -38,6 +39,7 @@ export default function DashboardPage() {
               completionPercent={summary.completionPercent}
               advisorName={summary.advisorName}
             />
+            <ProfileStatusCard profile={summary.profile} />
             <DocumentStatusCard documents={summary.documents} />
           </div>
           <div className="grid gap-5">

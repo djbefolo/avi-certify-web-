@@ -113,19 +113,33 @@ export function isHousingRegionCode(
 
 export function selectHousingAddress({
   region,
+  city,
   seed,
 }: {
   region?: string | null;
+  city?: string | null;
   seed: string;
 }): HousingInventoryAddress {
   const selectedRegion = isHousingRegionCode(region) ? region : null;
+  const normalizedCity = city?.trim().toLowerCase();
   const availableAddresses = housingInventory.filter(
     (housing) =>
       housing.available &&
+      (!normalizedCity || housing.city.toLowerCase() === normalizedCity) &&
       (!selectedRegion || housing.region === selectedRegion),
   );
+  const cityFallbackAddresses = housingInventory.filter(
+    (housing) =>
+      housing.available &&
+      (!normalizedCity || housing.city.toLowerCase() === normalizedCity),
+  );
   const fallbackAddresses = housingInventory.filter((housing) => housing.available);
-  const candidates = availableAddresses.length > 0 ? availableAddresses : fallbackAddresses;
+  const candidates =
+    availableAddresses.length > 0
+      ? availableAddresses
+      : cityFallbackAddresses.length > 0
+        ? cityFallbackAddresses
+        : fallbackAddresses;
 
   if (candidates.length === 0) {
     throw new Error("No housing address is currently available.");
