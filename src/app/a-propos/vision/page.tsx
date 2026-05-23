@@ -61,7 +61,7 @@ export default function VisionPage() {
         <div className="relative overflow-hidden rounded-lg border shadow-xl">
           <div className="relative aspect-[4/3]">
             <Image
-              src="/assets/photos/sorbonne-univertsity-beautifull.jpg"
+              src="/assets/photos/sorbonne-univertsity-beautifull.jpg.jpg"
               alt="Université Sorbonne - Excellence académique"
               fill
               className="object-cover"

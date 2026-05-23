@@ -21,6 +21,9 @@
   --accent-dark: 160 100% 33%; /* #047857 */
   --accent-foreground: 0 0% 100%;
 
+  /* Logo Echo - sparing institutional yellow */
+  --institutional-yellow: 45 94% 58%; /* #F9C846 */
+
   /* Neutral Surfaces */
   --background: 0 0% 100%; /* #FFFFFF */
   --surface: 220 14% 98%; /* #F9FAFB */

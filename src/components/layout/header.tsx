@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { LayoutDashboard, LogOut, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { navLinks } from "@/constants/navigation";
@@ -11,6 +12,7 @@ import { Button } from "@/components/ui/button";
 
 export function Header() {
   const [isOpen, setIsOpen] = useState(false);
+  const pathname = usePathname();
   const { isAuthenticated, logout } = useAuth();
   const { resetUser, trackCtaClick, trackLogoutClicked } = useAnalytics();
 
@@ -22,29 +24,40 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur">
-      <div className="container flex h-16 items-center justify-between gap-4">
-        <Link href="/" className="flex items-center gap-3">
+    <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-background/95 shadow-sm backdrop-blur">
+      <div className="container flex h-[4.75rem] items-center justify-between gap-4">
+        <Link href="/" className="flex items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2">
           <Image
             src="/assets/photos/logo_avi_certify.png"
             alt="AVI CERTIFY"
-            width={140}
-            height={36}
-            className="h-9 w-auto"
+            width={190}
+            height={50}
+            className="h-12 w-auto sm:h-[3.25rem]"
             priority
           />
         </Link>
 
-        <nav className="hidden items-center gap-6 text-sm font-medium text-muted-foreground lg:flex">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="transition-colors hover:text-foreground"
-            >
-              {link.label}
-            </Link>
-          ))}
+        <nav className="hidden items-center gap-1 text-sm font-medium lg:flex">
+          {navLinks.map((link) => {
+            const isActive =
+              pathname === link.href ||
+              (link.href !== "/" && pathname.startsWith(link.href));
+
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`rounded-md px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 ${
+                  isActive
+                    ? "bg-primary/5 text-primary shadow-[inset_0_-2px_0_hsl(var(--institutional-yellow))]"
+                    : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+                }`}
+                aria-current={isActive ? "page" : undefined}
+              >
+                {link.label}
+              </Link>
+            );
+          })}
         </nav>
 
         {isAuthenticated ? (
@@ -85,7 +98,7 @@ export function Header() {
         ) : (
           <div className="hidden items-center gap-2 lg:flex">
             <div className="group relative">
-              <Button variant="ghost">
+              <Button variant="ghost" className="text-primary hover:bg-primary/5">
                 Compte
               </Button>
               <div className="invisible absolute right-0 top-full z-50 mt-2 w-48 rounded-lg border bg-background py-2 shadow-lg opacity-0 transition-all duration-200 group-hover:visible group-hover:opacity-100">
@@ -146,18 +159,29 @@ export function Header() {
       </div>
 
       {isOpen ? (
-        <div className="border-t bg-background lg:hidden">
+        <div className="border-t bg-background shadow-lg lg:hidden">
           <nav className="container grid gap-1 py-3">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="rounded-md px-2 py-3 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
-                onClick={() => setIsOpen(false)}
-              >
-                {link.label}
-              </Link>
-            ))}
+            {navLinks.map((link) => {
+              const isActive =
+                pathname === link.href ||
+                (link.href !== "/" && pathname.startsWith(link.href));
+
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`rounded-md px-2 py-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 ${
+                    isActive
+                      ? "bg-primary/5 text-primary"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  }`}
+                  aria-current={isActive ? "page" : undefined}
+                  onClick={() => setIsOpen(false)}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
             {isAuthenticated ? (
               <div className="mt-2 grid gap-2 border-t pt-3">
                 <p className="px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">

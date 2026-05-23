@@ -62,7 +62,7 @@ export default function DepartPage() {
         <div className="relative overflow-hidden rounded-lg border shadow-xl">
           <div className="relative aspect-[4/3]">
             <Image
-              src="/assets/photos/tour-effel-paris-welcome-france.jpg"
+              src="/assets/photos/tour-effel-paris-welcome-france.jpg.jpg"
               alt="Arrivée en France - Tour Eiffel"
               fill
               className="object-cover"

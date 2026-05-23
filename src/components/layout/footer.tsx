@@ -10,7 +10,7 @@ export function Footer() {
   return (
     <footer className="border-t text-white">
       <InstitutionalTrust />
-      <div className="bg-[hsl(222,75%,8%)]">
+      <div className="border-t border-white/10 bg-[hsl(222,75%,8%)]">
         <div className="container grid gap-10 py-12 md:grid-cols-[1.2fr_0.9fr_0.9fr] md:py-16">
         <div>
           <Link
@@ -26,9 +26,9 @@ export function Footer() {
             />
           </Link>
 
-          <div className="mt-4 inline-flex items-center gap-2 rounded-md border border-accent/30 bg-accent/10 px-3 py-1.5">
-            <Shield className="h-3.5 w-3.5 text-accent-light" aria-hidden="true" />
-            <span className="text-xs font-semibold uppercase tracking-wider text-accent-light">
+          <div className="mt-4 inline-flex items-center gap-2 rounded-md border border-[hsl(var(--institutional-yellow))]/35 bg-[hsl(var(--institutional-yellow))]/10 px-3 py-1.5">
+            <Shield className="h-3.5 w-3.5 text-[hsl(var(--institutional-yellow))]" aria-hidden="true" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-[hsl(var(--institutional-yellow))]">
               Société immatriculée
             </span>
           </div>
@@ -68,7 +68,7 @@ export function Footer() {
           </div>
 
           <div className="mt-6 space-y-2 border-t border-white/10 pt-6 text-sm">
-            <p className="font-semibold text-accent-light">
+            <p className="font-semibold text-[hsl(var(--institutional-yellow))]">
               Identification légale
             </p>
             <p className="text-gray-300">RCS Besançon: 942 370 545</p>

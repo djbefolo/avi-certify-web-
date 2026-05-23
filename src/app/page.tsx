@@ -117,13 +117,14 @@ export default function HomePage() {
       <section className="relative overflow-hidden border-b">
         <div className="absolute inset-0">
           <Image
-            src="/assets/photos/sorbonne-univertsity-beautifull.jpg"
+            src="/assets/photos/sorbonne-univertsity-beautifull.jpg.jpg"
             alt="Université Sorbonne Paris"
             fill
             className="object-cover"
             sizes="100vw"
           />
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/95 via-primary/90 to-primary-dark/95" />
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/95 via-primary/88 to-primary-dark/95" />
+          <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-accent via-[hsl(var(--institutional-yellow))] to-accent" />
         </div>
         <div className="container relative py-16 md:py-24">
           <div className="mx-auto max-w-3xl text-center">
@@ -152,14 +153,29 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="border-y bg-secondary/40">
-        <div className="container grid gap-12 py-16 md:grid-cols-[0.85fr_1.15fr] md:items-start md:py-24">
-          <div>
-            <SectionHeading
-              eyebrow="Méthode"
-              title="Un parcours lisible pour l'étudiant et pour l'équipe"
-              description="Vous savez quelles informations fournir, où en est votre dossier et quelle est la prochaine action attendue."
-            />
+      <section className="relative overflow-hidden border-y bg-[hsl(222,75%,8%)]">
+        <div className="absolute inset-0">
+          <Image
+            src="/assets/photos/tour-effel-paris-welcome-france.jpg.jpg"
+            alt="Paris académique et mobilité étudiante vers la France"
+            fill
+            className="object-cover opacity-55"
+            sizes="100vw"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-[hsl(222,75%,8%)] via-[hsl(222,75%,8%)]/88 to-[hsl(222,75%,8%)]/62" />
+          <div className="absolute inset-y-0 left-0 w-1 bg-[hsl(var(--institutional-yellow))]" />
+        </div>
+        <div className="container relative grid gap-12 py-16 md:grid-cols-[0.85fr_1.15fr] md:items-start md:py-24">
+          <div className="max-w-3xl">
+            <p className="text-sm font-semibold uppercase tracking-normal text-[hsl(var(--institutional-yellow))]">
+              Méthode
+            </p>
+            <h2 className="text-balance mt-3 text-3xl font-semibold text-white sm:text-4xl">
+              Un parcours lisible pour l'étudiant et pour l'équipe
+            </h2>
+            <p className="mt-4 text-lg leading-8 text-slate-200">
+              Vous savez quelles informations fournir, où en est votre dossier et quelle est la prochaine action attendue.
+            </p>
           </div>
           <ProcessSteps />
         </div>
