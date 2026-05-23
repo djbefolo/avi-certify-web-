@@ -17,7 +17,16 @@ type PricingRule = {
   schoolTransferFeeRate: number;
   exchangeRateToXaf: number;
   exchangeLabel: string;
+  exchangeNote: string;
+  baseIndicativeRate?: number;
+  safetyMarginRate?: number;
 };
+
+const fixedEurToXafRate = 655.957;
+const baseIndicativeCadToXafRate = 450;
+const cadSafetyMarginRate = 0.06;
+const effectiveCadToXafRate =
+  baseIndicativeCadToXafRate * (1 + cadSafetyMarginRate);
 
 // Later this can be replaced by Firestore-admin editable pricing rules.
 export const pricingRules: Record<DestinationKey, PricingRule> = {
@@ -31,8 +40,9 @@ export const pricingRules: Record<DestinationKey, PricingRule> = {
     serviceFee: 460,
     managementFeeRate: 0.035,
     schoolTransferFeeRate: 0.05,
-    exchangeRateToXaf: 656,
+    exchangeRateToXaf: fixedEurToXafRate,
     exchangeLabel: "EUR → XAF",
+    exchangeNote: "Parité fixe EUR → XAF : 1 € = 655,957 FCFA",
   },
   canada: {
     label: "Canada 🇨🇦",
@@ -41,11 +51,15 @@ export const pricingRules: Record<DestinationKey, PricingRule> = {
     minimumAviAmount: 15000,
     defaultAviAmount: 15000,
     maximumSliderAmount: 30000,
-    serviceFee: 460,
+    // This can later be indexed dynamically from 460 EUR converted to CAD using live EUR/CAD rate + margin.
+    serviceFee: 750,
     managementFeeRate: 0.035,
     schoolTransferFeeRate: 0.05,
-    exchangeRateToXaf: 450,
+    exchangeRateToXaf: effectiveCadToXafRate,
     exchangeLabel: "CAD → XAF",
+    exchangeNote: "Taux indicatif — à actualiser lors du traitement du dossier.",
+    baseIndicativeRate: baseIndicativeCadToXafRate,
+    safetyMarginRate: cadSafetyMarginRate,
   },
 };
 
@@ -70,6 +84,88 @@ function formatPercent(rate: number) {
     style: "percent",
     maximumFractionDigits: 1,
   }).format(rate);
+}
+
+export function PricingFormula() {
+  const [aviAmount, setAviAmount] = useState(pricingRules.europe.defaultAviAmount);
+  const rule = pricingRules.europe;
+  const managementFee = aviAmount * rule.managementFeeRate;
+  const total = aviAmount + rule.serviceFee + managementFee;
+
+  const formulaItems = [
+    { label: "Montant choisi", value: formatMoney(aviAmount, rule.currency) },
+    { label: "Frais de service", value: formatMoney(rule.serviceFee, rule.currency) },
+    {
+      label: `Frais de gestion ${formatPercent(rule.managementFeeRate)}`,
+      value: formatMoney(managementFee, rule.currency),
+    },
+    { label: "Total indicatif", value: formatMoney(total, rule.currency), result: true },
+  ];
+
+  const setFormulaAmount = (value: number) => {
+    const safeValue = Number.isFinite(value)
+      ? Math.max(0, value)
+      : rule.defaultAviAmount;
+
+    setAviAmount(safeValue);
+  };
+
+  return (
+    <section className="border-b bg-muted/30">
+      <div className="container py-14 md:py-20">
+        <div className="mb-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-3xl">
+            <p className="text-sm font-semibold uppercase tracking-normal text-accent">
+              Lecture transparente
+            </p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+              Une formule lisible avant engagement
+            </h2>
+          </div>
+          <label className="grid gap-2 text-sm font-medium text-muted-foreground lg:w-56">
+            Montant AVI
+            <input
+              type="number"
+              min={0}
+              step={10}
+              value={aviAmount}
+              onChange={(event) => setFormulaAmount(Number(event.target.value))}
+              className="h-11 rounded-md border bg-background px-3 text-base font-semibold text-foreground shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+          </label>
+        </div>
+        <div className="grid items-stretch gap-4 lg:grid-cols-[1fr_auto_1fr_auto_1fr_auto_1.15fr]">
+          {formulaItems.map((item, index) => (
+            <div key={item.label} className="contents">
+              <div
+                className={`rounded-lg border p-6 shadow-sm ${
+                  item.result
+                    ? "border-accent/30 bg-primary text-white"
+                    : "bg-background"
+                }`}
+              >
+                <p
+                  className={`text-sm font-semibold uppercase tracking-normal ${
+                    item.result
+                      ? "text-[hsl(var(--institutional-yellow))]"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  {item.label}
+                </p>
+                <p className="mt-4 text-3xl font-semibold">{item.value}</p>
+              </div>
+              {index < formulaItems.length - 1 ? (
+                <div className="hidden items-center text-3xl font-semibold text-accent lg:flex">
+                  {index === formulaItems.length - 2 ? "=" : "+"}
+                </div>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
 }
 
 export function PricingSimulator() {
@@ -141,14 +237,35 @@ export function PricingSimulator() {
               <div className="flex items-center gap-3">
                 <RefreshCw className="h-5 w-5 text-accent-light" aria-hidden="true" />
                 <div>
-                  <p className="font-semibold">Taux indicatif du jour</p>
-                  <p className="mt-1 text-sm text-slate-300">
-                    {rule.exchangeLabel} : {rule.exchangeRateToXaf.toLocaleString("fr-FR")} XAF
+                  <p className="font-semibold">
+                    {destination === "europe"
+                      ? "Parité fixe"
+                      : "Taux indicatif devise"}
                   </p>
+                  {destination === "europe" ? (
+                    <p className="mt-1 text-sm text-slate-300">
+                      {rule.exchangeNote}
+                    </p>
+                  ) : (
+                    <div className="mt-1 grid gap-1 text-sm text-slate-300">
+                      <p>
+                        Taux indicatif CAD → XAF :{" "}
+                        {rule.baseIndicativeRate?.toLocaleString("fr-FR")} FCFA
+                      </p>
+                      <p>
+                        Marge de sécurité AVI CERTIFY :{" "}
+                        {formatPercent(rule.safetyMarginRate ?? 0)}
+                      </p>
+                      <p>
+                        Taux appliqué estimatif :{" "}
+                        {rule.exchangeRateToXaf.toLocaleString("fr-FR")} FCFA
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
               <p className="mt-4 text-sm leading-6 text-slate-300">
-                Taux indicatif — à connecter prochainement au taux actualisé.
+                {rule.exchangeNote}
               </p>
             </div>
           </div>
@@ -199,7 +316,10 @@ export function PricingSimulator() {
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
               {[
                 ["Montant AVI choisi", formatMoney(aviAmount, rule.currency)],
-                ["Frais de service", formatMoney(rule.serviceFee, rule.currency)],
+                [
+                  "Frais de service AVI CERTIFY",
+                  formatMoney(rule.serviceFee, rule.currency),
+                ],
                 [`Frais de gestion ${formatPercent(rule.managementFeeRate)}`, formatMoney(simulation.managementFee, rule.currency)],
                 ["Total estimatif devise", formatMoney(simulation.total, rule.currency)],
                 ["Équivalent FCFA indicatif", formatXaf(simulation.xafEquivalent)],
@@ -218,7 +338,7 @@ export function PricingSimulator() {
               <div className="flex items-start gap-3">
                 <Landmark className="mt-0.5 h-5 w-5 shrink-0 text-[hsl(var(--institutional-yellow))]" aria-hidden="true" />
                 <p className="text-sm leading-6 text-slate-100">
-                  Les montants affichés sont indicatifs. Le montant final est confirmé après analyse du dossier, du pays, de la devise, de l’établissement et des exigences applicables.
+                  Les montants affichés sont indicatifs. Les taux appliqués peuvent être confirmés au moment du traitement, notamment pour les devises volatiles comme le dollar canadien.
                 </p>
               </div>
             </div>

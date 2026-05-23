@@ -9,7 +9,10 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { AuthAwareLink } from "@/components/navigation/auth-aware-link";
-import { PricingSimulator } from "@/components/marketing/pricing-simulator";
+import {
+  PricingFormula,
+  PricingSimulator,
+} from "@/components/marketing/pricing-simulator";
 import { Button } from "@/components/ui/button";
 import { createPageMetadata } from "@/lib/seo/metadata";
 
@@ -23,13 +26,6 @@ export const metadata = createPageMetadata({
     "Consultez les tarifs AVI CERTIFY pour l’attestation d’hébergement, l’AVI, le paiement des frais académiques et l’accompagnement visa, avec simulateur Europe et Canada.",
   path: "/prix",
 });
-
-const pricingFormula = [
-  { label: "Montant choisi", value: "7 380 €" },
-  { label: "Frais de service", value: "460 €" },
-  { label: "Frais de gestion", value: "3,5 %" },
-  { label: "Total indicatif", value: "8 098,30 €", result: true },
-];
 
 const offers = [
   {
@@ -231,45 +227,7 @@ export default function PricingPage() {
         </div>
       </section>
 
-      <section className="border-b bg-muted/30">
-        <div className="container py-14 md:py-20">
-          <div className="mb-10 max-w-3xl">
-            <p className="text-sm font-semibold uppercase tracking-normal text-accent">
-              Lecture transparente
-            </p>
-            <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-              Une formule lisible avant engagement
-            </h2>
-          </div>
-          <div className="grid items-stretch gap-4 lg:grid-cols-[1fr_auto_1fr_auto_1fr_auto_1.15fr]">
-            {pricingFormula.map((item, index) => (
-              <div key={item.label} className="contents">
-                <div
-                  className={`rounded-lg border p-6 shadow-sm ${
-                    item.result
-                      ? "border-accent/30 bg-primary text-white"
-                      : "bg-background"
-                  }`}
-                >
-                  <p
-                    className={`text-sm font-semibold uppercase tracking-normal ${
-                      item.result ? "text-[hsl(var(--institutional-yellow))]" : "text-muted-foreground"
-                    }`}
-                  >
-                    {item.label}
-                  </p>
-                  <p className="mt-4 text-3xl font-semibold">{item.value}</p>
-                </div>
-                {index < pricingFormula.length - 1 ? (
-                  <div className="hidden items-center text-3xl font-semibold text-accent lg:flex">
-                    {index === pricingFormula.length - 2 ? "=" : "+"}
-                  </div>
-                ) : null}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <PricingFormula />
 
       <section className="container py-16 md:py-24">
         <div className="mx-auto max-w-3xl text-center">
