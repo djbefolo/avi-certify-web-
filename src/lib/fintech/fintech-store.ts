@@ -15,11 +15,19 @@ type CollectionName =
   | "financing_quotes"
   | "admin_financial_audit_events";
 
-const state: FintechStoreState = {
-  simulations: [],
-  quotes: [],
-  auditEvents: [],
-};
+declare global {
+  var __aviFintechStoreState: FintechStoreState | undefined;
+}
+
+const state =
+  globalThis.__aviFintechStoreState ??
+  (globalThis.__aviFintechStoreState = {
+    simulations: [],
+    quotes: [],
+    auditEvents: [],
+  });
+
+let fallbackWarningLogged = false;
 
 function hasFirebaseAdminEnv() {
   return Boolean(
@@ -29,8 +37,28 @@ function hasFirebaseAdminEnv() {
   );
 }
 
+function assertLocalFallbackAllowed() {
+  if (hasFirebaseAdminEnv()) {
+    return;
+  }
+
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "Firebase Admin configuration is required for fintech financial storage in production. In-memory fallback is disabled.",
+    );
+  }
+
+  if (!fallbackWarningLogged && process.env.NODE_ENV !== "test") {
+    console.warn(
+      "AVI fintech store is using process-local fallback storage. This is allowed only for development and tests.",
+    );
+    fallbackWarningLogged = true;
+  }
+}
+
 async function getCollection(name: CollectionName) {
   if (!hasFirebaseAdminEnv()) {
+    assertLocalFallbackAllowed();
     return null;
   }
 

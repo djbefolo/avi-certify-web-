@@ -18,6 +18,11 @@ service cloud.firestore {
       return isOwner(userId) && isEmailVerified();
     }
 
+    function hasAdminClaim() {
+      return isSignedIn()
+        && (request.auth.token.admin == true || request.auth.token.role == "admin");
+    }
+
     function userUpdateFields() {
       return [
         "fullName",
@@ -129,6 +134,45 @@ service cloud.firestore {
     match /payments/{paymentId} {
       allow read: if isVerifiedOwner(resource.data.ownerId);
       allow create, update, delete: if false;
+    }
+
+    // Fintech financial admin collections are server-owned.
+    // Firebase Admin SDK bypasses rules; browser/client SDK access is denied even
+    // for future admin-claim users until a dedicated hardened admin client policy exists.
+    match /financial_products/{document=**} {
+      allow read, write: if false && hasAdminClaim();
+    }
+
+    match /fx_rates/{document=**} {
+      allow read, write: if false && hasAdminClaim();
+    }
+
+    match /pricing_rules/{document=**} {
+      allow read, write: if false && hasAdminClaim();
+    }
+
+    match /risk_surcharge_rules/{document=**} {
+      allow read, write: if false && hasAdminClaim();
+    }
+
+    match /financing_simulations/{document=**} {
+      allow read, write: if false && hasAdminClaim();
+    }
+
+    match /financing_quotes/{document=**} {
+      allow read, write: if false && hasAdminClaim();
+    }
+
+    match /quote_line_items/{document=**} {
+      allow read, write: if false && hasAdminClaim();
+    }
+
+    match /client_prefinancing_reports/{document=**} {
+      allow read, write: if false && hasAdminClaim();
+    }
+
+    match /admin_financial_audit_events/{document=**} {
+      allow read, write: if false && hasAdminClaim();
     }
   }
 }

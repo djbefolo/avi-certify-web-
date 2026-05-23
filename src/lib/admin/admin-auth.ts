@@ -5,6 +5,7 @@ export type AdminActor = {
   uid: string;
   email?: string;
   role: "admin";
+  authProvider: "dev-token" | "firebase";
 };
 
 export class AdminAuthError extends Error {
@@ -18,18 +19,21 @@ export class AdminAuthError extends Error {
 
 export async function requireAdmin(request: NextRequest): Promise<AdminActor> {
   const devToken = request.headers.get("x-admin-dev-token");
-
   const configuredDevToken = process.env.ADMIN_FINTECH_DEV_TOKEN;
+  const isDevTokenAllowed =
+    process.env.NODE_ENV === "development" || process.env.NODE_ENV === "test";
 
   if (
+    isDevTokenAllowed &&
     devToken &&
-    ((process.env.NODE_ENV !== "production" && devToken === "avi-local-admin") ||
+    (devToken === "avi-local-admin" ||
       (configuredDevToken && devToken === configuredDevToken))
   ) {
     return {
       uid: "local-admin",
       email: "local-admin@avicertify.local",
       role: "admin",
+      authProvider: "dev-token",
     };
   }
 
@@ -63,6 +67,7 @@ export async function requireAdmin(request: NextRequest): Promise<AdminActor> {
       uid: decodedToken.uid,
       email: decodedToken.email,
       role: "admin",
+      authProvider: "firebase",
     };
   } catch (error) {
     if (error instanceof AdminAuthError) {

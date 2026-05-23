@@ -181,9 +181,18 @@ export type FinancingQuote = {
 export type FinancialAuditEvent = {
   id: string;
   type: AuditEventType;
+  action: AuditEventType | "admin_access_granted" | "admin_access_denied";
   createdAt: string;
+  environment: string;
   actor: string;
+  actorId?: string;
+  actorLabel?: string;
+  actorRole?: "admin" | "unknown";
   targetCollection: string;
   targetId?: string;
+  resourceType: string;
+  resourceId?: string;
+  ip?: string;
+  userAgent?: string;
   metadata: Record<string, unknown>;
 };

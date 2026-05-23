@@ -52,22 +52,100 @@ export async function withAdmin<T>(
     metadata?: Record<string, unknown>;
   },
 ) {
+  const auditService = new FinancialAuditService();
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    request.headers.get("x-real-ip") ??
+    undefined;
+  const userAgent = request.headers.get("user-agent") ?? undefined;
+
+  async function safeAudit(input: Parameters<FinancialAuditService["record"]>[0]) {
+    try {
+      await auditService.record(input);
+    } catch (error) {
+      console.error(
+        "Admin financial audit write failed:",
+        error instanceof Error ? error.message : "unknown error",
+      );
+    }
+  }
+
   try {
     const actor = await requireAdmin(request);
+    await safeAudit({
+      type: "admin_access",
+      action: "admin_access_granted",
+      actor: actor.uid,
+      actorLabel: actor.email,
+      actorRole: actor.role,
+      targetCollection: "admin_fintech_api",
+      resourceType: request.nextUrl.pathname,
+      ip,
+      userAgent,
+      metadata: {
+        method: request.method,
+        authProvider: actor.authProvider,
+      },
+    });
+
     const result = await handler(actor);
 
     if (audit) {
-      await new FinancialAuditService().record({
+      const resourceId = extractResourceId(result);
+
+      await safeAudit({
         type: audit.type,
         actor: actor.uid,
+        actorLabel: actor.email,
+        actorRole: actor.role,
         targetCollection: audit.targetCollection,
-        targetId: audit.targetId,
+        targetId: audit.targetId ?? resourceId,
+        resourceType: audit.targetCollection,
+        resourceId: audit.targetId ?? resourceId,
+        ip,
+        userAgent,
         metadata: audit.metadata,
       });
     }
 
     return fintechJson(result);
   } catch (error) {
+    await safeAudit({
+      type: "admin_access",
+      action: "admin_access_denied",
+      actor: "unauthenticated-or-forbidden",
+      actorRole: "unknown",
+      targetCollection: "admin_fintech_api",
+      resourceType: request.nextUrl.pathname,
+      ip,
+      userAgent,
+      metadata: {
+        method: request.method,
+        reason: error instanceof Error ? error.message : "unknown error",
+      },
+    });
+
     return routeError(error);
   }
+}
+
+function extractResourceId(result: unknown): string | undefined {
+  if (!result || typeof result !== "object") {
+    return undefined;
+  }
+
+  const body = result as Record<string, unknown>;
+  for (const key of ["simulation", "quote", "report", "fxRate", "pricingRule", "riskRule"]) {
+    const value = body[key];
+
+    if (value && typeof value === "object" && "id" in value) {
+      const id = (value as { id?: unknown }).id;
+
+      if (typeof id === "string") {
+        return id;
+      }
+    }
+  }
+
+  return undefined;
 }
