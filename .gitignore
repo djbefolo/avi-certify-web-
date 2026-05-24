@@ -26,3 +26,17 @@ Thumbs.db
 # misc
 *.tsbuildinfo
 vercel.json
+
+.vercel
+
+# Vercel env snapshots / secrets
+.env.vercel*
+
+# Local Firebase project binding
+.firebaserc
+
+# Local financial model workbooks
+AVI_CERTIFY_Modele_Prefinancement_*.xlsx
+
+# Local sprint scratchpad
+.sprint-*-summary.md

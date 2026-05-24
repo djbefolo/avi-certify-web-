@@ -2,11 +2,13 @@ import { NextRequest } from "next/server";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const verifyIdToken = vi.fn();
+const verifySessionCookie = vi.fn();
 const userDocGet = vi.fn();
 
 vi.mock("@/lib/firebase/admin", () => ({
   getAdminAuth: () => ({
     verifyIdToken,
+    verifySessionCookie,
   }),
   getAdminFirestore: () => ({
     collection: () => ({
@@ -102,5 +104,26 @@ describe("requireAdmin security guard", () => {
       role: "admin",
       authProvider: "firebase",
     });
+  });
+
+  it("accepts Firebase session cookies with a super admin claim", async () => {
+    verifySessionCookie.mockResolvedValueOnce({
+      uid: "admin-2",
+      email: "super@example.com",
+      role: "super_admin",
+    });
+    const { requireAdmin } = await import("@/lib/admin/admin-auth");
+
+    const actor = await requireAdmin(
+      adminRequest({ cookie: "avi_admin_session=session-cookie" }),
+    );
+
+    expect(actor).toMatchObject({
+      uid: "admin-2",
+      email: "super@example.com",
+      role: "super_admin",
+      authProvider: "firebase-session",
+    });
+    expect(verifySessionCookie).toHaveBeenCalledWith("session-cookie", true);
   });
 });

@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import type { DecodedIdToken } from "firebase-admin/auth";
 import { getAdminAuth, getAdminFirestore } from "@/lib/firebase/admin";
+
+export type AdminRole = "admin" | "super_admin";
 
 export type AdminActor = {
   uid: string;
   email?: string;
-  role: "admin";
-  authProvider: "dev-token" | "firebase";
+  role: AdminRole;
+  authProvider: "dev-token" | "firebase" | "firebase-session";
 };
 
 export class AdminAuthError extends Error {
@@ -15,6 +18,48 @@ export class AdminAuthError extends Error {
   ) {
     super(message);
   }
+}
+
+function normalizeAdminRole(role: unknown): AdminRole | null {
+  return role === "admin" || role === "super_admin" ? role : null;
+}
+
+function isFirebaseConfigError(error: unknown) {
+  return (
+    error instanceof Error &&
+    error.message.includes("Missing required Firebase Admin env var")
+  );
+}
+
+export async function resolveAdminActorFromDecodedToken(
+  decodedToken: DecodedIdToken,
+  authProvider: AdminActor["authProvider"] = "firebase",
+): Promise<AdminActor> {
+  const roleClaim = normalizeAdminRole(decodedToken.role ?? decodedToken.adminRole);
+  let role = roleClaim;
+
+  if (!role && decodedToken.admin === true) {
+    role = "admin";
+  }
+
+  if (!role) {
+    const userSnapshot = await getAdminFirestore()
+      .collection("users")
+      .doc(decodedToken.uid)
+      .get();
+    role = normalizeAdminRole(userSnapshot.data()?.role);
+  }
+
+  if (!role) {
+    throw new AdminAuthError(403, "Admin role required.");
+  }
+
+  return {
+    uid: decodedToken.uid,
+    email: decodedToken.email,
+    role,
+    authProvider,
+  };
 }
 
 export async function requireAdmin(request: NextRequest): Promise<AdminActor> {
@@ -41,37 +86,32 @@ export async function requireAdmin(request: NextRequest): Promise<AdminActor> {
   const token = authorization?.startsWith("Bearer ")
     ? authorization.slice("Bearer ".length)
     : null;
+  const sessionCookie = request.cookies.get("avi_admin_session")?.value;
 
-  if (!token) {
+  if (!token && !sessionCookie) {
     throw new AdminAuthError(401, "Admin authentication required.");
   }
 
   try {
-    const decodedToken = await getAdminAuth().verifyIdToken(token);
-    const roleClaim = decodedToken.role ?? decodedToken.adminRole;
-    let isAdmin = roleClaim === "admin" || decodedToken.admin === true;
+    if (token) {
+      const decodedToken = await getAdminAuth().verifyIdToken(token);
 
-    if (!isAdmin) {
-      const userSnapshot = await getAdminFirestore()
-        .collection("users")
-        .doc(decodedToken.uid)
-        .get();
-      isAdmin = userSnapshot.data()?.role === "admin";
+      return resolveAdminActorFromDecodedToken(decodedToken, "firebase");
     }
 
-    if (!isAdmin) {
-      throw new AdminAuthError(403, "Admin role required.");
-    }
+    const decodedSession = await getAdminAuth().verifySessionCookie(
+      sessionCookie as string,
+      true,
+    );
 
-    return {
-      uid: decodedToken.uid,
-      email: decodedToken.email,
-      role: "admin",
-      authProvider: "firebase",
-    };
+    return resolveAdminActorFromDecodedToken(decodedSession, "firebase-session");
   } catch (error) {
     if (error instanceof AdminAuthError) {
       throw error;
+    }
+
+    if (!isFirebaseConfigError(error) && sessionCookie) {
+      throw new AdminAuthError(401, "Admin session is invalid or expired.");
     }
 
     throw new AdminAuthError(

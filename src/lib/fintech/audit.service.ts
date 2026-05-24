@@ -10,7 +10,7 @@ export class FinancialAuditService {
     type: AuditEventType;
     actor: string;
     actorLabel?: string;
-    actorRole?: "admin" | "unknown";
+    actorRole?: "admin" | "super_admin" | "unknown";
     action?: FinancialAuditEvent["action"];
     targetCollection: string;
     targetId?: string;

@@ -187,7 +187,7 @@ export type FinancialAuditEvent = {
   actor: string;
   actorId?: string;
   actorLabel?: string;
-  actorRole?: "admin" | "unknown";
+  actorRole?: "admin" | "super_admin" | "unknown";
   targetCollection: string;
   targetId?: string;
   resourceType: string;

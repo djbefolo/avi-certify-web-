@@ -8,6 +8,7 @@ This process grants the first production admin claim to an existing Firebase Aut
 - `FIREBASE_CLIENT_EMAIL`
 - `FIREBASE_PRIVATE_KEY`
 - `ADMIN_BOOTSTRAP_EMAIL`
+- `ADMIN_BOOTSTRAP_ROLE` optional, `super_admin` by default. Allowed values: `admin`, `super_admin`.
 
 ## Dry run
 
@@ -28,7 +29,7 @@ The target Firebase Auth user receives:
 ```json
 {
   "admin": true,
-  "role": "admin"
+  "role": "super_admin"
 }
 ```
 

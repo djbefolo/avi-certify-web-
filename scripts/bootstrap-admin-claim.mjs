@@ -24,6 +24,11 @@ function maskEmail(email) {
 
 const email = requiredEnv("ADMIN_BOOTSTRAP_EMAIL");
 const dryRun = process.env.ADMIN_BOOTSTRAP_DRY_RUN !== "false";
+const role = process.env.ADMIN_BOOTSTRAP_ROLE ?? "super_admin";
+
+if (!["admin", "super_admin"].includes(role)) {
+  throw new Error("ADMIN_BOOTSTRAP_ROLE must be admin or super_admin.");
+}
 
 if (!getApps().length) {
   initializeApp({
@@ -40,7 +45,7 @@ const user = await auth.getUserByEmail(email);
 const nextClaims = {
   ...(user.customClaims ?? {}),
   admin: true,
-  role: "admin",
+  role,
 };
 
 if (dryRun) {

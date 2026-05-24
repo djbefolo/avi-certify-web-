@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
+import { verifyAdminGuardValue } from "@/lib/admin/admin-session-guard";
 
-export function middleware(request: NextRequest) {
+const ADMIN_NOINDEX_HEADER = "noindex, nofollow, noarchive";
+
+function withAdminNoindex(response: NextResponse) {
+  response.headers.set("X-Robots-Tag", ADMIN_NOINDEX_HEADER);
+
+  return response;
+}
+
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (!pathname.startsWith("/admin")) {
@@ -8,30 +17,23 @@ export function middleware(request: NextRequest) {
   }
 
   if (pathname === "/admin/login") {
-    const response = NextResponse.next();
-    response.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
-
-    return response;
+    return withAdminNoindex(NextResponse.next());
   }
 
-  const hasAdminSession =
-    request.cookies.has("avi_admin_session") || request.cookies.has("__session");
+  const hasAdminSession = request.cookies.has("avi_admin_session");
+  const adminGuard = await verifyAdminGuardValue(
+    request.cookies.get("avi_admin_guard")?.value,
+  );
 
-  if (!hasAdminSession) {
+  if (!hasAdminSession || !adminGuard) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/admin/login";
     loginUrl.searchParams.set("next", pathname);
 
-    const response = NextResponse.redirect(loginUrl);
-    response.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
-
-    return response;
+    return withAdminNoindex(NextResponse.redirect(loginUrl));
   }
 
-  const response = NextResponse.next();
-  response.headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
-
-  return response;
+  return withAdminNoindex(NextResponse.next());
 }
 
 export const config = {
