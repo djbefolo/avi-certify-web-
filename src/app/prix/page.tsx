@@ -1,7 +1,9 @@
 import {
   ArrowRight,
   BadgeCheck,
+  BookOpen,
   Check,
+  CircleDollarSign,
   ExternalLink,
   FileCheck2,
   Landmark,
@@ -18,6 +20,21 @@ import { createPageMetadata } from "@/lib/seo/metadata";
 
 const verifyAviUrl = "https://verify.avicertify.fr/";
 const whatsappUrl = "https://wa.me/message/XOKRBYI3ZEQBM1";
+
+const pricingSectionNav = [
+  { href: "#simulation-avi", label: "🧮 Simulation AVI" },
+  { href: "#tarifs-frais", label: "💰 Tarifs & frais" },
+  { href: "#mobilite-canada-europe", label: "🇨🇦 Mobilité" },
+  { href: "#calcul-montants", label: "📘 Calcul des montants" },
+  { href: "#garantie-remboursement", label: "🛡 Garantie" },
+  { href: "#faq-financiere", label: "❓ FAQ" },
+] as const;
+
+const guaranteeItems = [
+  { icon: ShieldCheck, label: "Contrat clair" },
+  { icon: CircleDollarSign, label: "Fonds protégés" },
+  { icon: BookOpen, label: "Suivi documenté" },
+] as const;
 
 export const metadata = createPageMetadata({
   title:
@@ -135,6 +152,26 @@ const comparisonRows = [
 
 const faqs = [
   {
+    question: "Qu’est-ce qu’une AVI ?",
+    answer:
+      "L’AVI, ou Attestation de Virement Irrévocable, est une preuve financière destinée à justifier la disponibilité de ressources dans le cadre d’un projet de mobilité étudiante. Elle contribue à démontrer la cohérence financière du dossier auprès des interlocuteurs concernés.",
+  },
+  {
+    question: "L’AVI est-elle obligatoire ?",
+    answer:
+      "Selon le pays, la procédure et le type de dossier, une preuve financière est généralement demandée. L’absence d’éléments financiers solides peut fragiliser un dossier d’admission ou de visa. AVI CERTIFY aide à structurer cette preuve avec prudence et traçabilité.",
+  },
+  {
+    question: "Comment sont calculés les montants ?",
+    answer:
+      "Les montants tiennent compte d’une base de frais de vie de référence, comme 7 380 € selon le cadre applicable, des frais académiques restant dus, de la destination, de la devise et de la cohérence financière globale du projet d’études.",
+  },
+  {
+    question: "Pourquoi ne pas utiliser simplement ma banque ?",
+    answer:
+      "Une banque peut fournir des justificatifs utiles, mais un dossier de mobilité demande souvent une présentation claire, vérifiable et cohérente avec les exigences académiques, consulaires et financières. AVI CERTIFY accompagne cette structuration documentaire.",
+  },
+  {
     question: "Les tarifs sont-ils fixes ?",
     answer:
       "Certains services ont un tarif fixe, comme l’attestation d’hébergement. Les services liés à l’AVI, aux transferts ou aux frais académiques peuvent varier selon le montant, la devise, le pays, l’établissement et les exigences applicables.",
@@ -186,7 +223,7 @@ export default function PricingPage() {
     <>
       <section className="relative overflow-hidden border-b bg-[hsl(222,75%,8%)] text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_10%,rgba(5,150,105,0.22),transparent_30%),radial-gradient(circle_at_78%_0%,rgba(249,200,70,0.13),transparent_26%)]" />
-        <div className="container relative py-16 md:py-24">
+        <div className="container relative py-14 md:py-20">
           <div className="max-w-4xl">
             <div className="inline-flex items-center gap-2 rounded-full border border-[hsl(var(--institutional-yellow))]/35 bg-[hsl(var(--institutional-yellow))]/10 px-4 py-2 text-sm font-semibold text-[hsl(var(--institutional-yellow))]">
               <Landmark className="h-4 w-4" aria-hidden="true" />
@@ -201,6 +238,12 @@ export default function PricingPage() {
             <p className="mt-5 text-sm font-semibold text-slate-200">
               Paiement sécurisé · Documents vérifiables · Support WhatsApp · Espace client sécurisé · Vérification AVI disponible
             </p>
+            <a
+              href="#simulation-avi"
+              className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[hsl(var(--institutional-yellow))] transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[hsl(var(--institutional-yellow))]"
+            >
+              ↓ Estimez votre budget de mobilité ci-dessous
+            </a>
             <div className="mt-8 flex flex-col gap-4 sm:flex-row">
               <Button size="lg" variant="cta" className="text-base" asChild>
                 <AuthAwareLink
@@ -227,9 +270,30 @@ export default function PricingPage() {
         </div>
       </section>
 
-      <PricingFormula />
+      <section className="sticky top-[4.75rem] z-30 border-b bg-background/95 backdrop-blur">
+        <div className="container py-3">
+          <nav
+            className="flex gap-2 overflow-x-auto"
+            aria-label="Navigation interne des tarifs"
+          >
+            {pricingSectionNav.map((item) => (
+              <a
+                key={item.href}
+                href={item.href}
+                className="shrink-0 rounded-full border bg-background px-4 py-2 text-sm font-semibold text-muted-foreground transition-colors hover:border-accent/30 hover:bg-accent/10 hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              >
+                {item.label}
+              </a>
+            ))}
+          </nav>
+        </div>
+      </section>
 
-      <section className="container py-16 md:py-24">
+      <div id="calcul-montants" className="scroll-mt-32">
+        <PricingFormula />
+      </div>
+
+      <section id="tarifs-frais" className="container scroll-mt-32 py-16 md:py-24">
         <div className="mx-auto max-w-3xl text-center">
           <p className="text-sm font-semibold uppercase tracking-normal text-accent">
             Offres
@@ -324,9 +388,14 @@ export default function PricingPage() {
         </div>
       </section>
 
-      <PricingSimulator />
+      <div id="simulation-avi" className="scroll-mt-32">
+        <PricingSimulator />
+      </div>
 
-      <section className="container py-16 md:py-24">
+      <section
+        id="mobilite-canada-europe"
+        className="container scroll-mt-32 py-16 md:py-24"
+      >
         <div className="mb-10 max-w-3xl">
           <p className="text-sm font-semibold uppercase tracking-normal text-accent">
             Comparatif
@@ -373,7 +442,56 @@ export default function PricingPage() {
         </div>
       </section>
 
-      <section className="border-y bg-muted/30">
+      <section
+        id="garantie-remboursement"
+        className="border-y bg-muted/30 scroll-mt-32"
+      >
+        <div className="container py-16 md:py-20">
+          <div className="grid gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
+            <div>
+              <p className="text-sm font-semibold uppercase tracking-normal text-accent">
+                Garantie & remboursement
+              </p>
+              <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+                Protection financière et transparence
+              </h2>
+            </div>
+            <div className="rounded-lg border bg-background p-6 shadow-sm md:p-8">
+              <div className="grid gap-5 text-muted-foreground">
+                <p className="leading-7">
+                  Chez AVI CERTIFY, nous comprenons que les fonds engagés dans
+                  un projet d’études représentent un effort important pour
+                  l’étudiant et sa famille.
+                </p>
+                <p className="leading-7">
+                  En cas de refus de visa, notre politique de remboursement
+                  s’applique conformément aux conditions prévues au contrat, avec
+                  transparence et accompagnement tout au long du processus. AVI
+                  CERTIFY place la confiance et la protection financière des
+                  étudiants au centre de son accompagnement.
+                </p>
+                <div className="rounded-lg border border-accent/25 bg-accent/10 p-4 text-foreground">
+                  <p className="font-semibold">Notre objectif est simple :</p>
+                  <p className="mt-2 leading-7">
+                    sécuriser votre projet, protéger vos fonds et avancer avec
+                    clarté.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                {guaranteeItems.map(({ icon: Icon, label }) => (
+                  <div key={label} className="rounded-lg border bg-muted/30 p-4">
+                    <Icon className="h-5 w-5 text-accent" aria-hidden="true" />
+                    <p className="mt-3 text-sm font-semibold">{label}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="faq-financiere" className="border-y bg-muted/30 scroll-mt-32">
         <div className="container py-16 md:py-24">
           <div className="mx-auto max-w-3xl text-center">
             <p className="text-sm font-semibold uppercase tracking-normal text-accent">

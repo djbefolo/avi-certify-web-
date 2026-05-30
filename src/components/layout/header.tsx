@@ -3,15 +3,32 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { ExternalLink, LayoutDashboard, LogOut, Menu, X } from "lucide-react";
+import {
+  ChevronDown,
+  ExternalLink,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  X,
+} from "lucide-react";
 import { useState } from "react";
 import { navLinks } from "@/constants/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { useAnalytics } from "@/hooks/use-analytics";
 import { Button } from "@/components/ui/button";
 
+const pricingMenuItems = [
+  { href: "/prix#simulation-avi", label: "🧮 Simulation AVI" },
+  { href: "/prix#tarifs-frais", label: "💰 Tarifs & frais" },
+  { href: "/prix#mobilite-canada-europe", label: "🇨🇦 Mobilité Canada / Europe" },
+  { href: "/prix#calcul-montants", label: "📘 Comment sont calculés les montants ?" },
+  { href: "/prix#garantie-remboursement", label: "🛡 Garantie & remboursement" },
+  { href: "/prix#faq-financiere", label: "❓ FAQ financière" },
+] as const;
+
 export function Header() {
   const [isOpen, setIsOpen] = useState(false);
+  const [isPricingOpen, setIsPricingOpen] = useState(false);
   const pathname = usePathname();
   const { isAuthenticated, logout } = useAuth();
   const { resetUser, trackCtaClick, trackLogoutClicked } = useAnalytics();
@@ -42,6 +59,40 @@ export function Header() {
             const isActive =
               pathname === link.href ||
               (link.href !== "/" && pathname.startsWith(link.href));
+
+            if (link.href === "/prix") {
+              return (
+                <div key={link.href} className="group relative">
+                  <Link
+                    href={link.href}
+                    className={`inline-flex items-center gap-1 rounded-md px-3 py-2 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 ${
+                      isActive
+                        ? "bg-primary/5 text-primary shadow-[inset_0_-2px_0_hsl(var(--institutional-yellow))]"
+                        : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+                    }`}
+                    aria-current={isActive ? "page" : undefined}
+                    aria-haspopup="true"
+                  >
+                    Prix
+                    <ChevronDown
+                      className="h-3.5 w-3.5 transition-transform group-hover:rotate-180 group-focus-within:rotate-180"
+                      aria-hidden="true"
+                    />
+                  </Link>
+                  <div className="invisible absolute left-0 top-full z-50 mt-2 w-80 translate-y-1 rounded-lg border bg-background p-2 opacity-0 shadow-xl transition-all duration-200 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100">
+                    {pricingMenuItems.map((item) => (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className="block rounded-md px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                      >
+                        {item.label}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              );
+            }
 
             return (
               <Link
@@ -174,6 +225,56 @@ export function Header() {
               const isActive =
                 pathname === link.href ||
                 (link.href !== "/" && pathname.startsWith(link.href));
+
+              if (link.href === "/prix") {
+                return (
+                  <div key={link.href} className="rounded-md">
+                    <button
+                      type="button"
+                      className={`flex w-full items-center justify-between rounded-md px-2 py-3 text-left text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 ${
+                        isActive
+                          ? "bg-primary/5 text-primary"
+                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      }`}
+                      aria-expanded={isPricingOpen}
+                      aria-controls="mobile-pricing-menu"
+                      onClick={() => setIsPricingOpen((value) => !value)}
+                    >
+                      <span>Prix</span>
+                      <ChevronDown
+                        className={`h-4 w-4 transition-transform ${
+                          isPricingOpen ? "rotate-180" : ""
+                        }`}
+                        aria-hidden="true"
+                      />
+                    </button>
+                    {isPricingOpen ? (
+                      <div
+                        id="mobile-pricing-menu"
+                        className="ml-3 grid gap-1 border-l pl-3"
+                      >
+                        <Link
+                          href="/prix"
+                          className="rounded-md px-2 py-2 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+                          onClick={() => setIsOpen(false)}
+                        >
+                          Vue générale des prix
+                        </Link>
+                        {pricingMenuItems.map((item) => (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            className="rounded-md px-2 py-2 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+                            onClick={() => setIsOpen(false)}
+                          >
+                            {item.label}
+                          </Link>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              }
 
               return (
                 <Link
