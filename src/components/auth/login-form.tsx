@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertCircle, Loader2, LogIn } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -12,6 +12,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAnalytics } from "@/hooks/use-analytics";
+import {
+  getPostAuthGuideRedirect,
+  rememberGuideIntent,
+} from "@/lib/resources/guide-intent.client";
+import {
+  GUIDE_FRANCE_2026_RESOURCE_ID,
+  isGuideFrance2026Resource,
+} from "@/lib/resources/guide-resource";
 
 const loginSchema = z.object({
   email: z
@@ -55,6 +63,18 @@ export function LoginForm() {
   const submitLockRef = useRef(false);
   const { trackLoginCompleted } = useAnalytics();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [resource, setResource] = useState<string | null>(null);
+  const registerHref = isGuideFrance2026Resource(resource)
+    ? `/inscription?resource=${GUIDE_FRANCE_2026_RESOURCE_ID}`
+    : "/inscription";
+
+  useEffect(() => {
+    const currentResource = new URLSearchParams(window.location.search).get(
+      "resource",
+    );
+    setResource(currentResource);
+    rememberGuideIntent(currentResource);
+  }, []);
 
   const {
     register,
@@ -79,7 +99,9 @@ export function LoginForm() {
       const credential = await signInWithEmail(values.email, values.password);
       trackLoginCompleted();
       router.replace(
-        credential.user.emailVerified ? "/dashboard" : "/verification-email",
+        credential.user.emailVerified
+          ? getPostAuthGuideRedirect("/dashboard")
+          : "/verification-email",
       );
     } catch (error) {
       setErrorMessage(getAuthErrorMessage(error));
@@ -152,7 +174,7 @@ export function LoginForm() {
 
       <p className="text-center text-sm text-muted-foreground">
         Pas encore de compte ?{" "}
-        <Link href="/inscription" className="font-medium text-primary hover:underline">
+        <Link href={registerHref} className="font-medium text-primary hover:underline">
           Creer un compte
         </Link>
       </p>

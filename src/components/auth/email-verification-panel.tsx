@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { sendVerificationEmail } from "@/lib/firebase/auth";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
+import { getPostAuthGuideRedirect } from "@/lib/resources/guide-intent.client";
 
 type Feedback =
   | { status: "idle" }
@@ -39,7 +40,7 @@ export function EmailVerificationPanel() {
     }
 
     if (isEmailVerified) {
-      router.replace("/dashboard");
+      router.replace(getPostAuthGuideRedirect("/dashboard"));
     }
   }, [isEmailVerified, loading, router, user]);
 
@@ -90,7 +91,7 @@ export function EmailVerificationPanel() {
       const refreshedUser = await reloadUser();
 
       if (refreshedUser?.emailVerified) {
-        router.replace("/dashboard");
+        router.replace(getPostAuthGuideRedirect("/dashboard"));
         return;
       }
 

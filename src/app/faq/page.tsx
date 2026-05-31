@@ -4,6 +4,7 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { PageHeader } from "@/components/marketing/page-header";
 import { Button } from "@/components/ui/button";
 import { createPageMetadata } from "@/lib/seo/metadata";
+import { GUIDE_FRANCE_2026_RESOURCE_ID } from "@/lib/resources/guide-resource";
 import { faqPageJsonLd } from "@/lib/seo/schema";
 
 export const metadata = createPageMetadata({
@@ -84,7 +85,9 @@ export default function FaqPage() {
               </p>
             </div>
             <Button className="md:justify-self-end" variant="cta" asChild>
-              <Link href="/inscription">Créer mon compte et recevoir le guide</Link>
+              <Link href={`/inscription?resource=${GUIDE_FRANCE_2026_RESOURCE_ID}`}>
+                Créer mon compte et recevoir le guide
+              </Link>
             </Button>
           </div>
         </div>

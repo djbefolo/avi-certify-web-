@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AlertCircle, Loader2, UserPlus } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { sendVerificationEmail, signUpWithEmail } from "@/lib/firebase/auth";
@@ -16,6 +16,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAnalytics } from "@/hooks/use-analytics";
+import { rememberGuideIntent } from "@/lib/resources/guide-intent.client";
+import {
+  GUIDE_FRANCE_2026_RESOURCE_ID,
+  isGuideFrance2026Resource,
+} from "@/lib/resources/guide-resource";
 
 const defaultValues: RegisterInput = {
   fullName: "",
@@ -79,6 +84,18 @@ export function RegisterForm() {
   const submitLockRef = useRef(false);
   const { trackSignupCompleted, trackSignupStarted } = useAnalytics();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [resource, setResource] = useState<string | null>(null);
+  const loginHref = isGuideFrance2026Resource(resource)
+    ? `/connexion?resource=${GUIDE_FRANCE_2026_RESOURCE_ID}`
+    : "/connexion";
+
+  useEffect(() => {
+    const currentResource = new URLSearchParams(window.location.search).get(
+      "resource",
+    );
+    setResource(currentResource);
+    rememberGuideIntent(currentResource);
+  }, []);
 
   const {
     register,
@@ -225,7 +242,7 @@ export function RegisterForm() {
 
       <p className="text-center text-sm text-muted-foreground">
         Deja un compte ?{" "}
-        <Link href="/connexion" className="font-medium text-primary hover:underline">
+        <Link href={loginHref} className="font-medium text-primary hover:underline">
           Se connecter
         </Link>
       </p>
