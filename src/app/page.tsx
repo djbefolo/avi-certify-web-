@@ -1,6 +1,5 @@
 import {
   ArrowRight,
-  BadgeCheck,
   Building2,
   FileCheck2,
   ShieldCheck,
@@ -98,15 +97,6 @@ export default function HomePage() {
                 sizes="(max-width: 768px) 100vw, 50vw"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-            </div>
-            <div className="absolute -bottom-6 -left-6 rounded-lg border bg-background p-4 shadow-lg">
-              <div className="flex items-center gap-3">
-                <BadgeCheck className="h-8 w-8 text-accent" aria-hidden="true" />
-                <div>
-                  <p className="text-sm font-semibold">Dossiers traités</p>
-                  <p className="text-xs text-muted-foreground">Accompagnement vérifié</p>
-                </div>
-              </div>
             </div>
           </div>
         </div>
@@ -391,14 +381,15 @@ export default function HomePage() {
             >
               <Instagram className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
             </button>
-            <button
-              type="button"
-              disabled
-              className="flex h-12 w-12 items-center justify-center rounded-lg border border-border/50 bg-muted/20 opacity-40 cursor-not-allowed"
-              aria-label="LinkedIn (prochainement)"
+            <a
+              href="https://www.linkedin.com/company/avi-certify/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex h-12 w-12 items-center justify-center rounded-lg border bg-background transition-colors hover:border-primary hover:bg-primary/5"
+              aria-label="LinkedIn"
             >
               <Linkedin className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-            </button>
+            </a>
           </div>
         </div>
       </section>

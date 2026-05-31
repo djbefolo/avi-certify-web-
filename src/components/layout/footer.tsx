@@ -165,14 +165,15 @@ export function Footer() {
               >
                 <Instagram className="h-4 w-4 text-white" aria-hidden="true" />
               </button>
-              <button
-                type="button"
-                disabled
-                className="flex h-9 w-9 items-center justify-center rounded-md bg-white/5 opacity-40 cursor-not-allowed"
-                aria-label="LinkedIn (prochainement)"
+              <a
+                href="https://www.linkedin.com/company/avi-certify/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex h-9 w-9 items-center justify-center rounded-md bg-white/10 transition-colors hover:bg-white/20"
+                aria-label="LinkedIn"
               >
                 <Linkedin className="h-4 w-4 text-white" aria-hidden="true" />
-              </button>
+              </a>
             </div>
           </div>
         </div>
