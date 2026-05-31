@@ -1,6 +1,13 @@
 "use client";
 
-import { AlertCircle, CheckCircle2, Loader2, LogOut, MailCheck } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  Info,
+  Loader2,
+  LogOut,
+  MailCheck,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { sendVerificationEmail } from "@/lib/firebase/auth";
@@ -144,6 +151,13 @@ export function EmailVerificationPanel() {
           adresse email. Vous pourrez acceder a votre espace une fois votre
           adresse confirmee.
         </p>
+        <div className="mt-5 flex gap-3 rounded-md border bg-muted/25 p-4 text-sm text-muted-foreground">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+          <p>
+            Si vous ne voyez pas immédiatement notre email de vérification,
+            pensez à vérifier votre dossier spam / courrier indésirable.
+          </p>
+        </div>
 
         {user.email ? (
           <div className="mt-5 rounded-md border bg-muted/25 p-4">

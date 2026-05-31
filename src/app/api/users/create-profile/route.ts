@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
     if (result.created) {
       await sendWelcomeEmail({
         email: profile.email,
-        fullName: profile.fullName,
+        fullName: `${profile.firstName} ${profile.lastName}`.trim(),
       });
     }
 

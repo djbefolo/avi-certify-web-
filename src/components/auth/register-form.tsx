@@ -2,7 +2,13 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { AlertCircle, Loader2, UserPlus } from "lucide-react";
+import {
+  AlertCircle,
+  CalendarDays,
+  CheckCircle2,
+  Loader2,
+  UserPlus,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -15,7 +21,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { useAnalytics } from "@/hooks/use-analytics";
+import { birthCountryOptions } from "@/lib/profile/countries";
 import { rememberGuideIntent } from "@/lib/resources/guide-intent.client";
 import {
   GUIDE_FRANCE_2026_RESOURCE_ID,
@@ -23,12 +31,26 @@ import {
 } from "@/lib/resources/guide-resource";
 
 const defaultValues: RegisterInput = {
-  fullName: "",
+  firstName: "",
+  lastName: "",
+  birthDate: "",
+  birthCountry: "",
   phone: "",
   email: "",
   password: "",
   confirmPassword: "",
 };
+
+const passwordRules = [
+  { label: "8 caractères minimum", test: (value: string) => value.length >= 8 },
+  { label: "une majuscule", test: (value: string) => /[A-Z]/.test(value) },
+  { label: "une minuscule", test: (value: string) => /[a-z]/.test(value) },
+  { label: "un chiffre", test: (value: string) => /[0-9]/.test(value) },
+  {
+    label: "un caractère spécial",
+    test: (value: string) => /[^A-Za-z0-9]/.test(value),
+  },
+];
 
 type CreateProfileResponse = {
   error?: string;
@@ -62,7 +84,10 @@ async function createProfile(values: RegisterValues, token: string) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      fullName: values.fullName,
+      firstName: values.firstName,
+      lastName: values.lastName,
+      birthDate: values.birthDate,
+      birthCountry: values.birthCountry,
       phone: values.phone,
     }),
   });
@@ -100,12 +125,14 @@ export function RegisterForm() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<RegisterInput>({
     resolver: zodResolver(registerSchema),
     defaultValues,
     mode: "onBlur",
   });
+  const passwordValue = watch("password") ?? "";
 
   const onSubmit: SubmitHandler<RegisterInput> = async (input) => {
     if (submitLockRef.current) {
@@ -149,23 +176,88 @@ export function RegisterForm() {
         </div>
       ) : null}
 
-      <div className="grid gap-2">
-        <Label htmlFor="register-fullName">Nom complet</Label>
-        <Input
-          id="register-fullName"
-          autoComplete="name"
-          aria-invalid={Boolean(errors.fullName)}
-          {...register("fullName")}
-        />
-        {errors.fullName?.message ? (
-          <p className="text-sm font-medium text-destructive">
-            {errors.fullName.message}
-          </p>
-        ) : null}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-2">
+          <Label htmlFor="register-firstName">Prénom</Label>
+          <Input
+            id="register-firstName"
+            autoComplete="given-name"
+            aria-invalid={Boolean(errors.firstName)}
+            {...register("firstName")}
+          />
+          {errors.firstName?.message ? (
+            <p className="text-sm font-medium text-destructive">
+              {errors.firstName.message}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="register-lastName">Nom</Label>
+          <Input
+            id="register-lastName"
+            autoComplete="family-name"
+            aria-invalid={Boolean(errors.lastName)}
+            {...register("lastName")}
+          />
+          {errors.lastName?.message ? (
+            <p className="text-sm font-medium text-destructive">
+              {errors.lastName.message}
+            </p>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-2">
+          <Label htmlFor="register-birthDate">Date de naissance</Label>
+          <div className="relative">
+            <Input
+              id="register-birthDate"
+              type="date"
+              autoComplete="bday"
+              max={new Date().toISOString().slice(0, 10)}
+              className="pr-10"
+              aria-invalid={Boolean(errors.birthDate)}
+              {...register("birthDate")}
+            />
+            <CalendarDays
+              className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+              aria-hidden="true"
+            />
+          </div>
+          {errors.birthDate?.message ? (
+            <p className="text-sm font-medium text-destructive">
+              {errors.birthDate.message}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="grid gap-2">
+          <Label htmlFor="register-birthCountry">Pays de naissance</Label>
+          <Select
+            id="register-birthCountry"
+            autoComplete="country-name"
+            aria-invalid={Boolean(errors.birthCountry)}
+            {...register("birthCountry")}
+          >
+            <option value="">Sélectionner un pays</option>
+            {birthCountryOptions.map((country) => (
+              <option key={country} value={country}>
+                {country}
+              </option>
+            ))}
+          </Select>
+          {errors.birthCountry?.message ? (
+            <p className="text-sm font-medium text-destructive">
+              {errors.birthCountry.message}
+            </p>
+          ) : null}
+        </div>
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor="register-phone">Telephone WhatsApp optionnel</Label>
+        <Label htmlFor="register-phone">Téléphone WhatsApp (optionnel)</Label>
         <Input
           id="register-phone"
           autoComplete="tel"
@@ -178,6 +270,9 @@ export function RegisterForm() {
             {errors.phone.message}
           </p>
         ) : null}
+        <p className="text-sm text-muted-foreground">
+          Utile pour un accompagnement plus rapide.
+        </p>
       </div>
 
       <div className="grid gap-2">
@@ -211,6 +306,30 @@ export function RegisterForm() {
             {errors.password.message}
           </p>
         ) : null}
+        <div className="rounded-md border bg-muted/20 p-3 text-sm">
+          <p className="font-medium text-foreground">
+            Votre mot de passe doit contenir :
+          </p>
+          <ul className="mt-2 grid gap-1 text-muted-foreground sm:grid-cols-2">
+            {passwordRules.map((rule) => {
+              const isValid = rule.test(passwordValue);
+
+              return (
+                <li key={rule.label} className="flex items-center gap-2">
+                  <CheckCircle2
+                    className={`h-4 w-4 ${
+                      isValid ? "text-accent" : "text-muted-foreground/45"
+                    }`}
+                    aria-hidden="true"
+                  />
+                  <span className={isValid ? "text-foreground" : undefined}>
+                    {rule.label}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       </div>
 
       <div className="grid gap-2">
