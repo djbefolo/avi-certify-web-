@@ -6,6 +6,12 @@ export type AdminSessionGuardPayload = {
 
 const encoder = new TextEncoder();
 
+export class AdminSessionGuardConfigError extends Error {
+  constructor() {
+    super("Admin session signing secret is not configured.");
+  }
+}
+
 function base64UrlEncode(input: string | Uint8Array) {
   const bytes =
     typeof input === "string" ? encoder.encode(input) : new Uint8Array(input);
@@ -36,19 +42,14 @@ function base64UrlDecode(input: string) {
 }
 
 function getSessionSecret() {
-  return (
-    process.env.ADMIN_SESSION_SECRET ??
-    process.env.FIREBASE_PRIVATE_KEY ??
-    process.env.STRIPE_WEBHOOK_SECRET ??
-    ""
-  );
+  return process.env.ADMIN_SESSION_SECRET?.trim() ?? "";
 }
 
 async function sign(value: string) {
   const secret = getSessionSecret();
 
   if (!secret) {
-    throw new Error("Admin session signing secret is not configured.");
+    throw new AdminSessionGuardConfigError();
   }
 
   const key = await crypto.subtle.importKey(

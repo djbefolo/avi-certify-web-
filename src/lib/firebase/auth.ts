@@ -38,6 +38,22 @@ export async function signOutUser(): Promise<void> {
   await signOut(getBrowserAuth());
 }
 
+export async function clearAdminSession(): Promise<void> {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const response = await fetch("/api/admin/session/logout", {
+    method: "POST",
+    cache: "no-store",
+    credentials: "same-origin",
+  });
+
+  if (!response.ok) {
+    throw new Error("Admin session logout failed.");
+  }
+}
+
 export async function sendPasswordReset(email: string): Promise<void> {
   await sendPasswordResetEmail(getBrowserAuth(), email);
 }

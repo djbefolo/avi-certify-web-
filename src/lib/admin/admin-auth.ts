@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { DecodedIdToken } from "firebase-admin/auth";
-import { getAdminAuth, getAdminFirestore } from "@/lib/firebase/admin";
+import { getAdminAuth } from "@/lib/firebase/admin";
 
 export type AdminRole = "admin" | "super_admin";
 
@@ -35,19 +35,12 @@ export async function resolveAdminActorFromDecodedToken(
   decodedToken: DecodedIdToken,
   authProvider: AdminActor["authProvider"] = "firebase",
 ): Promise<AdminActor> {
-  const roleClaim = normalizeAdminRole(decodedToken.role ?? decodedToken.adminRole);
-  let role = roleClaim;
+  let role =
+    normalizeAdminRole(decodedToken.role) ??
+    normalizeAdminRole(decodedToken.adminRole);
 
   if (!role && decodedToken.admin === true) {
     role = "admin";
-  }
-
-  if (!role) {
-    const userSnapshot = await getAdminFirestore()
-      .collection("users")
-      .doc(decodedToken.uid)
-      .get();
-    role = normalizeAdminRole(userSnapshot.data()?.role);
   }
 
   if (!role) {
@@ -94,7 +87,7 @@ export async function requireAdmin(request: NextRequest): Promise<AdminActor> {
 
   try {
     if (token) {
-      const decodedToken = await getAdminAuth().verifyIdToken(token);
+      const decodedToken = await getAdminAuth().verifyIdToken(token, true);
 
       return resolveAdminActorFromDecodedToken(decodedToken, "firebase");
     }
@@ -110,8 +103,13 @@ export async function requireAdmin(request: NextRequest): Promise<AdminActor> {
       throw error;
     }
 
-    if (!isFirebaseConfigError(error) && sessionCookie) {
-      throw new AdminAuthError(401, "Admin session is invalid or expired.");
+    if (!isFirebaseConfigError(error)) {
+      throw new AdminAuthError(
+        401,
+        token
+          ? "Admin token is invalid, expired, or revoked."
+          : "Admin session is invalid or expired.",
+      );
     }
 
     throw new AdminAuthError(
