@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminOpsHeaders, readAdminJson } from "@/app/api/admin/_utils";
 import {
+  adminDocumentHeaders,
   DocumentSecurityError,
   documentSecurityErrorResponse,
   getAdminDocumentRecord,
+  readAdminDocumentJson,
 } from "@/app/api/admin/documents/[documentId]/_file";
 import { requireAdmin } from "@/lib/admin/admin-auth";
-import { getAdminOperationsStore } from "@/lib/admin/admin-ops-store";
+import { transitionAdminDocument } from "@/lib/documents/admin-document.service";
 
 export async function POST(request: NextRequest) {
   try {
     const actor = await requireAdmin(request);
-    const body = await readAdminJson(request);
+    const body = await readAdminDocumentJson(request);
     const documentId = typeof body.documentId === "string" ? body.documentId : "";
     const rejectionReason = typeof body.rejectionReason === "string" ? body.rejectionReason.trim() : "";
     if (!documentId) {
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const document = await getAdminOperationsStore().verifyDocument(
+    const document = await transitionAdminDocument(
       documentId,
       { verificationStatus: "REJECTED", rejectionReason },
       actor,
@@ -48,7 +49,7 @@ export async function POST(request: NextRequest) {
           verificationStatus: document.verificationStatus,
         },
       },
-      { headers: adminOpsHeaders },
+      { headers: adminDocumentHeaders },
     );
   } catch (error) {
     return documentSecurityErrorResponse(error);

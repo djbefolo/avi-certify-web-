@@ -1,16 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminOpsHeaders, readAdminJson } from "@/app/api/admin/_utils";
 import {
+  adminDocumentHeaders,
   DocumentSecurityError,
   documentSecurityErrorResponse,
   getAdminDocumentRecord,
+  readAdminDocumentJson,
 } from "@/app/api/admin/documents/[documentId]/_file";
 import { requireAdmin } from "@/lib/admin/admin-auth";
-import { getAdminOperationsStore } from "@/lib/admin/admin-ops-store";
-import { getAdminFirestore } from "@/lib/firebase/admin";
-import type { ClientDocument } from "@/types/admin-ops";
+import {
+  transitionAdminDocument,
+  type AdminDocumentVerificationStatus,
+} from "@/lib/documents/admin-document.service";
 
-const allowedStatuses: ClientDocument["verificationStatus"][] = [
+const allowedStatuses: AdminDocumentVerificationStatus[] = [
   "UNDER_REVIEW",
   "CORRECTION_REQUESTED",
 ];
@@ -22,8 +24,9 @@ export async function PATCH(
   try {
     const actor = await requireAdmin(request);
     const { documentId } = await params;
-    const body = await readAdminJson(request);
-    const verificationStatus = body.verificationStatus as ClientDocument["verificationStatus"];
+    const body = await readAdminDocumentJson(request);
+    const verificationStatus =
+      body.verificationStatus as AdminDocumentVerificationStatus;
     const rejectionReason =
       typeof body.rejectionReason === "string"
         ? body.rejectionReason.trim()
@@ -62,7 +65,7 @@ export async function PATCH(
       );
     }
 
-    const document = await getAdminOperationsStore().verifyDocument(
+    const document = await transitionAdminDocument(
       documentId,
       {
         verificationStatus,
@@ -72,22 +75,6 @@ export async function PATCH(
       actor,
     );
 
-    if (verificationStatus === "CORRECTION_REQUESTED") {
-      await getAdminFirestore()
-        .collection("documents")
-        .doc(documentId)
-        .set(
-          {
-            status: "correction_requested",
-            verificationStatus: "CORRECTION_REQUESTED",
-            rejectionReason,
-            adminComment: rejectionReason,
-            updatedAt: new Date().toISOString(),
-          },
-          { merge: true },
-        );
-    }
-
     return NextResponse.json(
       {
         document: {
@@ -95,7 +82,7 @@ export async function PATCH(
           verificationStatus: document.verificationStatus,
         },
       },
-      { headers: adminOpsHeaders },
+      { headers: adminDocumentHeaders },
     );
   } catch (error) {
     return documentSecurityErrorResponse(error);

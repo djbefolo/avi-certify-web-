@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminErrorResponse, requireAdmin } from "@/lib/admin/admin-auth";
-import { getAdminOperationsStore } from "@/lib/admin/admin-ops-store";
+import {
+  AdminDocumentServiceError,
+  getAdminDocumentById,
+  type AdminDocumentRecord,
+} from "@/lib/documents/admin-document.service";
 import { getAdminStorage } from "@/lib/firebase/admin";
 import {
   isAcceptedDocumentMimeType,
   maxDocumentFileSize,
 } from "@/lib/validations/document";
-import type { ClientDocument } from "@/types/admin-ops";
 
 const downloadableStatuses = new Set([
   "UPLOADED",
@@ -32,16 +35,29 @@ export class DocumentSecurityError extends Error {
   }
 }
 
+export const adminDocumentHeaders = {
+  "Cache-Control": "no-store",
+  "X-Content-Type-Options": "nosniff",
+};
+
+export async function readAdminDocumentJson(request: NextRequest) {
+  try {
+    return (await request.json()) as Record<string, unknown>;
+  } catch {
+    return {};
+  }
+}
+
 export function documentSecurityErrorResponse(error: unknown) {
-  if (error instanceof DocumentSecurityError) {
+  if (
+    error instanceof DocumentSecurityError ||
+    error instanceof AdminDocumentServiceError
+  ) {
     return NextResponse.json(
       { error: error.message },
       {
         status: error.status,
-        headers: {
-          "Cache-Control": "no-store",
-          "X-Content-Type-Options": "nosniff",
-        },
+        headers: adminDocumentHeaders,
       },
     );
   }
@@ -50,18 +66,12 @@ export function documentSecurityErrorResponse(error: unknown) {
 }
 
 export async function getAdminDocumentRecord(documentId: string) {
-  const document = (await getAdminOperationsStore().listDocuments()).find(
-    (item) => item.id === documentId,
-  );
-
-  if (!document) {
-    throw new DocumentSecurityError(404, "Document not found.");
-  }
-
-  return document;
+  return getAdminDocumentById(documentId);
 }
 
-export async function validateAdminDocumentFile(document: ClientDocument) {
+export async function validateAdminDocumentFile(
+  document: AdminDocumentRecord,
+) {
   if (!document.storagePath) {
     throw new DocumentSecurityError(
       409,

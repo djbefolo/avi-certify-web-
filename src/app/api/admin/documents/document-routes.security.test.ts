@@ -5,11 +5,14 @@ import { POST as approveDocument } from "@/app/api/admin/documents/approve/route
 import { POST as rejectDocument } from "@/app/api/admin/documents/reject/route";
 import { GET as downloadDocument } from "@/app/api/admin/documents/[documentId]/download/route";
 import { GET as previewDocument } from "@/app/api/admin/documents/[documentId]/preview/route";
-import type { ClientDocument } from "@/types/admin-ops";
+import type {
+  AdminDocumentRecord,
+  AdminDocumentVerificationStatus,
+} from "@/lib/documents/admin-document.service";
 
 const requireAdmin = vi.hoisted(() => vi.fn());
-const listDocuments = vi.hoisted(() => vi.fn());
-const verifyDocument = vi.hoisted(() => vi.fn());
+const getAdminDocumentById = vi.hoisted(() => vi.fn());
+const transitionAdminDocument = vi.hoisted(() => vi.fn());
 const getMetadata = vi.hoisted(() => vi.fn());
 const download = vi.hoisted(() => vi.fn());
 
@@ -29,11 +32,10 @@ vi.mock("@/lib/admin/admin-auth", async (importOriginal) => {
   };
 });
 
-vi.mock("@/lib/admin/admin-ops-store", () => ({
-  getAdminOperationsStore: () => ({
-    listDocuments,
-    verifyDocument,
-  }),
+vi.mock("@/lib/documents/admin-document.service", () => ({
+  AdminDocumentServiceError: class AdminDocumentServiceError extends Error {},
+  getAdminDocumentById,
+  transitionAdminDocument,
 }));
 
 vi.mock("@/lib/firebase/admin", () => ({
@@ -54,7 +56,7 @@ const actor = {
   authProvider: "firebase-session" as const,
 };
 
-const uploadedDocument: ClientDocument = {
+const uploadedDocument: AdminDocumentRecord = {
   id: "doc-1",
   uid: "user-1",
   caseId: "case-1",
@@ -63,10 +65,7 @@ const uploadedDocument: ClientDocument = {
   storagePath: "users/user-1/documents/doc-1-passport.pdf",
   mimeType: "application/pdf",
   size: 1024,
-  downloadUrl: null,
   uploadStatus: "uploaded",
-  uploadedBy: "CLIENT",
-  source: "CLIENT",
   verificationStatus: "UPLOADED",
   rejectionReason: null,
   uploadedAt: "2026-06-13T08:00:00.000Z",
@@ -89,16 +88,16 @@ function fileParams() {
 describe("admin document route security", () => {
   beforeEach(() => {
     requireAdmin.mockReset();
-    listDocuments.mockReset();
-    verifyDocument.mockReset();
+    getAdminDocumentById.mockReset();
+    transitionAdminDocument.mockReset();
     getMetadata.mockReset();
     download.mockReset();
     requireAdmin.mockResolvedValue(actor);
-    listDocuments.mockResolvedValue([uploadedDocument]);
-    verifyDocument.mockImplementation(
+    getAdminDocumentById.mockResolvedValue(uploadedDocument);
+    transitionAdminDocument.mockImplementation(
       async (
         documentId: string,
-        input: { verificationStatus: ClientDocument["verificationStatus"] },
+        input: { verificationStatus: AdminDocumentVerificationStatus },
       ) => ({
         ...uploadedDocument,
         id: documentId,
@@ -116,21 +115,19 @@ describe("admin document route security", () => {
   });
 
   it("rejects approval of a requested document without a file", async () => {
-    listDocuments.mockResolvedValueOnce([
-      {
-        ...uploadedDocument,
-        storagePath: "",
-        size: 0,
-        verificationStatus: "REQUESTED",
-      },
-    ]);
+    getAdminDocumentById.mockResolvedValueOnce({
+      ...uploadedDocument,
+      storagePath: "",
+      size: 0,
+      verificationStatus: "REQUESTED",
+    });
 
     const response = await approveDocument(
       postRequest("/api/admin/documents/approve", { documentId: "doc-1" }),
     );
 
     expect(response.status).toBe(409);
-    expect(verifyDocument).not.toHaveBeenCalled();
+    expect(transitionAdminDocument).not.toHaveBeenCalled();
   });
 
   it("approves an uploaded document only after Storage validation", async () => {
@@ -140,7 +137,7 @@ describe("admin document route security", () => {
 
     expect(response.status).toBe(200);
     expect(getMetadata).toHaveBeenCalledTimes(1);
-    expect(verifyDocument).toHaveBeenCalledWith(
+    expect(transitionAdminDocument).toHaveBeenCalledWith(
       "doc-1",
       { verificationStatus: "APPROVED" },
       actor,
@@ -153,7 +150,7 @@ describe("admin document route security", () => {
     );
 
     expect(response.status).toBe(400);
-    expect(verifyDocument).not.toHaveBeenCalled();
+    expect(transitionAdminDocument).not.toHaveBeenCalled();
   });
 
   it("rejects anonymous preview and download requests", async () => {
@@ -176,12 +173,10 @@ describe("admin document route security", () => {
   });
 
   it("rejects file access when no uploaded file exists", async () => {
-    listDocuments.mockResolvedValue([
-      {
-        ...uploadedDocument,
-        storagePath: "",
-      },
-    ]);
+    getAdminDocumentById.mockResolvedValue({
+      ...uploadedDocument,
+      storagePath: "",
+    });
 
     const preview = await previewDocument(
       new NextRequest("http://localhost/api/admin/documents/doc-1/preview"),
