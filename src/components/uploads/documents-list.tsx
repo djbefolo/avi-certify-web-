@@ -16,6 +16,7 @@ type DocumentsListProps = {
 };
 
 const statusLabels: Record<DocumentStatus, string> = {
+  requested: "Demandé",
   pending: "En attente",
   uploaded: "Envoyé",
   generated: "Généré",
@@ -23,6 +24,7 @@ const statusLabels: Record<DocumentStatus, string> = {
   approved: "Validé",
   validated: "Validé",
   rejected: "À corriger",
+  expired: "Expiré",
 };
 
 function getStatusClassName(status: DocumentStatus) {
@@ -30,11 +32,11 @@ function getStatusClassName(status: DocumentStatus) {
     return "border-accent/30 bg-accent/10 text-accent";
   }
 
-  if (status === "rejected") {
+  if (status === "rejected" || status === "expired") {
     return "border-destructive/30 bg-destructive/10 text-destructive";
   }
 
-  if (status === "under_review") {
+  if (status === "under_review" || status === "uploaded") {
     return "border-primary/30 bg-primary/10 text-primary";
   }
 
@@ -45,7 +47,7 @@ function getFileSizeLabel(size: number) {
   return `${(size / (1024 * 1024)).toFixed(2)} MB`;
 }
 
-function getDateLabel(date: Date | null) {
+function getDateLabel(date: Date | null | undefined) {
   if (!date) {
     return "Date en cours de synchronisation";
   }
@@ -57,9 +59,7 @@ function getDateLabel(date: Date | null) {
 }
 
 function getOpenButtonLabel(document: UserDocument) {
-  return document.status === "generated"
-    ? "Télécharger"
-    : "Ouvrir le document";
+  return document.status === "generated" ? "Télécharger" : "Ouvrir le document";
 }
 
 export function DocumentsList({ refreshKey = 0 }: DocumentsListProps) {
@@ -93,6 +93,7 @@ export function DocumentsList({ refreshKey = 0 }: DocumentsListProps) {
   }, [loadDocuments, refreshKey]);
 
   const openDocument = async (document: UserDocument) => {
+    if (!document.storagePath || document.status === "requested") return;
     setOpeningId(document.id);
     setErrorMessage(null);
 
@@ -111,7 +112,7 @@ export function DocumentsList({ refreshKey = 0 }: DocumentsListProps) {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-sm font-medium text-muted-foreground">
-            Documents du dossier
+            Documents demandés
           </p>
           <h2 className="mt-2 text-xl font-semibold">
             Pièces justificatives et attestations
@@ -145,9 +146,9 @@ export function DocumentsList({ refreshKey = 0 }: DocumentsListProps) {
       {!loading && documents.length === 0 ? (
         <div className="mt-6 rounded-md border bg-muted/25 p-5 text-center">
           <FileText className="mx-auto h-8 w-8 text-muted-foreground" />
-          <p className="mt-3 font-medium">Aucun document envoyé</p>
+          <p className="mt-3 font-medium">Aucun document demandé ou envoyé</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Vos fichiers apparaîtront ici après le premier dépôt.
+            Les demandes de documents AVI CERTIFY et vos fichiers déposés apparaîtront ici.
           </p>
         </div>
       ) : null}
@@ -181,8 +182,15 @@ export function DocumentsList({ refreshKey = 0 }: DocumentsListProps) {
                   <p className="mt-2 break-all text-sm text-muted-foreground">
                     {document.originalFileName}
                   </p>
+                  {document.adminComment ? (
+                    <p className="mt-2 rounded-md border border-amber-200 bg-amber-50 p-2 text-sm text-amber-900">
+                      Message admin : {document.adminComment}
+                    </p>
+                  ) : null}
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {getFileSizeLabel(document.size)} - {getDateLabel(document.createdAt)}
+                    {document.status === "requested"
+                      ? `Demandé le ${getDateLabel(document.requestedAt ?? document.createdAt)}`
+                      : `${getFileSizeLabel(document.size)} - ${getDateLabel(document.createdAt)}`}
                   </p>
                 </div>
 
@@ -191,7 +199,7 @@ export function DocumentsList({ refreshKey = 0 }: DocumentsListProps) {
                     type="button"
                     variant="outline"
                     size="sm"
-                    disabled={openingId === document.id}
+                    disabled={openingId === document.id || !document.storagePath || document.status === "requested"}
                     onClick={() => void openDocument(document)}
                   >
                     {openingId === document.id ? (
@@ -199,7 +207,7 @@ export function DocumentsList({ refreshKey = 0 }: DocumentsListProps) {
                     ) : (
                       <ExternalLink className="h-4 w-4" aria-hidden="true" />
                     )}
-                    {getOpenButtonLabel(document)}
+                    {document.status === "requested" ? "À déposer" : getOpenButtonLabel(document)}
                   </Button>
                   {document.verificationUrl ? (
                     <Button variant="outline" size="sm" asChild>
