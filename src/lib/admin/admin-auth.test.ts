@@ -68,14 +68,13 @@ describe("requireAdmin security guard", () => {
     });
   });
 
-  it("rejects authenticated non-admin users", async () => {
+  it("rejects users whose admin role exists only in Firestore", async () => {
     verifyIdToken.mockResolvedValueOnce({
       uid: "user-1",
       email: "student@example.com",
-      role: "user",
     });
     userDocGet.mockResolvedValueOnce({
-      data: () => ({ role: "user" }),
+      data: () => ({ role: "admin" }),
     });
     const { AdminAuthError, requireAdmin } = await import("@/lib/admin/admin-auth");
     const promise = requireAdmin(
@@ -84,6 +83,20 @@ describe("requireAdmin security guard", () => {
 
     await expect(promise).rejects.toBeInstanceOf(AdminAuthError);
     await expect(promise).rejects.toMatchObject({ status: 403 });
+    expect(userDocGet).not.toHaveBeenCalled();
+    expect(verifyIdToken).toHaveBeenCalledWith("firebase-token", true);
+  });
+
+  it("rejects revoked Firebase bearer tokens", async () => {
+    verifyIdToken.mockRejectedValueOnce(new Error("auth/id-token-revoked"));
+    const { AdminAuthError, requireAdmin } = await import("@/lib/admin/admin-auth");
+    const promise = requireAdmin(
+      adminRequest({ authorization: "Bearer revoked-firebase-token" }),
+    );
+
+    await expect(promise).rejects.toBeInstanceOf(AdminAuthError);
+    await expect(promise).rejects.toMatchObject({ status: 401 });
+    expect(verifyIdToken).toHaveBeenCalledWith("revoked-firebase-token", true);
   });
 
   it("accepts Firebase users with an admin role claim", async () => {
@@ -104,6 +117,7 @@ describe("requireAdmin security guard", () => {
       role: "admin",
       authProvider: "firebase",
     });
+    expect(verifyIdToken).toHaveBeenCalledWith("firebase-token", true);
   });
 
   it("accepts Firebase session cookies with a super admin claim", async () => {

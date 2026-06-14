@@ -29,9 +29,10 @@ export function AdminLoginForm() {
         email,
         password,
       );
-      const idToken = await credential.user.getIdToken();
+      const idToken = await credential.user.getIdToken(true);
       const response = await fetch("/api/admin/session/login", {
         method: "POST",
+        credentials: "same-origin",
         headers: {
           "content-type": "application/json",
         },
@@ -39,15 +40,47 @@ export function AdminLoginForm() {
       });
 
       if (!response.ok) {
-        throw new Error("Admin role required.");
+        const body = (await response.json().catch(() => null)) as {
+          code?: string;
+          error?: string;
+        } | null;
+
+        if (body?.code === "ADMIN_CLAIM_REQUIRED") {
+          throw new Error("ADMIN_CLAIM_REQUIRED");
+        }
+
+        if (body?.code === "ADMIN_AUTH_CONFIG_UNAVAILABLE") {
+          throw new Error("ADMIN_AUTH_CONFIG_UNAVAILABLE");
+        }
+
+        if (body?.code === "ADMIN_RECENT_AUTH_REQUIRED") {
+          throw new Error("ADMIN_RECENT_AUTH_REQUIRED");
+        }
+
+        throw new Error("INVALID_ADMIN_CREDENTIALS");
       }
 
       router.replace(nextPath.startsWith("/admin") ? nextPath : "/admin");
       router.refresh();
-    } catch {
-      setError(
-        "Acces refuse. Utilisez un compte Firebase avec claims admin AVI CERTIFY.",
-      );
+    } catch (loginError) {
+      const message =
+        loginError instanceof Error ? loginError.message : "UNKNOWN_ADMIN_LOGIN_ERROR";
+
+      if (message === "ADMIN_CLAIM_REQUIRED") {
+        setError(
+          "Compte authentifie, mais claim admin AVI CERTIFY manquant.",
+        );
+      } else if (message === "ADMIN_AUTH_CONFIG_UNAVAILABLE") {
+        setError(
+          "Service admin indisponible. Verifiez la configuration de session admin.",
+        );
+      } else if (message === "ADMIN_RECENT_AUTH_REQUIRED") {
+        setError(
+          "Authentification admin trop ancienne. Reconnectez-vous puis reessayez.",
+        );
+      } else {
+        setError("Identifiants admin invalides ou session Firebase expiree.");
+      }
     } finally {
       setIsSubmitting(false);
     }

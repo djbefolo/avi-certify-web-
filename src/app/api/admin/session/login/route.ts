@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
-import { resolveAdminActorFromDecodedToken } from "@/lib/admin/admin-auth";
-import { createAdminGuardValue } from "@/lib/admin/admin-session-guard";
+import {
+  AdminAuthError,
+  resolveAdminActorFromDecodedToken,
+} from "@/lib/admin/admin-auth";
+import {
+  AdminSessionGuardConfigError,
+  createAdminGuardValue,
+} from "@/lib/admin/admin-session-guard";
 import { FinancialAuditService } from "@/lib/fintech/audit.service";
 import { getAdminAuth } from "@/lib/firebase/admin";
 
@@ -13,8 +19,21 @@ const sessionLoginSchema = z.object({
   twoFactorCode: z.string().max(12).optional(),
 });
 
-const SESSION_EXPIRES_IN_MS = 5 * 24 * 60 * 60 * 1000;
+const MAX_ADMIN_AUTH_AGE_SECONDS = 10 * 60;
+const SESSION_EXPIRES_IN_MS = 4 * 60 * 60 * 1000;
 const SESSION_EXPIRES_IN_SECONDS = SESSION_EXPIRES_IN_MS / 1000;
+const RECENT_AUTH_REQUIRED_MESSAGE = "Recent Firebase authentication required.";
+
+function assertRecentAdminAuthentication(authTime: unknown) {
+  if (
+    typeof authTime !== "number" ||
+    !Number.isFinite(authTime) ||
+    authTime <= 0 ||
+    Math.floor(Date.now() / 1000) - authTime > MAX_ADMIN_AUTH_AGE_SECONDS
+  ) {
+    throw new AdminAuthError(401, RECENT_AUTH_REQUIRED_MESSAGE);
+  }
+}
 
 function requestContext(request: NextRequest) {
   return {
@@ -57,16 +76,17 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = sessionLoginSchema.parse(await request.json());
-    const decodedToken = await getAdminAuth().verifyIdToken(body.idToken);
+    const decodedToken = await getAdminAuth().verifyIdToken(body.idToken, true);
     const actor = await resolveAdminActorFromDecodedToken(decodedToken, "firebase");
+    assertRecentAdminAuthentication(decodedToken.auth_time);
     const expiresAt = Date.now() + SESSION_EXPIRES_IN_MS;
-    const sessionCookie = await getAdminAuth().createSessionCookie(body.idToken, {
-      expiresIn: SESSION_EXPIRES_IN_MS,
-    });
     const guardCookie = await createAdminGuardValue({
       uid: actor.uid,
       role: actor.role,
       exp: expiresAt,
+    });
+    const sessionCookie = await getAdminAuth().createSessionCookie(body.idToken, {
+      expiresIn: SESSION_EXPIRES_IN_MS,
     });
     const response = NextResponse.json(
       {
@@ -121,6 +141,31 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error) {
+    const isMissingAdminClaim =
+      error instanceof AdminAuthError && error.status === 403;
+    const isRecentAuthRequired =
+      error instanceof AdminAuthError &&
+      error.message === RECENT_AUTH_REQUIRED_MESSAGE;
+    const isServerConfigProblem =
+      error instanceof AdminSessionGuardConfigError ||
+      (error instanceof Error &&
+        error.message.includes("Missing required Firebase Admin env var"));
+    const status = isMissingAdminClaim ? 403 : isServerConfigProblem ? 503 : 401;
+    const errorCode = isMissingAdminClaim
+      ? "ADMIN_CLAIM_REQUIRED"
+      : isRecentAuthRequired
+        ? "ADMIN_RECENT_AUTH_REQUIRED"
+      : isServerConfigProblem
+        ? "ADMIN_AUTH_CONFIG_UNAVAILABLE"
+        : "INVALID_ADMIN_CREDENTIALS";
+    const errorMessage = isMissingAdminClaim
+      ? "Authenticated Firebase user is missing AVI CERTIFY admin claims."
+      : isRecentAuthRequired
+        ? "Recent Firebase authentication is required for admin access."
+      : isServerConfigProblem
+        ? "Admin authentication configuration is unavailable."
+        : "Invalid admin credentials or expired Firebase token.";
+
     await safeAudit({
       actor: "admin-login-attempt",
       action: "admin_access_denied",
@@ -133,9 +178,9 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(
-      { error: "Admin authentication failed." },
+      { error: errorMessage, code: errorCode },
       {
-        status: 401,
+        status,
         headers: {
           "Cache-Control": "no-store",
           "X-Content-Type-Options": "nosniff",

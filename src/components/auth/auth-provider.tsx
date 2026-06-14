@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import type { User } from "firebase/auth";
-import { observeAuthState, signOutUser } from "@/lib/firebase/auth";
+import { clearAdminSession, observeAuthState, signOutUser } from "@/lib/firebase/auth";
 
 export type AuthContextValue = {
   user: User | null;
@@ -32,13 +32,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isEmailVerified, setIsEmailVerified] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = observeAuthState((currentUser) => {
-      setUser(currentUser);
-      setIsEmailVerified(Boolean(currentUser?.emailVerified));
-      setLoading(false);
-    });
+    let unsubscribe: (() => void) | undefined;
 
-    return unsubscribe;
+    try {
+      unsubscribe = observeAuthState((currentUser) => {
+        setUser(currentUser);
+        setIsEmailVerified(Boolean(currentUser?.emailVerified));
+        setLoading(false);
+      });
+    } catch {
+      setUser(null);
+      setIsEmailVerified(false);
+      setLoading(false);
+    }
+
+    return () => {
+      unsubscribe?.();
+    };
   }, []);
 
   const reloadUser = useCallback(async () => {
@@ -54,7 +64,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [user]);
 
   const logout = useCallback(async () => {
-    await signOutUser();
+    try {
+      await clearAdminSession();
+    } finally {
+      await signOutUser();
+    }
   }, []);
 
   const value = useMemo<AuthContextValue>(

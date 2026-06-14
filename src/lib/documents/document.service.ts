@@ -9,7 +9,7 @@ import {
   where,
   type DocumentData,
 } from "firebase/firestore";
-import { getFirebaseDb } from "@/lib/firebase/client";
+import { getFirebaseAuth, getFirebaseDb } from "@/lib/firebase/client";
 import { uploadUserDocument } from "@/lib/firebase/storage";
 import { validateDocumentUpload } from "@/lib/validations/document";
 import type {
@@ -48,11 +48,18 @@ function mapDocumentSnapshot(id: string, data: DocumentData): UserDocument {
     ownerId: String(data.ownerId),
     documentType: data.documentType as DocumentType,
     status: data.status as DocumentStatus,
-    originalFileName: String(data.originalFileName),
-    safeFileName: String(data.safeFileName),
-    contentType: data.contentType as UserDocument["contentType"],
-    size: Number(data.size),
-    storagePath: String(data.storagePath),
+    originalFileName: String(data.originalFileName ?? data.safeFileName ?? "Document demandé"),
+    safeFileName: String(data.safeFileName ?? data.originalFileName ?? "document"),
+    contentType: (data.contentType ?? "application/pdf") as UserDocument["contentType"],
+    size: Number(data.size ?? 0),
+    storagePath: String(data.storagePath ?? ""),
+    caseId: typeof data.caseId === "string" ? data.caseId : null,
+    adminComment: typeof data.adminComment === "string" ? data.adminComment : null,
+    requestedAt: toDate(data.requestedAt),
+    verificationStatus:
+      typeof data.verificationStatus === "string" ? data.verificationStatus : null,
+    rejectionReason:
+      typeof data.rejectionReason === "string" ? data.rejectionReason : null,
     certificateId:
       typeof data.certificateId === "string" ? data.certificateId : null,
     certificateNumber:
@@ -115,7 +122,22 @@ export async function uploadDocument({
 }: UploadDocumentParams): Promise<UserDocument> {
   const validated = validateDocumentUpload({ uid, documentType, file });
   const db = getFirebaseDb();
-  const documentRef = doc(collection(db, DOCUMENTS_COLLECTION));
+  const existingDocuments = await listUserDocuments(uid);
+  const requestedDocument = existingDocuments.find(
+    (document) =>
+      document.documentType === validated.documentType &&
+      ["requested", "rejected", "correction_requested"].includes(
+        document.status as string,
+      ),
+  );
+  const token = await getFirebaseAuth().currentUser?.getIdToken();
+  if (requestedDocument && !token) {
+    throw new Error("Session utilisateur requise pour ce document.");
+  }
+
+  const documentRef = requestedDocument
+    ? doc(db, DOCUMENTS_COLLECTION, requestedDocument.id)
+    : doc(collection(db, DOCUMENTS_COLLECTION));
   const uploadResult = await uploadUserDocument({
     uid,
     documentId: documentRef.id,
@@ -123,6 +145,39 @@ export async function uploadDocument({
     file: validated.file,
     onProgress,
   });
+
+  if (requestedDocument) {
+    const response = await fetch("/api/client/documents/upload", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        authorization: `Bearer ${token as string}`,
+      },
+      body: JSON.stringify({
+        documentId: requestedDocument.id,
+        documentType: validated.documentType,
+        contentType: validated.file.type,
+        size: validated.file.size,
+        originalFileName: validated.file.name,
+        safeFileName: validated.safeFileName,
+        storagePath: uploadResult.storagePath,
+      }),
+    });
+    if (!response.ok) {
+      throw new Error("Synchronisation du document demandé impossible.");
+    }
+
+    return {
+      ...requestedDocument,
+      status: "uploaded",
+      originalFileName: validated.file.name,
+      safeFileName: validated.safeFileName,
+      contentType: validated.file.type as UserDocument["contentType"],
+      size: validated.file.size,
+      storagePath: uploadResult.storagePath,
+      updatedAt: new Date(),
+    };
+  }
 
   return createDocumentMetadata({
     documentId: documentRef.id,
