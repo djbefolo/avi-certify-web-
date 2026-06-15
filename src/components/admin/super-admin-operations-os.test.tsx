@@ -150,6 +150,15 @@ function mockOperationsFetch() {
     if (url.includes("/api/admin/documents/reject")) {
       return jsonResponse({ document: { ...documentRow, verificationStatus: "REJECTED" } });
     }
+    if (url.includes("/request-document")) {
+      return jsonResponse({
+        document: {
+          ...documentRow,
+          id: "req-1",
+          verificationStatus: "REQUESTED",
+        },
+      });
+    }
     if (url.includes("/status")) {
       return jsonResponse({ case: { ...clientCase, status: "UNDER_REVIEW" } });
     }
@@ -245,6 +254,38 @@ describe("SuperAdminOperationsOS", () => {
     });
   });
 
+  it("requests a document from Client 360 and posts the selected type", async () => {
+    const fetchMock = mockOperationsFetch();
+    const user = userEvent.setup();
+
+    render(<SuperAdminOperationsOS adminRole="super_admin" adminEmail="admin@avicertify.fr" />);
+
+    await screen.findByText("AVI CERTIFY Super Admin Operations OS");
+    await user.click(screen.getAllByRole("button", { name: "Clients" })[0]);
+    await user.click(await screen.findByRole("button", { name: "Ouvrir 360" }));
+
+    await user.click(await screen.findByRole("button", { name: "Demander document" }));
+    expect(await screen.findByRole("dialog", { name: "Demander un document" })).toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText("Document requis"), "admission_letter");
+    await user.type(
+      screen.getByPlaceholderText("Préciser les éléments attendus au client"),
+      "Merci de joindre la version définitive.",
+    );
+    await user.click(screen.getByRole("button", { name: "Confirmer" }));
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/admin/cases/case-1/request-document",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            documentType: "admission_letter",
+            message: "Merci de joindre la version définitive.",
+          }),
+        }),
+      );
+    });
+  });
+
   it("keeps core Client 360 actions active and downstream actions disabled", async () => {
     const fetchMock = mockOperationsFetch();
     const user = userEvent.setup();
@@ -255,7 +296,6 @@ describe("SuperAdminOperationsOS", () => {
     await user.click(screen.getAllByRole("button", { name: "Clients" })[0]);
     await user.click(await screen.findByRole("button", { name: "Ouvrir 360" }));
 
-    expect(await screen.findByRole("button", { name: "Demander document" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Lier simulation" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Générer devis" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Rapport préfinancement" })).toBeDisabled();
