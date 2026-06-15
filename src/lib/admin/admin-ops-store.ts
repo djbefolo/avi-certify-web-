@@ -1,5 +1,10 @@
 import { getAdminAuth, getAdminFirestore } from "@/lib/firebase/admin";
 import type { AdminActor } from "@/lib/admin/admin-auth";
+import { sendDocumentRequestEmail } from "@/lib/server/email.service";
+import {
+  documentTypeLabels,
+  documentTypeValues,
+} from "@/lib/validations/document";
 import type {
   AdminCaseCertificateStatus,
   AdminCaseDocumentStatus,
@@ -1020,16 +1025,177 @@ export class AdminOperationsStore {
   }
 
   async requestDocument(
-    _caseId: string,
-    _input: { documentType: string; message?: string },
-    _actor: AdminActor,
+    caseId: string,
+    input: { documentType: string; message?: string },
+    actor: AdminActor,
   ) {
-    void _caseId;
-    void _input;
-    void _actor;
-    throw new Error(
-      "Document request delivery is not enabled in the admin operations foundation.",
+    const clientCase = await this.getCase(caseId);
+    if (!clientCase) throw new Error("Client case not found.");
+
+    if (!documentTypeValues.includes(input.documentType as never)) {
+      throw new Error("Invalid document request type.");
+    }
+
+    const message = input.message?.trim() || undefined;
+    if (message && message.length > 2_000) {
+      throw new Error("Document request message is too long.");
+    }
+
+    const client = (await this.listClients()).find(
+      (item) => item.uid === clientCase.uid,
     );
+    const recipientEmail = clientCase.clientEmail ?? client?.email ?? null;
+    const clientName =
+      clientCase.clientName ??
+      client?.fullName ??
+      recipientEmail?.split("@")[0] ??
+      null;
+    const documentLabel =
+      documentTypeLabels[
+        input.documentType as keyof typeof documentTypeLabels
+      ];
+    const existingRequest = (await this.listCaseDocuments(caseId)).find(
+      (document) =>
+        document.documentType === input.documentType &&
+        document.verificationStatus === "REQUESTED" &&
+        !document.storagePath,
+    );
+    const requestedAt = now();
+    let document: ClientDocument = {
+      id: existingRequest?.id ?? id("req"),
+      uid: clientCase.uid,
+      caseId,
+      clientEmail: recipientEmail,
+      clientName,
+      documentType: input.documentType,
+      fileName: documentLabel,
+      storagePath: "",
+      mimeType: null,
+      size: null,
+      downloadUrl: null,
+      uploadStatus: "requested",
+      uploadedBy: "SYSTEM",
+      source: "SYSTEM",
+      verificationStatus: "REQUESTED",
+      rejectionReason: message ?? null,
+      requestedAt,
+      uploadedAt: null,
+      verifiedAt: null,
+      verifiedBy: null,
+      isRequired: true,
+      deliveryStatus: "QUEUED",
+    };
+
+    await upsertDoc(
+      "client_documents",
+      document.id,
+      document,
+      state.documents,
+      (item) => item.id,
+    );
+    await this.mirrorClientDocumentMetadata(document, "requested");
+
+    const dashboardUrl = `${
+      process.env.NEXT_PUBLIC_APP_URL ??
+      process.env.NEXT_PUBLIC_SITE_URL ??
+      "https://www.avicertify.fr"
+    }/dossier/documents`;
+    const emailResult = await sendDocumentRequestEmail({
+      recipientEmail,
+      clientName,
+      caseNumber: clientCase.caseNumber,
+      documentLabels: [documentLabel],
+      message,
+      dashboardUrl,
+      supportEmail: "contact@avicertify.com",
+    });
+
+    document = {
+      ...document,
+      deliveryStatus: emailResult.sent ? "SENT" : "FAILED",
+    };
+    await upsertDoc(
+      "client_documents",
+      document.id,
+      document,
+      state.documents,
+      (item) => item.id,
+    );
+    await this.mirrorClientDocumentMetadata(document, "requested");
+
+    const communication = await this.createCommunicationLog({
+      caseId,
+      uid: clientCase.uid,
+      type: "DOCUMENT_REQUEST",
+      template: "document-request",
+      recipient: recipientEmail,
+      status: emailResult.sent
+        ? "SENT"
+        : emailResult.status === "SEND_FAILED"
+          ? "FAILED"
+          : "NOT_SENT",
+      provider: emailResult.provider,
+      messageId: emailResult.messageId,
+      subject: "Documents requis — AVI CERTIFY",
+      body: message ?? `Document demandé: ${documentLabel}`,
+    });
+    const notification = await this.createNotification({
+      type: "admin_action_required",
+      severity: emailResult.sent ? "info" : "warning",
+      title: "Demande documentaire créée",
+      body: emailResult.sent
+        ? `${documentLabel} demandé à ${clientName ?? "un client"}.`
+        : `${documentLabel} enregistré, email non envoyé (${emailResult.status}).`,
+      relatedUid: clientCase.uid,
+      relatedCaseId: caseId,
+    });
+    const event = await this.createEvent({
+      caseId,
+      uid: clientCase.uid,
+      actorType: "admin",
+      actorId: actor.uid,
+      actorRole: actor.role,
+      eventType: "document_requested",
+      eventLabel: `Document demandé: ${documentLabel}`,
+      eventPayload: {
+        documentId: document.id,
+        documentType: input.documentType,
+        deliveryStatus: emailResult.status,
+        messageId: emailResult.messageId,
+      },
+    });
+
+    const shouldReturnToDocuments =
+      clientCase.status === "NEW" ||
+      clientCase.status === "PROFILE_INCOMPLETE" ||
+      clientCase.status === "DOCUMENTS_PENDING" ||
+      clientCase.status === "DOCUMENTS_SUBMITTED" ||
+      clientCase.status === "UNDER_REVIEW";
+    const updatedCase: ClientCase = {
+      ...clientCase,
+      status: shouldReturnToDocuments
+        ? "DOCUMENTS_PENDING"
+        : clientCase.status,
+      documentStatus: "MISSING",
+      nextAction: `Déposer ${documentLabel}`,
+      updatedAt: now(),
+    };
+    await upsertDoc(
+      "client_cases",
+      caseId,
+      updatedCase,
+      state.cases,
+      (item) => item.id,
+    );
+
+    return {
+      document,
+      communication,
+      notification,
+      event,
+      case: updatedCase,
+      email: emailResult,
+    };
   }
 
   async createCaseNotification(

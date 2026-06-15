@@ -21,6 +21,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { AdminRole } from "@/lib/admin/admin-auth";
+import {
+  documentTypeLabels,
+  documentTypeValues,
+} from "@/lib/validations/document";
 import type {
   AdminCaseEvent,
   AdminClient360,
@@ -47,6 +51,7 @@ type OperationsData = {
 };
 
 type ClientAction =
+  | "request-document"
   | "add-note"
   | "send-notification";
 
@@ -188,6 +193,8 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
   const [actionCase, setActionCase] = useState<ClientCase | null>(null);
   const [message, setMessage] = useState("");
   const [title, setTitle] = useState("");
+  const [documentType, setDocumentType] =
+    useState<(typeof documentTypeValues)[number]>("passport");
   const [isLoading, setIsLoading] = useState(true);
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -272,6 +279,7 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
     setActionCase(clientCase);
     setMessage("");
     setTitle("");
+    setDocumentType("passport");
   }
 
   async function refreshAfterAction(success: string) {
@@ -286,7 +294,13 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
     setIsBusy(true);
     setError(null);
     try {
-      if (action === "add-note") {
+      if (action === "request-document") {
+        await writeApi(`/api/admin/cases/${actionCase.id}/request-document`, {
+          documentType,
+          message: message || undefined,
+        });
+        await refreshAfterAction("Demande documentaire créée.");
+      } else if (action === "add-note") {
         await writeApi(`/api/admin/cases/${actionCase.id}/notes`, { note: message || "Note interne ajoutée." });
         await refreshAfterAction("Note interne ajoutée.");
       } else if (action === "send-notification") {
@@ -515,6 +529,8 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
             setMessage={setMessage}
             title={title}
             setTitle={setTitle}
+            documentType={documentType}
+            setDocumentType={setDocumentType}
             isBusy={isBusy}
             onClose={() => setAction(null)}
             onSubmit={runClientAction}
@@ -726,7 +742,7 @@ function Client360Drawer({
       </div>
 
       <div className="mt-5 flex flex-wrap gap-2">
-        <Button type="button" variant="outline" size="sm" disabled title="Disponible dans le lot Documents communication">Demander document</Button>
+        <Button type="button" variant="outline" size="sm" onClick={() => onOpenAction("request-document", currentCase)}>Demander document</Button>
         <Button type="button" variant="outline" size="sm" onClick={() => onMarkUnderReview(currentCase)}>Marquer en revue</Button>
         <Button type="button" variant="outline" size="sm" onClick={() => onOpenAction("add-note", currentCase)}>Ajouter note</Button>
         <Button type="button" variant="outline" size="sm" disabled title="Disponible dans le lot Finance">Lier simulation</Button>
@@ -895,6 +911,8 @@ function ClientActionModal({
   setMessage,
   title,
   setTitle,
+  documentType,
+  setDocumentType,
   isBusy,
   onClose,
   onSubmit,
@@ -906,6 +924,8 @@ function ClientActionModal({
   setMessage: (value: string) => void;
   title: string;
   setTitle: (value: string) => void;
+  documentType: (typeof documentTypeValues)[number];
+  setDocumentType: (value: (typeof documentTypeValues)[number]) => void;
   isBusy: boolean;
   onClose: () => void;
   onSubmit: () => void;
@@ -913,6 +933,7 @@ function ClientActionModal({
   if (!action || !clientCase) return null;
 
   const titleByAction: Record<ClientAction, string> = {
+    "request-document": "Demander un document",
     "add-note": "Ajouter une note interne",
     "send-notification": "Envoyer une notification",
   };
@@ -945,9 +966,44 @@ function ClientActionModal({
               </label>
             </>
           ) : null}
+          {action === "request-document" ? (
+            <>
+              <p className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+                La demande sera ajoutée au dossier, journalisée et envoyée par email si Resend est configuré.
+              </p>
+              <label className="grid gap-1 text-sm font-medium">
+                Document requis
+                <select
+                  className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm"
+                  value={documentType}
+                  onChange={(event) =>
+                    setDocumentType(
+                      event.target.value as (typeof documentTypeValues)[number],
+                    )
+                  }
+                >
+                  {documentTypeValues.map((value) => (
+                    <option key={value} value={value}>
+                      {documentTypeLabels[value]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </>
+          ) : null}
           <label className="grid gap-1 text-sm font-medium">
             Message / note
-            <textarea className="min-h-24 rounded-md border border-slate-300 px-3 py-2" value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Ajouter un contexte opérationnel" />
+            <textarea
+              className="min-h-24 rounded-md border border-slate-300 px-3 py-2"
+              value={message}
+              maxLength={2_000}
+              onChange={(event) => setMessage(event.target.value)}
+              placeholder={
+                action === "request-document"
+                  ? "Préciser les éléments attendus au client"
+                  : "Ajouter un contexte opérationnel"
+              }
+            />
           </label>
         </div>
         <div className="mt-6 flex justify-end gap-2">

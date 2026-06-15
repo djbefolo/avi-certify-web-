@@ -15,6 +15,10 @@ import {
   type CertificateAvailableEmailInput,
 } from "@/lib/email/templates/certificate-available";
 import { renderDocumentReceivedEmail } from "@/lib/email/templates/document-received";
+import {
+  renderDocumentRequestEmail,
+  type DocumentRequestEmailInput,
+} from "@/lib/email/templates/document-request";
 import { renderLeadConfirmationEmail } from "@/lib/email/templates/lead-confirmation";
 import { renderPaymentStartedEmail } from "@/lib/email/templates/payment-started";
 import type { EmailTemplate } from "@/lib/email/templates/shared";
@@ -29,22 +33,49 @@ type SendEmailParams = {
   context: string;
 };
 
+type SendEmailResult = {
+  sent: boolean;
+  messageId: string | null;
+  status: "SENT" | "EMAIL_NOT_CONFIGURED" | "RECIPIENT_MISSING" | "SEND_FAILED";
+  provider: "resend";
+};
+
 async function sendEmailSafely({
   to,
   template,
   replyTo,
   context,
 }: SendEmailParams): Promise<boolean> {
+  const result = await sendEmailWithResult({ to, template, replyTo, context });
+  return result.sent;
+}
+
+async function sendEmailWithResult({
+  to,
+  template,
+  replyTo,
+  context,
+}: SendEmailParams): Promise<SendEmailResult> {
   const resend = getResendClient();
   const config = getEmailConfig();
 
   if (!resend) {
-    return false;
+    return {
+      sent: false,
+      messageId: null,
+      status: "EMAIL_NOT_CONFIGURED",
+      provider: "resend",
+    };
   }
 
   if (!to || (Array.isArray(to) && to.length === 0)) {
     console.info(`[email] Skipped ${context}: missing recipient.`);
-    return false;
+    return {
+      sent: false,
+      messageId: null,
+      status: "RECIPIENT_MISSING",
+      provider: "resend",
+    };
   }
 
   try {
@@ -59,13 +90,28 @@ async function sendEmailSafely({
 
     if (response.error) {
       console.warn(`[email] Failed to send ${context}`, response.error);
-      return false;
+      return {
+        sent: false,
+        messageId: null,
+        status: "SEND_FAILED",
+        provider: "resend",
+      };
     }
 
-    return true;
+    return {
+      sent: true,
+      messageId: response.data?.id ?? null,
+      status: "SENT",
+      provider: "resend",
+    };
   } catch (error) {
     console.warn(`[email] Failed to send ${context}`, error);
-    return false;
+    return {
+      sent: false,
+      messageId: null,
+      status: "SEND_FAILED",
+      provider: "resend",
+    };
   }
 }
 
@@ -109,6 +155,16 @@ export async function sendDocumentReceivedEmail(
     to: document.recipientEmail ?? null,
     template: renderDocumentReceivedEmail(document),
     context: "document received",
+  });
+}
+
+export async function sendDocumentRequestEmail(
+  input: DocumentRequestEmailInput & { recipientEmail?: string | null },
+): Promise<SendEmailResult> {
+  return sendEmailWithResult({
+    to: input.recipientEmail ?? null,
+    template: renderDocumentRequestEmail(input),
+    context: "document request",
   });
 }
 
