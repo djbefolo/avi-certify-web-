@@ -191,6 +191,15 @@ function mockOperationsFetch() {
         },
       });
     }
+    if (url.includes("/certificates")) {
+      return jsonResponse({
+        generated: true,
+        certificateId: "case-1-housing-certificate",
+        certificateNumber: "AVI-HBG-2026-CASE1",
+        verificationUrl: "https://www.avicertify.fr/verifier/token-1",
+        email: { sent: true, status: "SENT", messageId: "email-1" },
+      });
+    }
     if (url.includes("/status")) {
       return jsonResponse({ case: { ...clientCase, status: "UNDER_REVIEW" } });
     }
@@ -383,6 +392,31 @@ describe("SuperAdminOperationsOS", () => {
     expect(await screen.findByTestId("fintech-command-center")).toHaveTextContent(
       "Finance client client-1 section devis",
     );
+  });
+
+  it("generates a certificate from Client 360 without opening finance", async () => {
+    const fetchMock = mockOperationsFetch();
+    const user = userEvent.setup();
+
+    render(<SuperAdminOperationsOS adminRole="super_admin" adminEmail="admin@avicertify.fr" />);
+
+    await screen.findByText("AVI CERTIFY Super Admin Operations OS");
+    await user.click(screen.getAllByRole("button", { name: "Clients" })[0]);
+    await user.click(await screen.findByRole("button", { name: "Ouvrir 360" }));
+    await user.click(screen.getByRole("button", { name: "GÃ©nÃ©rer attestation" }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/admin/cases/case-1/certificates",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            certificateType: "accommodation_certificate",
+          }),
+        }),
+      );
+    });
+    expect(screen.queryByTestId("fintech-command-center")).not.toBeInTheDocument();
   });
 
   it("resolves document identity and approve/reject actions without primary raw UID display", async () => {

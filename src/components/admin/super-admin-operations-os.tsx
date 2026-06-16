@@ -341,6 +341,29 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
     }
   }
 
+  async function generateCertificate(clientCase: ClientCase | null) {
+    if (!clientCase) {
+      setError("CrÃ©ez d'abord un dossier opÃ©rationnel pour ce client.");
+      return;
+    }
+    setIsBusy(true);
+    setError(null);
+    try {
+      await writeApi(`/api/admin/cases/${clientCase.id}/certificates`, {
+        certificateType: "accommodation_certificate",
+      });
+      await refreshAfterAction("Attestation gÃ©nÃ©rÃ©e.");
+    } catch (certificateError) {
+      setError(
+        certificateError instanceof Error
+          ? certificateError.message
+          : "GÃ©nÃ©ration attestation impossible.",
+      );
+    } finally {
+      setIsBusy(false);
+    }
+  }
+
   function openFinance(
     clientUid: string,
     section: FinanceSection,
@@ -520,6 +543,7 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
                   communications={selectedCommunications}
                   onCreateCase={reconcileCases}
                   onMarkUnderReview={markUnderReview}
+                  onGenerateCertificate={generateCertificate}
                   onOpenAction={openAction}
                   onOpenFinance={openFinance}
                   onClose={() => {
@@ -671,6 +695,7 @@ function Client360Drawer({
   communications,
   onCreateCase,
   onMarkUnderReview,
+  onGenerateCertificate,
   onOpenAction,
   onOpenFinance,
   onClose,
@@ -684,6 +709,7 @@ function Client360Drawer({
   communications: CommunicationLog[];
   onCreateCase: () => void;
   onMarkUnderReview: (clientCase: ClientCase | null) => void;
+  onGenerateCertificate: (clientCase: ClientCase | null) => void;
   onOpenAction: (action: ClientAction, clientCase: ClientCase | null) => void;
   onOpenFinance: (
     clientUid: string,
@@ -785,6 +811,7 @@ function Client360Drawer({
         <Button type="button" variant="outline" size="sm" onClick={() => onOpenAction("request-document", currentCase)}>Demander document</Button>
         <Button type="button" variant="outline" size="sm" onClick={() => onMarkUnderReview(currentCase)}>Marquer en revue</Button>
         <Button type="button" variant="outline" size="sm" onClick={() => onOpenAction("add-note", currentCase)}>Ajouter note</Button>
+        <Button type="button" variant="outline" size="sm" onClick={() => onGenerateCertificate(currentCase)}>GÃ©nÃ©rer attestation</Button>
         <Button type="button" variant="outline" size="sm" onClick={() => onOpenFinance(profile.uid, "simulateur", currentCase)}>Lier simulation</Button>
         <Button type="button" variant="outline" size="sm" onClick={() => onOpenFinance(profile.uid, "devis", currentCase)}>Générer devis</Button>
         <Button type="button" variant="outline" size="sm" onClick={() => onOpenFinance(profile.uid, "rapports", currentCase)}>Rapport préfinancement</Button>
