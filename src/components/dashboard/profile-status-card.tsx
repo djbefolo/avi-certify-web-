@@ -51,10 +51,31 @@ export function ProfileStatusCard({ profile }: ProfileStatusCardProps) {
         </div>
       </div>
 
+      {profile.completionSections.length > 0 ? (
+        <div className="mt-4 grid gap-2">
+          {profile.completionSections.map((section) => (
+            <div key={section.label} className="rounded-md border bg-muted/20 p-3">
+              <div className="flex items-center justify-between gap-3 text-xs">
+                <span className="font-medium text-muted-foreground">
+                  {section.label}
+                </span>
+                <span className="font-semibold">{section.percent} %</span>
+              </div>
+              <div className="mt-2 h-1.5 rounded-full bg-muted">
+                <div
+                  className="h-1.5 rounded-full bg-accent"
+                  style={{ width: `${section.percent}%` }}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
       <p className="mt-4 text-sm leading-6 text-muted-foreground">
         {isComplete
           ? "Vos informations principales sont prêtes pour le traitement du dossier."
-          : "Certaines informations restent nécessaires pour sécuriser les documents et attestations."}
+          : "Certaines informations restent utiles pour enrichir votre dossier sans bloquer votre navigation."}
       </p>
 
       <Button className="mt-5" variant={isComplete ? "outline" : "default"} asChild>

@@ -23,6 +23,7 @@ import type {
   DocumentType,
   UserDocument,
 } from "@/types/document";
+import type { DashboardCertificateSummary } from "@/types/dashboard";
 import type { PaymentRecord, PaymentStatus } from "@/types/payment";
 import type { StudentProfile } from "@/types/student-profile";
 
@@ -36,28 +37,47 @@ type RequiredDocumentDefinition = {
 export type UserProfileSummary = StudentProfile & {
   completionPercent: number;
   completionState: "incomplete" | "partial" | "complete";
+  completionSections: Array<{
+    label: string;
+    percent: number;
+  }>;
 };
 
 export const REQUIRED_DOCUMENTS: RequiredDocumentDefinition[] = [
   {
     id: "passport",
     title: "Passeport",
-    description: "Page d'identite lisible, en cours de validite.",
+    description:
+      "Copie lisible du passeport. Statut determine par les fichiers recus.",
     firestoreTypes: ["passport"],
   },
   {
     id: "admission_letter",
     title: "Admission ou pre-inscription",
-    description: "Document emis par l'etablissement vise.",
+    description: "Document emis par l'etablissement vise, si deja disponible.",
     firestoreTypes: ["admission_letter"],
   },
   {
     id: "financial_proof",
     title: "Justificatifs financiers",
-    description: "Elements necessaires a l'analyse du financement.",
-    firestoreTypes: ["bank_document", "payment_proof"],
+    description: "Elements reels fournis pour l'analyse du financement.",
+    firestoreTypes: [
+      "proof_of_funds",
+      "bank_statement",
+      "bank_document",
+      "payment_proof",
+    ],
   },
 ];
+
+export const emptyCertificateSummary: DashboardCertificateSummary = {
+  available: false,
+  title: "Attestation",
+  description:
+    "Aucune attestation n'est disponible dans votre espace client pour le moment.",
+  certificateNumber: null,
+  verificationUrl: null,
+};
 
 function toDate(value: unknown): Date | null {
   if (value instanceof Timestamp) {
@@ -133,6 +153,18 @@ function mapDocumentWorkflowStatus(
   return "missing";
 }
 
+function getSafeVerificationUrl(value: string | null) {
+  if (!value) return null;
+
+  try {
+    const url = new URL(value, "https://www.avicertify.fr");
+
+    return url.pathname.startsWith("/verifier/") ? value : null;
+  } catch {
+    return value.startsWith("/verifier/") ? value : null;
+  }
+}
+
 function mapPaymentStatus(
   status: PaymentStatus | "created" | "open" | string | undefined,
 ): DashboardPaymentStatus {
@@ -206,16 +238,12 @@ function getAmountLabel(payment: PaymentRecord | null) {
 export async function getRequiredDocumentSummary(
   uid: string,
 ): Promise<ApplicationDocument[]> {
-  const db = getFirebaseDb();
-  const documentsQuery = query(
-    collection(db, "documents"),
-    where("ownerId", "==", uid),
-  );
-  const snapshot = await getDocs(documentsQuery);
-  const documents = snapshot.docs.map((documentSnapshot) =>
-    mapDocumentSnapshot(documentSnapshot.id, documentSnapshot.data()),
-  );
+  return (await getUserDocumentDashboardSummary(uid)).documents;
+}
 
+export function getRequiredDocumentSummaryFromDocuments(
+  documents: UserDocument[],
+): ApplicationDocument[] {
   return REQUIRED_DOCUMENTS.map((definition) => {
     const latestDocument = documents
       .filter((document) =>
@@ -232,6 +260,52 @@ export async function getRequiredDocumentSummary(
       required: true,
     };
   });
+}
+
+export function getCertificateSummaryFromDocuments(
+  documents: UserDocument[],
+): DashboardCertificateSummary {
+  const certificate = documents
+    .filter(
+      (document) =>
+        (document.documentType === "accommodation_certificate" ||
+          Boolean(document.certificateNumber)) &&
+        ["approved", "validated", "generated"].includes(document.status),
+    )
+    .sort((a, b) => getDocumentTime(b) - getDocumentTime(a))[0];
+
+  if (!certificate) {
+    return emptyCertificateSummary;
+  }
+
+  return {
+    available: true,
+    title: certificate.originalFileName || "Attestation AVI CERTIFY",
+    description:
+      "Une attestation generee est disponible. Seul le numero public et le lien de verification sont affiches ici.",
+    certificateNumber: certificate.certificateNumber ?? null,
+    verificationUrl: getSafeVerificationUrl(certificate.verificationUrl ?? null),
+  };
+}
+
+export async function getUserDocumentDashboardSummary(uid: string): Promise<{
+  documents: ApplicationDocument[];
+  certificate: DashboardCertificateSummary;
+}> {
+  const db = getFirebaseDb();
+  const documentsQuery = query(
+    collection(db, "documents"),
+    where("ownerId", "==", uid),
+  );
+  const snapshot = await getDocs(documentsQuery);
+  const documents = snapshot.docs.map((documentSnapshot) =>
+    mapDocumentSnapshot(documentSnapshot.id, documentSnapshot.data()),
+  );
+
+  return {
+    documents: getRequiredDocumentSummaryFromDocuments(documents),
+    certificate: getCertificateSummaryFromDocuments(documents),
+  };
 }
 
 export async function getLatestPaymentSummary(
@@ -278,5 +352,9 @@ export async function getUserProfileSummary(
     ...profile,
     completionPercent: completion.percent,
     completionState: completion.state,
+    completionSections: completion.sections.map((section) => ({
+      label: section.label,
+      percent: section.percent,
+    })),
   };
 }

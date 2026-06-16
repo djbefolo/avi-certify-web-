@@ -6,6 +6,14 @@ import type {
 } from "@/types/application";
 import type { StudentProfile } from "@/types/student-profile";
 
+export type DashboardCertificateSummary = {
+  available: boolean;
+  title: string;
+  description: string;
+  certificateNumber: string | null;
+  verificationUrl: string | null;
+};
+
 export type DashboardSummary = {
   applicationStatus: ApplicationStatus;
   applicationStatusLabel: string;
@@ -16,10 +24,15 @@ export type DashboardSummary = {
   advisorName: string;
   documents: ApplicationDocument[];
   payment: ApplicationPayment;
+  certificate: DashboardCertificateSummary;
   profile: {
     data: StudentProfile | null;
     completionPercent: number;
     completionState: "incomplete" | "partial" | "complete";
+    completionSections: Array<{
+      label: string;
+      percent: number;
+    }>;
   };
   timeline: TimelineStep[];
   nextAction: {

@@ -26,10 +26,16 @@ export type FinancialNeedType =
 
 export type HousingNeed = "yes" | "no" | "not_sure";
 
+export type BinaryChoice = "yes" | "no" | "not_sure";
+
 export type StudentProfile = {
   uid: string;
   email: string | null;
+  firstName: string | null;
+  lastName: string | null;
   fullName: string | null;
+  birthDate: string | null;
+  birthCountry: string | null;
   phoneWhatsApp: string | null;
   dateOfBirth: string | null;
   placeOfBirth: string | null;
@@ -46,9 +52,12 @@ export type StudentProfile = {
   expectedStayDuration: string | null;
   financialNeedType: FinancialNeedType | null;
   requestedAviAmount: number | null;
+  needsFinancing: BinaryChoice | null;
   selectedService: SelectedStudentService | null;
   housingNeed: HousingNeed | null;
   preferredHousingCity: string | null;
+  previousVisaRefusal: BinaryChoice | null;
+  previousVisaRefusalCountry: string | null;
   emergencyContactName: string | null;
   emergencyContactPhone: string | null;
   role: string | null;
@@ -61,17 +70,36 @@ export type EditableStudentProfile = Omit<
   "uid" | "email" | "role" | "createdAt" | "updatedAt"
 >;
 
-export const coreProfileFields = [
-  "fullName",
-  "dateOfBirth",
-  "placeOfBirth",
+export const identityProfileFields = [
+  "firstName",
+  "lastName",
+  "birthDate",
+  "birthCountry",
   "nationality",
   "countryOfResidence",
+] as const satisfies readonly (keyof StudentProfile)[];
+
+export const projectProfileFields = [
   "destinationCountry",
+  "destinationCity",
   "targetSchoolName",
+  "intendedProgram",
+  "intendedAcademicYear",
   "intendedArrivalDate",
-  "expectedStayDuration",
   "selectedService",
+] as const satisfies readonly (keyof StudentProfile)[];
+
+export const dossierProfileFields = [
+  "requestedAviAmount",
+  "housingNeed",
+  "needsFinancing",
+  "admissionStatus",
+  "previousVisaRefusal",
+] as const satisfies readonly (keyof StudentProfile)[];
+
+export const coreProfileFields = [
+  ...identityProfileFields,
+  ...projectProfileFields,
 ] as const satisfies readonly (keyof StudentProfile)[];
 
 export const housingCertificateRequiredFields = [
