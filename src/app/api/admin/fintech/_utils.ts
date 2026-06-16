@@ -5,6 +5,16 @@ import { FinancialAuditService } from "@/lib/fintech/audit.service";
 import type { AdminActor } from "@/lib/admin/admin-auth";
 import type { AuditEventType } from "@/types/fintech";
 
+export class AdminApiError extends Error {
+  constructor(
+    public readonly status: 400 | 404 | 409 | 422 | 503,
+    message: string,
+    public readonly code?: string,
+  ) {
+    super(message);
+  }
+}
+
 export const fintechApiHeaders = {
   "Cache-Control": "no-store",
   "X-Content-Type-Options": "nosniff",
@@ -36,6 +46,16 @@ export function routeError(error: unknown) {
         details: error.flatten().fieldErrors,
       },
       { status: 400 },
+    );
+  }
+
+  if (error instanceof AdminApiError) {
+    return fintechJson(
+      {
+        error: error.message,
+        code: error.code,
+      },
+      { status: error.status },
     );
   }
 

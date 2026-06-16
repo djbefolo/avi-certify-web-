@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FintechCommandCenter } from "@/components/admin/fintech-command-center";
 import type { AdminRole } from "@/lib/admin/admin-auth";
 import {
   documentTypeLabels,
@@ -34,6 +35,7 @@ import type {
   AdminOperationsOverview,
   ClientCase,
   ClientDocument,
+  ClientFinancialFile,
 } from "@/types/admin-ops";
 
 type Props = {
@@ -69,6 +71,7 @@ const tabs = [
 ] as const;
 
 type TabKey = (typeof tabs)[number][1];
+type FinanceSection = "simulateur" | "simulations" | "devis" | "rapports";
 
 function apiHeaders() {
   return { "content-type": "application/json" };
@@ -195,6 +198,9 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
   const [title, setTitle] = useState("");
   const [documentType, setDocumentType] =
     useState<(typeof documentTypeValues)[number]>("passport");
+  const [financeClientUid, setFinanceClientUid] = useState<string | undefined>();
+  const [financeSection, setFinanceSection] =
+    useState<FinanceSection>("simulateur");
   const [isLoading, setIsLoading] = useState(true);
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -335,6 +341,23 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
     }
   }
 
+  function openFinance(
+    clientUid: string,
+    section: FinanceSection,
+    clientCase: ClientCase | null,
+  ) {
+    if (!clientCase) {
+      setError("Créez d'abord un dossier opérationnel pour ce client.");
+      return;
+    }
+
+    setFinanceClientUid(clientUid);
+    setFinanceSection(section);
+    setSelectedUid(null);
+    setSelectedClient(null);
+    setActive("finance");
+  }
+
   async function verifyDocument(documentId: string, verificationStatus: "APPROVED" | "REJECTED") {
     setIsBusy(true);
     setError(null);
@@ -378,6 +401,7 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
   }, [data.clients, query]);
   const selectedCases = selectedClient?.cases ?? [];
   const selectedDocuments = selectedClient?.documents ?? [];
+  const selectedFinancialFiles = selectedClient?.financialFiles ?? [];
   const selectedTimeline = selectedClient?.timeline ?? [];
   const selectedCommunications = selectedClient?.communications ?? [];
 
@@ -491,11 +515,13 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
                   client={selectedClient}
                   cases={selectedCases}
                   documents={selectedDocuments}
+                  financialFiles={selectedFinancialFiles}
                   events={selectedTimeline}
                   communications={selectedCommunications}
                   onCreateCase={reconcileCases}
                   onMarkUnderReview={markUnderReview}
                   onOpenAction={openAction}
+                  onOpenFinance={openFinance}
                   onClose={() => {
                     setSelectedUid(null);
                     setSelectedClient(null);
@@ -508,10 +534,12 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
             {!isLoading && active === "documents" ? <DocumentsPanel documents={data.documents} clientByUid={clientByUid} onVerify={verifyDocument} /> : null}
             {!isLoading && active === "payments" ? <OperationsPlaceholder title="Paiements" text="Rapprochement opérationnel des paiements par dossier, sans modifier le flux Stripe existant." empty="Aucun paiement opérationnel à traiter" /> : null}
             {!isLoading && active === "finance" ? (
-              <OperationsPlaceholder
-                title="Finance / Préfinancement"
-                text="Le module simulations, devis, PDF et envoi client sera ajouté dans un lot Finance séparé."
-                empty="Module Finance non activé dans ce lot foundation"
+              <FintechCommandCenter
+                key={`${financeClientUid ?? "all"}-${financeSection}`}
+                clients={data.clients}
+                cases={data.cases}
+                initialClientUid={financeClientUid}
+                initialSection={financeSection}
               />
             ) : null}
             {!isLoading && active === "certificates" ? <OperationsPlaceholder title="Attestations / AVI" text="Vue de contrôle des attestations, AVI et certificats rattachés aux dossiers clients." empty="Aucune attestation ou AVI prête" /> : null}
@@ -638,22 +666,30 @@ function Client360Drawer({
   client,
   cases,
   documents,
+  financialFiles,
   events,
   communications,
   onCreateCase,
   onMarkUnderReview,
   onOpenAction,
+  onOpenFinance,
   onClose,
 }: {
   selectedUid: string | null;
   client: AdminClient360 | null;
   cases: ClientCase[];
   documents: ClientDocument[];
+  financialFiles: ClientFinancialFile[];
   events: AdminCaseEvent[];
   communications: CommunicationLog[];
   onCreateCase: () => void;
   onMarkUnderReview: (clientCase: ClientCase | null) => void;
   onOpenAction: (action: ClientAction, clientCase: ClientCase | null) => void;
+  onOpenFinance: (
+    clientUid: string,
+    section: FinanceSection,
+    clientCase: ClientCase | null,
+  ) => void;
   onClose: () => void;
 }) {
   if (!selectedUid) return null;
@@ -665,6 +701,7 @@ function Client360Drawer({
     );
   }
 
+  const profile = client.profile;
   const currentCase = cases[0] ?? null;
   return (
     <aside className="fixed inset-y-0 right-0 z-40 w-full max-w-4xl overflow-y-auto border-l border-slate-200 bg-white p-5 shadow-2xl" aria-labelledby="client-360-title">
@@ -726,8 +763,11 @@ function Client360Drawer({
         <PaymentsSummary caseItem={currentCase} />
         <SectionList
           title="Finance"
-          empty="Module Finance non activé dans ce lot foundation"
-          rows={[]}
+          empty="Aucune simulation, aucun devis ou rapport lié"
+          rows={financialFiles.map(
+            (file) =>
+              `${file.status} · ${file.simulationId ?? "simulation -"} · ${file.quoteId ?? "devis -"} · ${file.reportId ?? "rapport -"}`,
+          )}
         />
         <CertificatesSummary certificates={client.certificates} caseItem={currentCase} />
         <CommunicationsSummary communications={communications} />
@@ -745,9 +785,9 @@ function Client360Drawer({
         <Button type="button" variant="outline" size="sm" onClick={() => onOpenAction("request-document", currentCase)}>Demander document</Button>
         <Button type="button" variant="outline" size="sm" onClick={() => onMarkUnderReview(currentCase)}>Marquer en revue</Button>
         <Button type="button" variant="outline" size="sm" onClick={() => onOpenAction("add-note", currentCase)}>Ajouter note</Button>
-        <Button type="button" variant="outline" size="sm" disabled title="Disponible dans le lot Finance">Lier simulation</Button>
-        <Button type="button" variant="outline" size="sm" disabled title="Disponible dans le lot Finance">Générer devis</Button>
-        <Button type="button" variant="outline" size="sm" disabled title="Disponible dans le lot Finance">Rapport préfinancement</Button>
+        <Button type="button" variant="outline" size="sm" onClick={() => onOpenFinance(profile.uid, "simulateur", currentCase)}>Lier simulation</Button>
+        <Button type="button" variant="outline" size="sm" onClick={() => onOpenFinance(profile.uid, "devis", currentCase)}>Générer devis</Button>
+        <Button type="button" variant="outline" size="sm" onClick={() => onOpenFinance(profile.uid, "rapports", currentCase)}>Rapport préfinancement</Button>
         <Button type="button" variant="outline" size="sm" onClick={() => onOpenAction("send-notification", currentCase)}>Envoyer notification</Button>
       </div>
     </aside>

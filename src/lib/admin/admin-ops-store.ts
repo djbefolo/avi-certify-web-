@@ -249,6 +249,7 @@ function computeDocumentStatus(documents: ClientDocument[]): AdminCaseDocumentSt
 
 function computeFinanceStatus(files: ClientFinancialFile[]): AdminCaseFinanceStatus {
   if (files.some((file) => file.status === "REPORTED" || file.reportId)) return "REPORT_GENERATED";
+  if (files.some((file) => file.status === "SENT")) return "SENT_TO_CLIENT";
   if (files.some((file) => file.status === "QUOTED" || file.quoteId)) return "QUOTE_GENERATED";
   if (files.some((file) => file.status === "SIMULATED" || file.simulationId)) return "SIMULATED";
   return "NOT_STARTED";
@@ -293,12 +294,14 @@ function computeNextAction(input: {
   if (input.financeStatus === "NOT_STARTED") return "Générer simulation";
   if (input.financeStatus === "SIMULATED") return "Générer devis";
   if (input.financeStatus === "QUOTE_GENERATED") return "Générer rapport";
+  if (input.financeStatus === "SENT_TO_CLIENT") return "Générer rapport";
   if (input.certificateStatus === "NOT_STARTED") return "Générer attestation";
   return "Dossier complet";
 }
 
 function statusFromFinance(financeStatus: AdminCaseFinanceStatus): AdminCaseStatus {
   if (financeStatus === "REPORT_GENERATED") return "REPORT_GENERATED";
+  if (financeStatus === "SENT_TO_CLIENT") return "QUOTE_GENERATED";
   if (financeStatus === "QUOTE_GENERATED") return "QUOTE_GENERATED";
   if (financeStatus === "SIMULATED") return "FINANCE_SIMULATED";
   return "NEW";
@@ -740,21 +743,29 @@ export class AdminOperationsStore {
     if (!clientCase) throw new Error("Client case not found.");
 
     const timestamp = now();
+    const existing = (await this.listFinancialFiles()).find(
+      (file) =>
+        file.caseId === caseId &&
+        ((input.simulationId && file.simulationId === input.simulationId) ||
+          (input.quoteId && file.quoteId === input.quoteId) ||
+          (input.reportId && file.reportId === input.reportId)),
+    );
     const financialFile: ClientFinancialFile = {
-      id: id("cff"),
+      ...existing,
+      id: existing?.id ?? id("cff"),
       uid: clientCase.uid,
       caseId,
-      simulationId: input.simulationId ?? null,
-      quoteId: input.quoteId ?? null,
-      reportId: input.reportId ?? null,
-      productCode: input.productCode ?? null,
-      region: input.region ?? null,
-      xafAmount: input.xafAmount ?? null,
-      option: input.option ?? null,
-      riskTier: input.riskTier ?? null,
-      status: input.status ?? "SIMULATED",
-      reportStatus: input.reportStatus,
-      createdAt: timestamp,
+      simulationId: input.simulationId ?? existing?.simulationId ?? null,
+      quoteId: input.quoteId ?? existing?.quoteId ?? null,
+      reportId: input.reportId ?? existing?.reportId ?? null,
+      productCode: input.productCode ?? existing?.productCode ?? null,
+      region: input.region ?? existing?.region ?? null,
+      xafAmount: input.xafAmount ?? existing?.xafAmount ?? null,
+      option: input.option ?? existing?.option ?? null,
+      riskTier: input.riskTier ?? existing?.riskTier ?? null,
+      status: input.status ?? existing?.status ?? "SIMULATED",
+      reportStatus: input.reportStatus ?? existing?.reportStatus,
+      createdAt: existing?.createdAt ?? timestamp,
       updatedAt: timestamp,
     };
 
@@ -773,6 +784,21 @@ export class AdminOperationsStore {
       updatedAt: timestamp,
     };
     await upsertDoc("client_cases", caseId, updatedCase, state.cases, (item) => item.id);
+    await this.createNotification({
+      type: "admin_action_required",
+      severity: financialFile.status === "SENT" ? "success" : "info",
+      title:
+        financialFile.status === "SIMULATED"
+          ? "Simulation financière liée"
+          : financialFile.status === "QUOTED"
+            ? "Devis lié au dossier"
+            : financialFile.status === "SENT"
+              ? "Devis envoyé au client"
+              : "Rapport préfinancement lié",
+      body: `${clientCase.caseNumber} · ${financialFile.status}`,
+      relatedUid: clientCase.uid,
+      relatedCaseId: caseId,
+    });
     await this.createEvent({
       caseId,
       uid: clientCase.uid,
@@ -780,7 +806,7 @@ export class AdminOperationsStore {
       actorId: actor.uid,
       actorRole: actor.role,
       eventType: "financial_file_linked",
-      eventLabel: "Simulation ou devis lié au dossier",
+      eventLabel: `Finance dossier mise à jour: ${financialFile.status}`,
       eventPayload: financialFile,
     });
 

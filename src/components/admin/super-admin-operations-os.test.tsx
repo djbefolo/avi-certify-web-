@@ -8,7 +8,22 @@ import type {
   AdminNotification,
   ClientCase,
   ClientDocument,
+  ClientFinancialFile,
 } from "@/types/admin-ops";
+
+vi.mock("@/components/admin/fintech-command-center", () => ({
+  FintechCommandCenter: ({
+    initialClientUid,
+    initialSection,
+  }: {
+    initialClientUid?: string;
+    initialSection?: string;
+  }) => (
+    <div data-testid="fintech-command-center">
+      Finance client {initialClientUid ?? "all"} section {initialSection}
+    </div>
+  ),
+}));
 
 const client: AdminClientProfile = {
   uid: "client-1",
@@ -73,6 +88,23 @@ const notification: AdminNotification = {
   createdAt: "2026-05-25T08:00:00.000Z",
 };
 
+const financialFile: ClientFinancialFile = {
+  id: "finance-1",
+  uid: "client-1",
+  caseId: "case-1",
+  simulationId: "simulation-1",
+  quoteId: "quote-1",
+  reportId: null,
+  productCode: "prefinancement-canada-cad",
+  region: "canada",
+  xafAmount: 8_000_000,
+  option: "option_a_3m",
+  riskTier: "75%",
+  status: "QUOTED",
+  createdAt: "2026-05-25T08:45:00.000Z",
+  updatedAt: "2026-05-25T08:45:00.000Z",
+};
+
 const event: AdminCaseEvent = {
   id: "evt-1",
   caseId: "case-1",
@@ -107,7 +139,7 @@ function mockOperationsFetch() {
           cases: [clientCase],
           documents: [documentRow],
           payments: [],
-          financialFiles: [],
+          financialFiles: [financialFile],
           certificates: [],
           communications: [
             {
@@ -296,9 +328,9 @@ describe("SuperAdminOperationsOS", () => {
     await user.click(screen.getAllByRole("button", { name: "Clients" })[0]);
     await user.click(await screen.findByRole("button", { name: "Ouvrir 360" }));
 
-    expect(screen.getByRole("button", { name: "Lier simulation" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Générer devis" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Rapport préfinancement" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Lier simulation" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Générer devis" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Rapport préfinancement" })).toBeEnabled();
 
     await user.click(screen.getByRole("button", { name: "Marquer en revue" }));
     await waitFor(() => {
@@ -333,6 +365,24 @@ describe("SuperAdminOperationsOS", () => {
         expect.objectContaining({ method: "POST" }),
       );
     });
+  });
+
+  it("opens the Finance command center for the selected Client 360 action", async () => {
+    mockOperationsFetch();
+    const user = userEvent.setup();
+
+    render(<SuperAdminOperationsOS adminRole="super_admin" adminEmail="admin@avicertify.fr" />);
+
+    await screen.findByText("AVI CERTIFY Super Admin Operations OS");
+    await user.click(screen.getAllByRole("button", { name: "Clients" })[0]);
+    await user.click(await screen.findByRole("button", { name: "Ouvrir 360" }));
+    expect(screen.getByText(/QUOTED · simulation-1 · quote-1/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Générer devis" }));
+
+    expect(await screen.findByTestId("fintech-command-center")).toHaveTextContent(
+      "Finance client client-1 section devis",
+    );
   });
 
   it("resolves document identity and approve/reject actions without primary raw UID display", async () => {

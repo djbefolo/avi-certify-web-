@@ -116,6 +116,41 @@ export class FintechStore {
     return quote;
   }
 
+  async getQuote(id: string) {
+    const collection = await getCollection("financing_quotes");
+
+    if (collection) {
+      const snapshot = await collection.doc(id).get();
+
+      return snapshot.exists ? (snapshot.data() as FinancingQuote) : null;
+    }
+
+    return state.quotes.find((quote) => quote.id === id) ?? null;
+  }
+
+  async updateQuote(id: string, patch: Partial<FinancingQuote>) {
+    const existing = await this.getQuote(id);
+    if (!existing) {
+      throw new Error("Quote not found.");
+    }
+
+    const updated = { ...existing, ...patch };
+    const collection = await getCollection("financing_quotes");
+
+    if (collection) {
+      await collection.doc(id).set(updated, { merge: true });
+    }
+
+    const index = state.quotes.findIndex((quote) => quote.id === id);
+    if (index >= 0) {
+      state.quotes[index] = updated;
+    } else {
+      state.quotes.unshift(updated);
+    }
+
+    return updated;
+  }
+
   async listQuotes() {
     const collection = await getCollection("financing_quotes");
 

@@ -161,7 +161,13 @@ export type ClientFinancialFile = {
   xafAmount: number | null;
   option: string | null;
   riskTier: string | null;
-  status: "DRAFT" | "SIMULATED" | "QUOTED" | "REPORTED" | "ARCHIVED";
+  status:
+    | "DRAFT"
+    | "SIMULATED"
+    | "QUOTED"
+    | "SENT"
+    | "REPORTED"
+    | "ARCHIVED";
   reportStatus?: "DRAFT" | "PENDING_GENERATION" | "GENERATED";
   createdAt: string;
   updatedAt: string;
