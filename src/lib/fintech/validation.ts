@@ -11,10 +11,14 @@ export const simulationInputSchema = z.object({
   discountRate: z.number().min(0).max(1).optional(),
   fxReference: z.string().max(240).optional(),
   clientName: z.string().max(160).optional(),
+  clientEmail: z.string().email().optional(),
+  uid: z.string().max(160).optional(),
+  caseId: z.string().max(160).optional(),
 });
 
 export const quoteInputSchema = z.object({
-  simulationInput: simulationInputSchema,
+  simulationId: z.string().max(160).optional(),
+  simulationInput: simulationInputSchema.optional(),
   clientIdentity: z
     .object({
       fullName: z.string().max(160).optional(),
@@ -22,6 +26,22 @@ export const quoteInputSchema = z.object({
       phone: z.string().max(40).optional(),
     })
     .optional(),
+}).refine((input) => input.simulationId || input.simulationInput, {
+  message: "A simulationId or simulationInput is required.",
+});
+
+export const quotePatchSchema = z.object({
+  title: z.string().max(180).nullable().optional(),
+  validUntil: z.string().max(40).nullable().optional(),
+  paymentDeadline: z.string().max(40).nullable().optional(),
+  commercialNote: z.string().max(3000).nullable().optional(),
+  internalNote: z.string().max(3000).nullable().optional(),
+  termsAndConditions: z.string().max(5000).nullable().optional(),
+  requiredDocumentsBeforeApproval: z.array(z.string().max(160)).max(20).nullable().optional(),
+  disclaimer: z.string().max(3000).nullable().optional(),
+  recommendationSummary: z.string().max(2000).nullable().optional(),
+  expiresAt: z.string().max(40).nullable().optional(),
+  status: z.enum(["DRAFT", "GENERATED", "SENT", "ACCEPTED", "EXPIRED"]).optional(),
 });
 
 export const pricingRulePatchSchema = z.object({

@@ -7,6 +7,9 @@ export type ContributionOption = "option_a_3m" | "option_b_0m" | "custom";
 export type AuditEventType =
   | "simulation_created"
   | "quote_created"
+  | "quote_updated"
+  | "quote_generated"
+  | "quote_sent"
   | "fx_changed"
   | "pricing_changed"
   | "risk_changed"
@@ -76,6 +79,9 @@ export type FinancingSimulationInput = {
   discountRate?: number;
   fxReference?: string;
   clientName?: string;
+  clientEmail?: string;
+  uid?: string;
+  caseId?: string;
   createdBy?: string;
 };
 
@@ -175,7 +181,72 @@ export type FinancingQuote = {
   }>;
   assumptions: Record<string, unknown>;
   simulationSnapshot: FinancingSimulation;
-  status: "draft" | "pending_admin_validation" | "validated";
+  status:
+    | "draft"
+    | "pending_admin_validation"
+    | "validated"
+    | "DRAFT"
+    | "GENERATED"
+    | "SENT"
+    | "ACCEPTED"
+    | "EXPIRED";
+  caseId?: string | null;
+  uid?: string | null;
+  pdfStoragePath?: string | null;
+  generatedAt?: string | null;
+  sentAt?: string | null;
+  expiresAt?: string | null;
+  title?: string | null;
+  validUntil?: string | null;
+  paymentDeadline?: string | null;
+  commercialNote?: string | null;
+  internalNote?: string | null;
+  termsAndConditions?: string | null;
+  requiredDocumentsBeforeApproval?: string[] | null;
+  disclaimer?: string | null;
+  recommendationSummary?: string | null;
+  deliveryStatus?:
+    | "NOT_SENT"
+    | "SENT"
+    | "SEND_FAILED"
+    | "PDF_MISSING"
+    | "GENERATING_FAILED"
+    | "EMAIL_NOT_CONFIGURED"
+    | "RECIPIENT_MISSING";
+  deliveryMessage?: string | null;
+  lastDeliveryAttemptAt?: string | null;
+  lastEmailMessageId?: string | null;
+};
+
+export type ClientQuoteView = {
+  id: string;
+  createdAt: string;
+  status: FinancingQuote["status"];
+  title: string | null;
+  validUntil: string | null;
+  paymentDeadline: string | null;
+  commercialNote: string | null;
+  termsAndConditions: string | null;
+  requiredDocumentsBeforeApproval: string[];
+  disclaimer: string | null;
+  recommendationSummary: string | null;
+  generatedAt: string | null;
+  sentAt: string | null;
+  expiresAt: string | null;
+  pdfAvailable: boolean;
+  lineItems: FinancingQuote["lineItems"];
+  simulation: {
+    region: FintechRegion;
+    targetCurrency: TargetCurrency;
+    option: ContributionOption;
+    targetAmount: number;
+    studentContribution: number;
+    financedAmount: number;
+    cashDueAtSignature: number;
+    monthlyRepayment: number;
+    netFees: number;
+    totalClientEffort: number;
+  };
 };
 
 export type FinancialAuditEvent = {

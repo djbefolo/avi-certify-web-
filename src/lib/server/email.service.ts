@@ -21,6 +21,10 @@ import {
 } from "@/lib/email/templates/document-request";
 import { renderLeadConfirmationEmail } from "@/lib/email/templates/lead-confirmation";
 import { renderPaymentStartedEmail } from "@/lib/email/templates/payment-started";
+import {
+  renderQuoteReadyEmail,
+  type QuoteReadyEmailInput,
+} from "@/lib/email/templates/quote-ready";
 import type { EmailTemplate } from "@/lib/email/templates/shared";
 import type { LeadFormValues } from "@/lib/validations/lead";
 import type { UserDocument } from "@/types/document";
@@ -175,6 +179,16 @@ export async function sendPaymentStartedEmail(
     to: payment.recipientEmail ?? null,
     template: renderPaymentStartedEmail(payment),
     context: "payment started",
+  });
+}
+
+export async function sendQuoteReadyEmail(
+  input: QuoteReadyEmailInput & { recipientEmail?: string | null },
+): Promise<SendEmailResult> {
+  return sendEmailWithResult({
+    to: input.recipientEmail ?? null,
+    template: renderQuoteReadyEmail(input),
+    context: "quote ready",
   });
 }
 
