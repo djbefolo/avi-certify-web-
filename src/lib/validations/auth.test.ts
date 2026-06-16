@@ -2,11 +2,14 @@ import { describe, expect, it } from "vitest";
 import { registerSchema } from "@/lib/validations/auth";
 
 const validRegistration = {
-  fullName: "Awa Ndiaye",
+  firstName: "Awa",
+  lastName: "Ndiaye",
+  birthDate: "2001-04-15",
+  birthCountry: "Cameroun",
   phone: "+237 699 000 000",
   email: "AWA@example.com",
-  password: "password-secure",
-  confirmPassword: "password-secure",
+  password: "Password-123!",
+  confirmPassword: "Password-123!",
 };
 
 describe("registerSchema", () => {
@@ -35,4 +38,3 @@ describe("registerSchema", () => {
     expect(result.success).toBe(false);
   });
 });
-

@@ -20,9 +20,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { useAuth } from "@/hooks/use-auth";
+import { birthCountryOptions } from "@/lib/profile/countries";
 import {
   admissionDocumentStatusOptions,
   admissionStatusOptions,
+  binaryChoiceOptions,
   createEmptyEditableProfile,
   financialNeedTypeOptions,
   getProfileCompletion,
@@ -35,6 +37,7 @@ import {
 import type {
   AdmissionDocumentStatus,
   AdmissionStatus,
+  BinaryChoice,
   EditableStudentProfile,
   FinancialNeedType,
   HousingNeed,
@@ -56,24 +59,22 @@ type SelectConfig<T extends string> = {
 };
 
 const identityFields: FieldConfig[] = [
-  { name: "fullName", label: "Nom complet", placeholder: "Ex. Jean Dreyfus" },
+  { name: "firstName", label: "Prénom", placeholder: "Ex. Jean" },
+  { name: "lastName", label: "Nom", placeholder: "Ex. Dreyfus" },
+  { name: "birthDate", label: "Date de naissance", type: "date" },
   { name: "phoneWhatsApp", label: "Téléphone WhatsApp", type: "tel" },
-  { name: "dateOfBirth", label: "Date de naissance", type: "date" },
   { name: "placeOfBirth", label: "Lieu de naissance" },
   { name: "nationality", label: "Nationalité" },
   { name: "countryOfResidence", label: "Pays de résidence" },
 ];
 
 const studyFields: FieldConfig[] = [
-  { name: "destinationCountry", label: "Pays de destination" },
-  { name: "destinationCity", label: "Ville d’arrivée" },
-  { name: "targetSchoolName", label: "École / établissement visé" },
-  { name: "intendedProgram", label: "Programme visé" },
-  { name: "intendedAcademicYear", label: "Année universitaire" },
-];
-
-const mobilityFields: FieldConfig[] = [
-  { name: "intendedArrivalDate", label: "Date prévue d’arrivée", type: "date" },
+  { name: "destinationCountry", label: "Destination souhaitée" },
+  { name: "destinationCity", label: "Ville de destination" },
+  { name: "targetSchoolName", label: "École / université" },
+  { name: "intendedProgram", label: "Programme / formation" },
+  { name: "intendedAcademicYear", label: "Rentrée prévue" },
+  { name: "intendedArrivalDate", label: "Date prévue d'arrivée", type: "date" },
   {
     name: "expectedStayDuration",
     label: "Durée estimée du séjour",
@@ -81,25 +82,30 @@ const mobilityFields: FieldConfig[] = [
   },
 ];
 
-const financialFields: FieldConfig[] = [
+const serviceFields: FieldConfig[] = [
   {
     name: "requestedAviAmount",
-    label: "Montant AVI souhaité",
+    label: "Montant AVI estimé",
     type: "number",
     placeholder: "Ex. 7380",
   },
-];
-
-const housingFields: FieldConfig[] = [
   {
     name: "preferredHousingCity",
-    label: "Ville souhaitée pour l’hébergement",
+    label: "Ville souhaitée pour l'hébergement",
   },
 ];
 
+const dossierFields: FieldConfig[] = [
+  { name: "previousVisaRefusalCountry", label: "Pays du refus visa" },
+];
+
 const contactFields: FieldConfig[] = [
-  { name: "emergencyContactName", label: "Contact d’urgence" },
-  { name: "emergencyContactPhone", label: "Téléphone du contact d’urgence", type: "tel" },
+  { name: "emergencyContactName", label: "Contact d'urgence" },
+  {
+    name: "emergencyContactPhone",
+    label: "Téléphone du contact d'urgence",
+    type: "tel",
+  },
 ];
 
 function getDateLabel(date: Date | null) {
@@ -121,7 +127,11 @@ function toEditableProfile(profile: StudentProfile | null): EditableStudentProfi
 
   return {
     ...emptyProfile,
+    firstName: profile.firstName,
+    lastName: profile.lastName,
     fullName: profile.fullName,
+    birthDate: profile.birthDate,
+    birthCountry: profile.birthCountry,
     phoneWhatsApp: profile.phoneWhatsApp,
     dateOfBirth: profile.dateOfBirth,
     placeOfBirth: profile.placeOfBirth,
@@ -138,9 +148,12 @@ function toEditableProfile(profile: StudentProfile | null): EditableStudentProfi
     expectedStayDuration: profile.expectedStayDuration,
     financialNeedType: profile.financialNeedType,
     requestedAviAmount: profile.requestedAviAmount,
+    needsFinancing: profile.needsFinancing,
     selectedService: profile.selectedService,
     housingNeed: profile.housingNeed,
     preferredHousingCity: profile.preferredHousingCity,
+    previousVisaRefusal: profile.previousVisaRefusal,
+    previousVisaRefusalCountry: profile.previousVisaRefusalCountry,
     emergencyContactName: profile.emergencyContactName,
     emergencyContactPhone: profile.emergencyContactPhone,
   };
@@ -172,7 +185,9 @@ function FormField({
         onChange={(event) => {
           const nextValue =
             field.type === "number"
-              ? Number(event.target.value) || null
+              ? event.target.value
+                ? Number(event.target.value)
+                : null
               : event.target.value;
 
           onChange(field.name, nextValue);
@@ -220,12 +235,10 @@ function FormSelect<T extends string>({
 function FormSection({
   title,
   description,
-  fields,
   children,
 }: {
   title: string;
   description?: string;
-  fields?: ReactNode;
   children?: ReactNode;
 }) {
   return (
@@ -238,7 +251,6 @@ function FormSection({
           </p>
         ) : null}
       </div>
-      {fields}
       {children}
     </section>
   );
@@ -295,7 +307,7 @@ export default function ProfilPage() {
   }, [isEmailVerified, user]);
 
   const completion = useMemo(() => getProfileCompletion(profile), [profile]);
-  const email = profile?.email ?? user?.email ?? "Non renseigné";
+  const email = profile?.email ?? user?.email ?? "A renseigner";
   const uid = profile?.uid ?? user?.uid ?? "Non disponible";
   const canSave = Boolean(user && isEmailVerified && profile);
 
@@ -325,7 +337,7 @@ export default function ProfilPage() {
       setForm(toEditableProfile(nextProfile));
       setSuccessMessage("Profil mis à jour avec succès.");
     } catch {
-      setErrorMessage("Impossible d’enregistrer le profil pour le moment.");
+      setErrorMessage("Impossible d'enregistrer le profil pour le moment.");
     } finally {
       setSavingProfile(false);
     }
@@ -336,7 +348,7 @@ export default function ProfilPage() {
   return (
     <DashboardLayout
       title="Profil étudiant"
-      description="Complétez les informations utilisées pour votre dossier, vos documents et votre attestation."
+      description="Complétez progressivement les informations utilisées pour votre dossier, vos documents et votre accompagnement."
     >
       <div className="grid gap-5">
         <section className="rounded-md border bg-background p-5 shadow-sm md:p-7">
@@ -346,11 +358,11 @@ export default function ProfilPage() {
                 <UserRound className="h-6 w-6 text-primary" aria-hidden="true" />
               </div>
               <h2 className="mt-5 text-xl font-semibold">
-                Informations personnelles et académiques
+                Dossier étudiant progressif
               </h2>
               <p className="mt-2 leading-7 text-muted-foreground">
                 Ces données restent rattachées à votre compte sécurisé et servent
-                à préparer les documents AVI CERTIFY.
+                à préparer votre parcours AVI CERTIFY.
               </p>
             </div>
             <div className="min-w-56 rounded-md border bg-muted/20 p-4">
@@ -367,9 +379,26 @@ export default function ProfilPage() {
               <p className="mt-3 text-sm text-muted-foreground">
                 {completion.state === "complete"
                   ? "Profil complet"
-                  : "Informations à compléter"}
+                  : "Complétude progressive"}
               </p>
             </div>
+          </div>
+
+          <div className="mt-6 grid gap-3 md:grid-cols-3">
+            {completion.sections.map((section) => (
+              <div key={section.label} className="rounded-md border bg-muted/20 p-4">
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <p className="font-medium text-muted-foreground">{section.label}</p>
+                  <p className="font-semibold">{section.percent} %</p>
+                </div>
+                <div className="mt-2 h-1.5 rounded-full bg-muted">
+                  <div
+                    className="h-1.5 rounded-full bg-accent"
+                    style={{ width: `${section.percent}%` }}
+                  />
+                </div>
+              </div>
+            ))}
           </div>
 
           <div className="mt-6 grid gap-4 md:grid-cols-3">
@@ -428,7 +457,10 @@ export default function ProfilPage() {
           </p>
         ) : null}
 
-        <FormSection title="Identité étudiant">
+        <FormSection
+          title="Identité"
+          description="Les informations de base permettent d'identifier proprement votre dossier."
+        >
           <div className="grid gap-4 md:grid-cols-2">
             {identityFields.map((field) => (
               <FormField
@@ -439,46 +471,28 @@ export default function ProfilPage() {
                 onChange={updateField}
               />
             ))}
+            <FormSelect<string>
+              field={{
+                name: "birthCountry",
+                label: "Pays de naissance",
+                options: birthCountryOptions.map((country) => ({
+                  value: country,
+                  label: country,
+                })),
+              }}
+              form={form}
+              disabled={disabled}
+              onChange={updateField}
+            />
           </div>
         </FormSection>
 
-        <FormSection title="Projet d’études">
+        <FormSection
+          title="Mobilité / projet"
+          description="Décrivez votre destination et votre projet académique sans devoir tout finaliser immédiatement."
+        >
           <div className="grid gap-4 md:grid-cols-2">
             {studyFields.map((field) => (
-              <FormField
-                key={field.name}
-                field={field}
-                form={form}
-                disabled={disabled}
-                onChange={updateField}
-              />
-            ))}
-            <FormSelect<AdmissionStatus>
-              field={{
-                name: "admissionStatus",
-                label: "Statut d’admission",
-                options: admissionStatusOptions,
-              }}
-              form={form}
-              disabled={disabled}
-              onChange={updateField}
-            />
-            <FormSelect<AdmissionDocumentStatus>
-              field={{
-                name: "admissionDocumentStatus",
-                label: "Statut du document d’admission",
-                options: admissionDocumentStatusOptions,
-              }}
-              form={form}
-              disabled={disabled}
-              onChange={updateField}
-            />
-          </div>
-        </FormSection>
-
-        <FormSection title="Mobilité et arrivée">
-          <div className="grid gap-4 md:grid-cols-2">
-            {mobilityFields.map((field) => (
               <FormField
                 key={field.name}
                 field={field}
@@ -490,7 +504,7 @@ export default function ProfilPage() {
             <FormSelect<SelectedStudentService>
               field={{
                 name: "selectedService",
-                label: "Service choisi",
+                label: "Service recherché",
                 options: selectedServiceOptions,
               }}
               form={form}
@@ -500,19 +514,12 @@ export default function ProfilPage() {
           </div>
         </FormSection>
 
-        <FormSection title="Besoin financier">
+        <FormSection
+          title="Services AVI"
+          description="Ces informations orientent l'accompagnement financier, logement et mobilité."
+        >
           <div className="grid gap-4 md:grid-cols-2">
-            <FormSelect<FinancialNeedType>
-              field={{
-                name: "financialNeedType",
-                label: "Besoin financier",
-                options: financialNeedTypeOptions,
-              }}
-              form={form}
-              disabled={disabled}
-              onChange={updateField}
-            />
-            {financialFields.map((field) => (
+            {serviceFields.map((field) => (
               <FormField
                 key={field.name}
                 field={field}
@@ -521,22 +528,75 @@ export default function ProfilPage() {
                 onChange={updateField}
               />
             ))}
-          </div>
-        </FormSection>
-
-        <FormSection title="Hébergement">
-          <div className="grid gap-4 md:grid-cols-2">
+            <FormSelect<FinancialNeedType>
+              field={{
+                name: "financialNeedType",
+                label: "Type de besoin financier",
+                options: financialNeedTypeOptions,
+              }}
+              form={form}
+              disabled={disabled}
+              onChange={updateField}
+            />
+            <FormSelect<BinaryChoice>
+              field={{
+                name: "needsFinancing",
+                label: "Besoin financement",
+                options: binaryChoiceOptions,
+              }}
+              form={form}
+              disabled={disabled}
+              onChange={updateField}
+            />
             <FormSelect<HousingNeed>
               field={{
                 name: "housingNeed",
-                label: "Besoin d’hébergement",
+                label: "Besoin logement",
                 options: housingNeedOptions,
               }}
               form={form}
               disabled={disabled}
               onChange={updateField}
             />
-            {housingFields.map((field) => (
+          </div>
+        </FormSection>
+
+        <FormSection
+          title="Dossier"
+          description="Ces éléments aident AVI CERTIFY à anticiper les points sensibles du dossier."
+        >
+          <div className="grid gap-4 md:grid-cols-2">
+            <FormSelect<AdmissionStatus>
+              field={{
+                name: "admissionStatus",
+                label: "Admission obtenue / statut",
+                options: admissionStatusOptions,
+              }}
+              form={form}
+              disabled={disabled}
+              onChange={updateField}
+            />
+            <FormSelect<AdmissionDocumentStatus>
+              field={{
+                name: "admissionDocumentStatus",
+                label: "Statut du document d'admission",
+                options: admissionDocumentStatusOptions,
+              }}
+              form={form}
+              disabled={disabled}
+              onChange={updateField}
+            />
+            <FormSelect<BinaryChoice>
+              field={{
+                name: "previousVisaRefusal",
+                label: "Historique refus visa",
+                options: binaryChoiceOptions,
+              }}
+              form={form}
+              disabled={disabled}
+              onChange={updateField}
+            />
+            {dossierFields.map((field) => (
               <FormField
                 key={field.name}
                 field={field}
@@ -566,8 +626,8 @@ export default function ProfilPage() {
           <div className="flex items-start gap-3 text-sm text-muted-foreground">
             <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-accent" aria-hidden="true" />
             <p>
-              Les champs incomplets restent visibles dans le tableau de bord afin
-              de sécuriser la génération des documents.
+              Les champs incomplets restent visibles dans le tableau de bord sans
+              bloquer votre navigation.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">

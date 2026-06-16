@@ -10,6 +10,7 @@ import { getFirebaseDb } from "@/lib/firebase/client";
 import type {
   AdmissionDocumentStatus,
   AdmissionStatus,
+  BinaryChoice,
   EditableStudentProfile,
   FinancialNeedType,
   HousingNeed,
@@ -18,7 +19,10 @@ import type {
 } from "@/types/student-profile";
 import {
   coreProfileFields,
+  dossierProfileFields,
   housingCertificateRequiredFields,
+  identityProfileFields,
+  projectProfileFields,
   type CoreProfileField,
   type HousingCertificateRequiredField,
 } from "@/types/student-profile";
@@ -29,10 +33,10 @@ export const selectedServiceOptions: {
   value: SelectedStudentService;
   label: string;
 }[] = [
-  { value: "attestation_hebergement", label: "Attestation d’hébergement" },
+  { value: "attestation_hebergement", label: "Attestation d'hébergement" },
   {
     value: "avi",
-    label: "Attestation de Virement Irrévocable — AVI",
+    label: "Attestation de Virement Irrévocable - AVI",
   },
   {
     value: "paiement_scolarite",
@@ -76,16 +80,26 @@ export const housingNeedOptions: { value: HousingNeed; label: string }[] = [
   { value: "not_sure", label: "À confirmer" },
 ];
 
+export const binaryChoiceOptions: { value: BinaryChoice; label: string }[] = [
+  { value: "yes", label: "Oui" },
+  { value: "no", label: "Non" },
+  { value: "not_sure", label: "À confirmer" },
+];
+
 export function getSelectedServiceLabel(value: SelectedStudentService | null) {
   return (
     selectedServiceOptions.find((option) => option.value === value)?.label ??
-    "Non renseigné"
+    "A renseigner"
   );
 }
 
 export function createEmptyEditableProfile(): EditableStudentProfile {
   return {
+    firstName: null,
+    lastName: null,
     fullName: null,
+    birthDate: null,
+    birthCountry: null,
     phoneWhatsApp: null,
     dateOfBirth: null,
     placeOfBirth: null,
@@ -102,9 +116,12 @@ export function createEmptyEditableProfile(): EditableStudentProfile {
     expectedStayDuration: null,
     financialNeedType: null,
     requestedAviAmount: null,
+    needsFinancing: null,
     selectedService: null,
     housingNeed: null,
     preferredHousingCity: null,
+    previousVisaRefusal: null,
+    previousVisaRefusalCountry: null,
     emergencyContactName: null,
     emergencyContactPhone: null,
   };
@@ -140,14 +157,37 @@ function getOptionValue<T extends string>(
   return value && allowedValues.includes(value as T) ? (value as T) : null;
 }
 
+function getFullName(data: DocumentData) {
+  const fullName = getStringField(data, "fullName");
+
+  if (fullName) {
+    return fullName;
+  }
+
+  const firstName = getStringField(data, "firstName");
+  const lastName = getStringField(data, "lastName");
+  const derived = [firstName, lastName].filter(Boolean).join(" ").trim();
+
+  return derived || null;
+}
+
 export function mapStudentProfile(uid: string, data: DocumentData): StudentProfile {
+  const birthDate =
+    getStringField(data, "birthDate") ?? getStringField(data, "dateOfBirth");
+  const dateOfBirth =
+    getStringField(data, "dateOfBirth") ?? getStringField(data, "birthDate");
+
   return {
     uid: String(data.uid ?? uid),
     email: getStringField(data, "email"),
-    fullName: getStringField(data, "fullName"),
+    firstName: getStringField(data, "firstName"),
+    lastName: getStringField(data, "lastName"),
+    fullName: getFullName(data),
+    birthDate,
+    birthCountry: getStringField(data, "birthCountry"),
     phoneWhatsApp:
       getStringField(data, "phoneWhatsApp") ?? getStringField(data, "phone"),
-    dateOfBirth: getStringField(data, "dateOfBirth"),
+    dateOfBirth,
     placeOfBirth:
       getStringField(data, "placeOfBirth") ?? getStringField(data, "birthPlace"),
     nationality: getStringField(data, "nationality"),
@@ -177,6 +217,11 @@ export function mapStudentProfile(uid: string, data: DocumentData): StudentProfi
       financialNeedTypeOptions.map((option) => option.value),
     ),
     requestedAviAmount: getNumberField(data, "requestedAviAmount"),
+    needsFinancing: getOptionValue(
+      data,
+      "needsFinancing",
+      binaryChoiceOptions.map((option) => option.value),
+    ),
     selectedService: getOptionValue(
       data,
       "selectedService",
@@ -188,6 +233,12 @@ export function mapStudentProfile(uid: string, data: DocumentData): StudentProfi
       housingNeedOptions.map((option) => option.value),
     ),
     preferredHousingCity: getStringField(data, "preferredHousingCity"),
+    previousVisaRefusal: getOptionValue(
+      data,
+      "previousVisaRefusal",
+      binaryChoiceOptions.map((option) => option.value),
+    ),
+    previousVisaRefusalCountry: getStringField(data, "previousVisaRefusalCountry"),
     emergencyContactName: getStringField(data, "emergencyContactName"),
     emergencyContactPhone: getStringField(data, "emergencyContactPhone"),
     role: getStringField(data, "role"),
@@ -216,10 +267,21 @@ export async function updateStudentProfile(
   uid: string,
   profile: EditableStudentProfile,
 ) {
+  const firstName = cleanString(profile.firstName);
+  const lastName = cleanString(profile.lastName);
+  const fullName =
+    [firstName, lastName].filter(Boolean).join(" ").trim() ||
+    cleanString(profile.fullName);
+  const birthDate = cleanString(profile.birthDate ?? profile.dateOfBirth);
+
   await updateDoc(doc(getFirebaseDb(), USERS_COLLECTION, uid), {
-    fullName: cleanString(profile.fullName),
+    firstName,
+    lastName,
+    fullName,
+    birthDate,
+    birthCountry: cleanString(profile.birthCountry),
     phoneWhatsApp: cleanString(profile.phoneWhatsApp),
-    dateOfBirth: cleanString(profile.dateOfBirth),
+    dateOfBirth: birthDate,
     placeOfBirth: cleanString(profile.placeOfBirth),
     nationality: cleanString(profile.nationality),
     countryOfResidence: cleanString(profile.countryOfResidence),
@@ -234,9 +296,12 @@ export async function updateStudentProfile(
     expectedStayDuration: cleanString(profile.expectedStayDuration),
     financialNeedType: profile.financialNeedType,
     requestedAviAmount: profile.requestedAviAmount,
+    needsFinancing: profile.needsFinancing,
     selectedService: profile.selectedService,
     housingNeed: profile.housingNeed,
     preferredHousingCity: cleanString(profile.preferredHousingCity),
+    previousVisaRefusal: profile.previousVisaRefusal,
+    previousVisaRefusalCountry: cleanString(profile.previousVisaRefusalCountry),
     emergencyContactName: cleanString(profile.emergencyContactName),
     emergencyContactPhone: cleanString(profile.emergencyContactPhone),
     updatedAt: serverTimestamp(),
@@ -251,12 +316,37 @@ function hasProfileValue(value: StudentProfile[keyof StudentProfile]) {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+function buildCompletionSection<T extends readonly (keyof StudentProfile)[]>(
+  label: string,
+  fields: T,
+  profile: StudentProfile | null,
+) {
+  const missingFields = profile
+    ? fields.filter((field) => !hasProfileValue(profile[field]))
+    : [...fields];
+  const completedFields = fields.length - missingFields.length;
+  const percent = Math.round((completedFields / fields.length) * 100);
+
+  return {
+    label,
+    percent,
+    missingFields,
+  };
+}
+
 export function getProfileCompletion(profile: StudentProfile | null) {
+  const sections = [
+    buildCompletionSection("Identité", identityProfileFields, profile),
+    buildCompletionSection("Projet étudiant", projectProfileFields, profile),
+    buildCompletionSection("Dossier / finance", dossierProfileFields, profile),
+  ];
+
   if (!profile) {
     return {
       percent: 0,
       state: "incomplete" as const,
       missingFields: [...coreProfileFields],
+      sections,
     };
   }
 
@@ -269,8 +359,13 @@ export function getProfileCompletion(profile: StudentProfile | null) {
   return {
     percent,
     state:
-      percent === 100 ? ("complete" as const) : percent > 0 ? ("partial" as const) : ("incomplete" as const),
+      percent === 100
+        ? ("complete" as const)
+        : percent > 0
+          ? ("partial" as const)
+          : ("incomplete" as const),
     missingFields,
+    sections,
   };
 }
 
@@ -297,18 +392,43 @@ export function getHousingCertificateProfileValidation(
 }
 
 export const profileFieldLabels: Record<
-  CoreProfileField | HousingCertificateRequiredField | "preferredHousingCity",
+  | CoreProfileField
+  | HousingCertificateRequiredField
+  | "birthCountry"
+  | "destinationCity"
+  | "intendedProgram"
+  | "intendedAcademicYear"
+  | "requestedAviAmount"
+  | "housingNeed"
+  | "needsFinancing"
+  | "admissionStatus"
+  | "previousVisaRefusal"
+  | "previousVisaRefusalCountry"
+  | "preferredHousingCity",
   string
 > = {
+  firstName: "Prénom",
+  lastName: "Nom",
   fullName: "Nom complet",
+  birthDate: "Date de naissance",
+  birthCountry: "Pays de naissance",
   dateOfBirth: "Date de naissance",
   placeOfBirth: "Lieu de naissance",
   nationality: "Nationalité",
   countryOfResidence: "Pays de résidence",
   destinationCountry: "Pays de destination",
+  destinationCity: "Ville de destination",
   targetSchoolName: "École / établissement visé",
-  intendedArrivalDate: "Date prévue d’arrivée",
+  intendedProgram: "Programme / formation",
+  intendedAcademicYear: "Rentrée prévue",
+  intendedArrivalDate: "Date prévue d'arrivée",
   expectedStayDuration: "Durée estimée du séjour",
   selectedService: "Service choisi",
-  preferredHousingCity: "Ville souhaitée pour l’hébergement",
+  requestedAviAmount: "Montant AVI estimé",
+  housingNeed: "Besoin logement",
+  needsFinancing: "Besoin financement",
+  admissionStatus: "Statut d'admission",
+  previousVisaRefusal: "Historique refus visa",
+  previousVisaRefusalCountry: "Pays du refus visa",
+  preferredHousingCity: "Ville souhaitée pour l'hébergement",
 };
