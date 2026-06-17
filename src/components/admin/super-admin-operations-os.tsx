@@ -52,6 +52,21 @@ type OperationsData = {
   events: AdminCaseEvent[];
 };
 
+type CertificateGenerationResult = {
+  generated: boolean;
+  certificateId: string;
+  certificateNumber: string | null;
+  verificationUrl: string | null;
+  reason?:
+    | "certificate_already_exists"
+    | "missing_profile_data"
+    | "payment_not_confirmed"
+    | "housing_address_unavailable";
+  message?: string;
+  missingProfileFields?: string[];
+  missingFieldLabels?: string[];
+};
+
 type ClientAction =
   | "request-document"
   | "add-note"
@@ -149,6 +164,40 @@ function productLabel(product: string | null | undefined) {
     MOBILITY_PACKAGE: "Pack mobilité",
   };
   return product ? labels[product] ?? product : "-";
+}
+
+function certificateGenerationMessage(result: CertificateGenerationResult) {
+  if (result.message?.trim()) {
+    return result.message.trim();
+  }
+
+  if (result.reason === "certificate_already_exists") {
+    return "Attestation deja disponible pour ce dossier.";
+  }
+
+  if (result.reason === "payment_not_confirmed") {
+    return "Generation bloquee : le paiement du dossier n'est pas confirme.";
+  }
+
+  if (result.reason === "housing_address_unavailable") {
+    return "Generation bloquee : aucune adresse d'hebergement disponible pour ce dossier.";
+  }
+
+  if (result.reason === "missing_profile_data") {
+    const labels = result.missingFieldLabels?.length
+      ? result.missingFieldLabels
+      : result.missingProfileFields;
+
+    return labels?.length
+      ? `Generation bloquee : profil incomplet (${labels.join(", ")}).`
+      : "Generation bloquee : profil incomplet.";
+  }
+
+  return "Generation attestation impossible : condition metier non satisfaite.";
+}
+
+function normalizeActionNotice(success: string) {
+  return success.includes("Attestation") ? "Attestation generee." : success;
 }
 
 function EmptyState({ title, text }: { title: string; text: string }) {
@@ -290,7 +339,7 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
 
   async function refreshAfterAction(success: string) {
     setAction(null);
-    setNotice(success);
+    setNotice(normalizeActionNotice(success));
     await load();
     if (selectedUid) await loadClient(selectedUid);
   }
@@ -336,6 +385,45 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
       await refreshAfterAction("Dossier marqué en revue.");
     } catch (statusError) {
       setError(statusError instanceof Error ? statusError.message : "Mise en revue impossible.");
+    } finally {
+      setIsBusy(false);
+    }
+  }
+
+  async function generateCertificate(clientCase: ClientCase | null) {
+    if (!clientCase) {
+      setError("CrÃ©ez d'abord un dossier opÃ©rationnel pour ce client.");
+      return;
+    }
+    setIsBusy(true);
+    setError(null);
+    try {
+      const result = await writeApi<CertificateGenerationResult>(
+        `/api/admin/cases/${clientCase.id}/certificates`,
+        {
+        certificateType: "accommodation_certificate",
+        },
+      );
+      if (!result.generated) {
+        const message = certificateGenerationMessage(result);
+        await load();
+        if (selectedUid) await loadClient(selectedUid);
+
+        if (result.reason === "certificate_already_exists") {
+          setNotice(message);
+        } else {
+          setNotice(null);
+          setError(message);
+        }
+        return;
+      }
+      await refreshAfterAction("Attestation gÃ©nÃ©rÃ©e.");
+    } catch (certificateError) {
+      setError(
+        certificateError instanceof Error
+          ? certificateError.message
+          : "GÃ©nÃ©ration attestation impossible.",
+      );
     } finally {
       setIsBusy(false);
     }
@@ -520,6 +608,7 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
                   communications={selectedCommunications}
                   onCreateCase={reconcileCases}
                   onMarkUnderReview={markUnderReview}
+                  onGenerateCertificate={generateCertificate}
                   onOpenAction={openAction}
                   onOpenFinance={openFinance}
                   onClose={() => {
@@ -542,7 +631,12 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
                 initialSection={financeSection}
               />
             ) : null}
-            {!isLoading && active === "certificates" ? <OperationsPlaceholder title="Attestations / AVI" text="Vue de contrôle des attestations, AVI et certificats rattachés aux dossiers clients." empty="Aucune attestation ou AVI prête" /> : null}
+            {!isLoading && active === "certificates" ? (
+              <CertificatesPanel
+                documents={data.documents}
+                clientByUid={clientByUid}
+              />
+            ) : null}
             {!isLoading && active === "notifications" ? <NotificationsPanel notifications={data.notifications} /> : null}
             {!isLoading && active === "audit" ? <AuditPanel events={data.events} /> : null}
             {!isLoading && active === "settings" ? (
@@ -671,6 +765,7 @@ function Client360Drawer({
   communications,
   onCreateCase,
   onMarkUnderReview,
+  onGenerateCertificate,
   onOpenAction,
   onOpenFinance,
   onClose,
@@ -684,6 +779,7 @@ function Client360Drawer({
   communications: CommunicationLog[];
   onCreateCase: () => void;
   onMarkUnderReview: (clientCase: ClientCase | null) => void;
+  onGenerateCertificate: (clientCase: ClientCase | null) => void;
   onOpenAction: (action: ClientAction, clientCase: ClientCase | null) => void;
   onOpenFinance: (
     clientUid: string,
@@ -785,6 +881,7 @@ function Client360Drawer({
         <Button type="button" variant="outline" size="sm" onClick={() => onOpenAction("request-document", currentCase)}>Demander document</Button>
         <Button type="button" variant="outline" size="sm" onClick={() => onMarkUnderReview(currentCase)}>Marquer en revue</Button>
         <Button type="button" variant="outline" size="sm" onClick={() => onOpenAction("add-note", currentCase)}>Ajouter note</Button>
+        <Button type="button" variant="outline" size="sm" onClick={() => onGenerateCertificate(currentCase)}>GÃ©nÃ©rer attestation</Button>
         <Button type="button" variant="outline" size="sm" onClick={() => onOpenFinance(profile.uid, "simulateur", currentCase)}>Lier simulation</Button>
         <Button type="button" variant="outline" size="sm" onClick={() => onOpenFinance(profile.uid, "devis", currentCase)}>Générer devis</Button>
         <Button type="button" variant="outline" size="sm" onClick={() => onOpenFinance(profile.uid, "rapports", currentCase)}>Rapport préfinancement</Button>
@@ -874,6 +971,68 @@ function CasesPanel({ cases, clientByUid }: { cases: ClientCase[]; clientByUid: 
         </div>
       ) : (
         <EmptyState title="Aucun dossier créé" text="Les dossiers clients apparaîtront ici après synchronisation et réconciliation." />
+      )}
+    </section>
+  );
+}
+
+function CertificatesPanel({
+  documents,
+  clientByUid,
+}: {
+  documents: ClientDocument[];
+  clientByUid: Map<string, AdminClientProfile>;
+}) {
+  const certificates = documents.filter((document) =>
+    document.documentType.includes("certificate"),
+  );
+
+  return (
+    <section className="space-y-4" aria-labelledby="certificates-title">
+      <div>
+        <h2 id="certificates-title" className="text-xl font-semibold">
+          Attestations / AVI
+        </h2>
+        <p className="mt-1 text-sm text-slate-600">
+          Attestations reellement generees et rattachees aux dossiers clients.
+        </p>
+      </div>
+      {certificates.length ? (
+        <div className="overflow-x-auto rounded-lg border bg-white shadow-sm">
+          <table className="w-full min-w-[860px] text-left text-sm">
+            <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+              <tr>
+                {["Client", "Email", "Dossier", "Type", "Fichier", "Statut", "Generee le"].map((header) => (
+                  <th key={header} className="px-4 py-3">{header}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {certificates.map((certificate) => {
+                const client = clientByUid.get(certificate.uid);
+
+                return (
+                  <tr key={certificate.id} className="border-t">
+                    <td className="px-4 py-3 font-semibold">
+                      {client ? displayClientName(client) : certificate.clientName ?? "Client a identifier"}
+                    </td>
+                    <td className="px-4 py-3">{client?.email ?? certificate.clientEmail ?? "-"}</td>
+                    <td className="px-4 py-3 font-mono text-xs">{certificate.caseId ?? "-"}</td>
+                    <td className="px-4 py-3">{certificate.documentType}</td>
+                    <td className="px-4 py-3">{certificate.fileName}</td>
+                    <td className="px-4 py-3">{statusLabel(certificate.verificationStatus)}</td>
+                    <td className="px-4 py-3">{formatDate(certificate.uploadedAt)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <EmptyState
+          title="Aucune attestation generee"
+          text="Les attestations apparaissent ici uniquement apres une generation reussie."
+        />
       )}
     </section>
   );

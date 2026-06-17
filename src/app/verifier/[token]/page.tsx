@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { CheckCircle2, ShieldAlert } from "lucide-react";
-import { Timestamp } from "firebase-admin/firestore";
-import { getCertificateVerificationByToken } from "@/lib/certificates/certificate.service";
+import { getPublicCertificateVerificationByToken } from "@/lib/certificates/certificate-workflow.service";
 
 type VerificationPageProps = {
   params: Promise<{
@@ -20,11 +19,16 @@ export const metadata: Metadata = {
   },
 };
 
-function formatDate(value: unknown) {
-  if (value instanceof Timestamp) {
+function formatDate(value: string | null) {
+  if (value) {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return "Non disponible";
+    }
+
     return new Intl.DateTimeFormat("fr-FR", {
       dateStyle: "long",
-    }).format(value.toDate());
+    }).format(date);
   }
 
   return "Non disponible";
@@ -35,12 +39,16 @@ function getString(value: unknown) {
 }
 
 function getCertificateStatusLabel(status: unknown) {
-  if (status === "generated") {
+  if (status === "ACTIVE") {
     return "Document actif";
   }
 
-  if (status === "revoked") {
+  if (status === "REVOKED") {
     return "Document révoqué";
+  }
+
+  if (status === "EXPIRED") {
+    return "Document expire";
   }
 
   return "Document invalide";
@@ -48,11 +56,9 @@ function getCertificateStatusLabel(status: unknown) {
 
 export default async function VerificationPage({ params }: VerificationPageProps) {
   const { token } = await params;
-  const certificate = await getCertificateVerificationByToken(token);
-  const data = certificate?.data;
-  const activeData = data?.status === "generated" ? data : null;
-  const isAuthentic = Boolean(activeData);
-  const statusLabel = getCertificateStatusLabel(data?.status);
+  const certificate = await getPublicCertificateVerificationByToken(token);
+  const isAuthentic = certificate?.valid === true;
+  const statusLabel = getCertificateStatusLabel(certificate?.status);
 
   return (
     <main className="container flex min-h-[70vh] items-center justify-center py-12">
@@ -93,7 +99,7 @@ export default async function VerificationPage({ params }: VerificationPageProps
                 Étudiant
               </dt>
               <dd className="mt-2 font-semibold">
-                {getString(activeData?.studentFullName)}
+                {getString(certificate?.studentFullName)}
               </dd>
             </div>
             <div className="rounded-md border bg-muted/25 p-4">
@@ -109,7 +115,7 @@ export default async function VerificationPage({ params }: VerificationPageProps
                 Numéro
               </dt>
               <dd className="mt-2 break-all font-semibold">
-                {getString(activeData?.certificateNumber)}
+                {getString(certificate?.reference)}
               </dd>
             </div>
             <div className="rounded-md border bg-muted/25 p-4">
@@ -117,7 +123,7 @@ export default async function VerificationPage({ params }: VerificationPageProps
                 Date d'émission
               </dt>
               <dd className="mt-2 font-semibold">
-                {formatDate(activeData?.createdAt)}
+                {formatDate(certificate?.issueDate ?? null)}
               </dd>
             </div>
             <div className="rounded-md border bg-muted/25 p-4">

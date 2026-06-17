@@ -37,7 +37,7 @@ type SendEmailParams = {
   context: string;
 };
 
-type SendEmailResult = {
+export type SendEmailResult = {
   sent: boolean;
   messageId: string | null;
   status: "SENT" | "EMAIL_NOT_CONFIGURED" | "RECIPIENT_MISSING" | "SEND_FAILED";
@@ -196,6 +196,16 @@ export async function sendCertificateAvailableEmail(
   certificate: CertificateAvailableEmailInput & { recipientEmail?: string | null },
 ): Promise<boolean> {
   return sendEmailSafely({
+    to: certificate.recipientEmail ?? null,
+    template: renderCertificateAvailableEmail(certificate),
+    context: "certificate available",
+  });
+}
+
+export async function sendCertificateAvailableEmailWithResult(
+  certificate: CertificateAvailableEmailInput & { recipientEmail?: string | null },
+): Promise<SendEmailResult> {
+  return sendEmailWithResult({
     to: certificate.recipientEmail ?? null,
     template: renderCertificateAvailableEmail(certificate),
     context: "certificate available",

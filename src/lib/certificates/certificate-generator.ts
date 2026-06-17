@@ -18,13 +18,6 @@ const logoAssetCandidates = [
   "src/assets/avi-certify-logo.png",
 ];
 
-const signatureAssetCandidates = [
-  "public/assets/president-signature.png",
-  "public/president-signature.png",
-  "public/signature.png",
-  "src/assets/president-signature.png",
-];
-
 function sanitizeWinAnsi(value: string) {
   return value
     .replace(/[’‘]/g, "'")
@@ -139,10 +132,11 @@ export async function generateHousingCertificatePdf(
   const page = pdf.addPage([pageWidth, pageHeight]);
   const regular = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
-  const [logoImage, signatureImage] = await Promise.all([
-    embedImage(pdf, logoAssetCandidates, "AVI CERTIFY logo"),
-    embedImage(pdf, signatureAssetCandidates, "president signature"),
-  ]);
+  const logoImage = await embedImage(
+    pdf,
+    logoAssetCandidates,
+    "AVI CERTIFY logo",
+  );
   const qrDataUrl = await QRCode.toDataURL(data.verificationUrl, {
     errorCorrectionLevel: "M",
     margin: 1,
@@ -261,26 +255,13 @@ export async function generateHousingCertificatePdf(
   });
 
   const signatureX = pageWidth - margin - 178;
-  if (signatureImage) {
-    page.drawImage(
-      signatureImage,
-      fitImage({
-        image: signatureImage,
-        maxWidth: 160,
-        maxHeight: 72,
-        x: signatureX,
-        y: 66,
-      }),
-    );
-  } else {
-    drawText(page, "Signature du président", {
-      x: signatureX,
-      y: 90,
-      size: 13,
-      font: bold,
-      color: rgb(0.12, 0.2, 0.34),
-    });
-  }
+  drawText(page, "Signature autorisee AVI CERTIFY", {
+    x: signatureX,
+    y: 90,
+    size: 13,
+    font: bold,
+    color: rgb(0.12, 0.2, 0.34),
+  });
 
   drawText(page, "BEFOLO NKOA Gabriel, Emmanuel", {
     x: signatureX,

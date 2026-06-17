@@ -62,6 +62,13 @@ function getOpenButtonLabel(document: UserDocument) {
   return document.status === "generated" ? "Télécharger" : "Ouvrir le document";
 }
 
+function isGeneratedCertificate(document: UserDocument) {
+  return (
+    document.documentType === "accommodation_certificate" &&
+    document.status === "generated"
+  );
+}
+
 export function DocumentsList({ refreshKey = 0 }: DocumentsListProps) {
   const { user } = useAuth();
   const [documents, setDocuments] = useState<UserDocument[]>([]);
@@ -98,6 +105,32 @@ export function DocumentsList({ refreshKey = 0 }: DocumentsListProps) {
     setErrorMessage(null);
 
     try {
+      if (isGeneratedCertificate(document)) {
+        const token = await user?.getIdToken();
+        if (!token) {
+          throw new Error("Session utilisateur requise.");
+        }
+
+        const response = await fetch(
+          `/api/client/certificates/${encodeURIComponent(document.id)}/download`,
+          {
+            cache: "no-store",
+            headers: {
+              authorization: `Bearer ${token}`,
+            },
+          },
+        );
+        if (!response.ok) {
+          throw new Error("Telechargement impossible.");
+        }
+
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        window.open(objectUrl, "_blank", "noopener,noreferrer");
+        window.setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+        return;
+      }
+
       const url = await getUserDocumentDownloadUrl(document.storagePath);
       window.open(url, "_blank", "noopener,noreferrer");
     } catch {

@@ -76,6 +76,24 @@ const documentRow: ClientDocument = {
   verifiedBy: null,
 };
 
+const certificateRow: ClientDocument = {
+  id: "case-1-housing-certificate",
+  uid: "client-1",
+  caseId: "case-1",
+  clientEmail: "student@example.com",
+  clientName: "Awa Student",
+  documentType: "accommodation_certificate",
+  fileName: "attestation-hebergement-avi-certify.pdf",
+  storagePath: "users/client-1/documents/case-1-housing-certificate-attestation.pdf",
+  downloadUrl: null,
+  uploadStatus: "generated",
+  verificationStatus: "APPROVED",
+  rejectionReason: null,
+  uploadedAt: "2026-06-16T10:00:00.000Z",
+  verifiedAt: "2026-06-16T10:00:00.000Z",
+  verifiedBy: "admin-1",
+};
+
 const notification: AdminNotification = {
   id: "note-1",
   type: "new_user_registered",
@@ -126,7 +144,15 @@ function jsonResponse(body: unknown) {
   } as Response;
 }
 
-function mockOperationsFetch() {
+function mockOperationsFetch({
+  certificateResponse,
+  documents = [documentRow],
+  clientCertificates = [],
+}: {
+  certificateResponse?: Record<string, unknown>;
+  documents?: ClientDocument[];
+  clientCertificates?: Array<Record<string, unknown>>;
+} = {}) {
   const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
     const url = String(input);
     if (url.includes("/api/admin/operations/sync-auth-users")) {
@@ -137,10 +163,10 @@ function mockOperationsFetch() {
         client: {
           profile: client,
           cases: [clientCase],
-          documents: [documentRow],
+          documents,
           payments: [],
           financialFiles: [financialFile],
-          certificates: [],
+          certificates: clientCertificates,
           communications: [
             {
               id: "comm-1",
@@ -191,6 +217,18 @@ function mockOperationsFetch() {
         },
       });
     }
+    if (url.includes("/certificates")) {
+      return jsonResponse(
+        certificateResponse ?? {
+          generated: true,
+          certificateId: "case-1-housing-certificate",
+          certificateNumber: "AVI-HBG-2026-CASE1",
+          verificationUrl: "https://www.avicertify.fr/verifier/token-1",
+          message: "Attestation generee.",
+          email: { sent: true, status: "SENT", messageId: "email-1" },
+        },
+      );
+    }
     if (url.includes("/status")) {
       return jsonResponse({ case: { ...clientCase, status: "UNDER_REVIEW" } });
     }
@@ -204,7 +242,7 @@ function mockOperationsFetch() {
       return jsonResponse({ cases: [clientCase] });
     }
     if (url.includes("/api/admin/documents")) {
-      return jsonResponse({ documents: [documentRow] });
+      return jsonResponse({ documents });
     }
     if (url.includes("/api/admin/notifications")) {
       return jsonResponse({ notifications: [notification] });
@@ -221,6 +259,22 @@ function mockOperationsFetch() {
 
   vi.stubGlobal("fetch", fetchMock);
   return fetchMock;
+}
+
+function getGenerateCertificateButton() {
+  const button = screen
+    .getAllByRole("button")
+    .find((item) => {
+      const text = item.textContent ?? "";
+
+      return /attestation/i.test(text) && !/AVI/i.test(text);
+    });
+
+  if (!button) {
+    throw new Error("Generate certificate button not found.");
+  }
+
+  return button;
 }
 
 describe("SuperAdminOperationsOS", () => {
@@ -383,6 +437,89 @@ describe("SuperAdminOperationsOS", () => {
     expect(await screen.findByTestId("fintech-command-center")).toHaveTextContent(
       "Finance client client-1 section devis",
     );
+  });
+
+  it("generates a certificate from Client 360 without opening finance", async () => {
+    const fetchMock = mockOperationsFetch();
+    const user = userEvent.setup();
+
+    render(<SuperAdminOperationsOS adminRole="super_admin" adminEmail="admin@avicertify.fr" />);
+
+    await screen.findByText("AVI CERTIFY Super Admin Operations OS");
+    await user.click(screen.getAllByRole("button", { name: "Clients" })[0]);
+    await user.click(await screen.findByRole("button", { name: "Ouvrir 360" }));
+    await user.click(screen.getByRole("button", { name: "GÃ©nÃ©rer attestation" }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/admin/cases/case-1/certificates",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            certificateType: "accommodation_certificate",
+          }),
+        }),
+      );
+    });
+    expect(screen.queryByTestId("fintech-command-center")).not.toBeInTheDocument();
+  });
+
+  it("shows a business error when certificate generation is blocked", async () => {
+    const fetchMock = mockOperationsFetch({
+      certificateResponse: {
+        generated: false,
+        reason: "missing_profile_data",
+        certificateId: "case-1-housing-certificate",
+        certificateNumber: null,
+        verificationUrl: null,
+        message: "Generation bloquee : profil incomplet (date de naissance).",
+        missingProfileFields: ["dateOfBirth"],
+        missingFieldLabels: ["date de naissance"],
+        email: { sent: false, status: "RECIPIENT_MISSING", messageId: null },
+      },
+    });
+    const user = userEvent.setup();
+
+    render(<SuperAdminOperationsOS adminRole="super_admin" adminEmail="admin@avicertify.fr" />);
+
+    await screen.findByText("AVI CERTIFY Super Admin Operations OS");
+    await user.click(screen.getAllByRole("button", { name: "Clients" })[0]);
+    await user.click(await screen.findByRole("button", { name: "Ouvrir 360" }));
+    await user.click(getGenerateCertificateButton());
+
+    expect(
+      await screen.findByText(
+        "Generation bloquee : profil incomplet (date de naissance).",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Attestation generee.")).not.toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/admin/cases/case-1/certificates",
+      expect.objectContaining({ method: "POST" }),
+    );
+  });
+
+  it("shows generated certificates in the Attestations / AVI tab", async () => {
+    mockOperationsFetch({
+      documents: [documentRow, certificateRow],
+      clientCertificates: [
+        {
+          id: certificateRow.id,
+          documentType: certificateRow.documentType,
+          status: certificateRow.verificationStatus,
+        },
+      ],
+    });
+    const user = userEvent.setup();
+
+    render(<SuperAdminOperationsOS adminRole="super_admin" adminEmail="admin@avicertify.fr" />);
+
+    await screen.findByText("AVI CERTIFY Super Admin Operations OS");
+    await user.click(screen.getAllByRole("button", { name: "Attestations / AVI" })[0]);
+
+    expect(await screen.findByText("attestation-hebergement-avi-certify.pdf")).toBeInTheDocument();
+    expect(screen.getByText("Awa Student")).toBeInTheDocument();
+    expect(screen.getByText("APPROVED")).toBeInTheDocument();
   });
 
   it("resolves document identity and approve/reject actions without primary raw UID display", async () => {
