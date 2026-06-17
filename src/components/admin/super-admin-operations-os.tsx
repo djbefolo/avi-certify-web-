@@ -392,7 +392,7 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
 
   async function generateCertificate(clientCase: ClientCase | null) {
     if (!clientCase) {
-      setError("CrÃ©ez d'abord un dossier opÃ©rationnel pour ce client.");
+      setError("Créez d'abord un dossier opérationnel pour ce client.");
       return;
     }
     setIsBusy(true);
@@ -417,12 +417,12 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
         }
         return;
       }
-      await refreshAfterAction("Attestation gÃ©nÃ©rÃ©e.");
+      await refreshAfterAction("Attestation générée.");
     } catch (certificateError) {
       setError(
         certificateError instanceof Error
           ? certificateError.message
-          : "GÃ©nÃ©ration attestation impossible.",
+          : "Génération attestation impossible.",
       );
     } finally {
       setIsBusy(false);
@@ -739,7 +739,7 @@ function ClientsTable({
                 <td className="px-4 py-3">{statusLabel(currentCase?.paymentStatus)}</td>
                 <td className="px-4 py-3">{statusLabel(currentCase?.financeStatus)}</td>
                 <td className="px-4 py-3">{statusLabel(currentCase?.certificateStatus)}</td>
-                <td className="px-4 py-3">{currentCase?.nextAction ?? "Qualifier la demande client"}</td>
+                <td className="px-4 py-3">{currentCase ? currentCase.nextAction ?? "Qualifier la demande client" : "Aucun dossier opérationnel"}</td>
                 <td className="px-4 py-3">{formatDate(currentCase?.updatedAt ?? client.lastLoginAt ?? client.updatedAt)}</td>
                 <td className="px-4 py-3">
                   <Button size="sm" variant="outline" onClick={() => onSelect(client.uid)}>
@@ -832,7 +832,7 @@ function Client360Drawer({
       </div>
 
       <div className="mt-5 grid gap-3 md:grid-cols-4">
-        <StatusBadge label="Action suivante" value={currentCase?.nextAction ?? "Qualifier la demande client"} />
+        <StatusBadge label="Action suivante" value={currentCase ? currentCase.nextAction ?? "Qualifier la demande client" : "Aucun dossier opérationnel"} />
         <StatusBadge label="Documents" value={statusLabel(currentCase?.documentStatus)} />
         <StatusBadge label="Paiement" value={statusLabel(currentCase?.paymentStatus)} />
         <StatusBadge label="Finance" value={statusLabel(currentCase?.financeStatus)} />
@@ -881,7 +881,7 @@ function Client360Drawer({
         <Button type="button" variant="outline" size="sm" onClick={() => onOpenAction("request-document", currentCase)}>Demander document</Button>
         <Button type="button" variant="outline" size="sm" onClick={() => onMarkUnderReview(currentCase)}>Marquer en revue</Button>
         <Button type="button" variant="outline" size="sm" onClick={() => onOpenAction("add-note", currentCase)}>Ajouter note</Button>
-        <Button type="button" variant="outline" size="sm" onClick={() => onGenerateCertificate(currentCase)}>GÃ©nÃ©rer attestation</Button>
+        <Button type="button" variant="outline" size="sm" onClick={() => onGenerateCertificate(currentCase)}>Générer attestation</Button>
         <Button type="button" variant="outline" size="sm" onClick={() => onOpenFinance(profile.uid, "simulateur", currentCase)}>Lier simulation</Button>
         <Button type="button" variant="outline" size="sm" onClick={() => onOpenFinance(profile.uid, "devis", currentCase)}>Générer devis</Button>
         <Button type="button" variant="outline" size="sm" onClick={() => onOpenFinance(profile.uid, "rapports", currentCase)}>Rapport préfinancement</Button>

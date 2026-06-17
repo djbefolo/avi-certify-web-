@@ -27,6 +27,7 @@ type StoreState = {
   cases: ClientCase[];
   documents: ClientDocument[];
   financialFiles: ClientFinancialFile[];
+  payments: Array<Record<string, unknown>>;
   notifications: AdminNotification[];
   events: AdminCaseEvent[];
   communications: CommunicationLog[];
@@ -58,10 +59,13 @@ const state =
     cases: [],
     documents: [],
     financialFiles: [],
+    payments: [],
     notifications: [],
     events: [],
     communications: [],
   });
+
+state.payments ??= [];
 
 let fallbackWarningLogged = false;
 
@@ -307,6 +311,93 @@ function statusFromFinance(financeStatus: AdminCaseFinanceStatus): AdminCaseStat
   return "NEW";
 }
 
+function hasText(value: string | null | undefined) {
+  return Boolean(value?.trim());
+}
+
+function hasOperationalProfileSignal(client: AdminClientProfile) {
+  if (client.source === "admin_created") return true;
+  if (client.source !== "user_profile") return false;
+
+  return (
+    hasText(client.fullName) &&
+    (hasText(client.phone) ||
+      hasText(client.countryOfOrigin) ||
+      hasText(client.destinationCountry))
+  );
+}
+
+function paymentBelongsToClient(
+  payment: Record<string, unknown>,
+  client: AdminClientProfile,
+) {
+  const ownerId = payment.ownerId ?? payment.uid ?? payment.userId;
+
+  return ownerId === client.uid;
+}
+
+function mapPaymentSignalStatus(
+  payments: Array<Record<string, unknown>>,
+): AdminCasePaymentStatus | null {
+  const statuses = payments.map((payment) =>
+    typeof payment.status === "string" ? payment.status.toLowerCase() : "",
+  );
+
+  if (statuses.some((status) => status === "paid" || status === "succeeded")) {
+    return "CONFIRMED";
+  }
+
+  if (statuses.some((status) => status === "failed")) {
+    return "FAILED";
+  }
+
+  if (statuses.some((status) => status === "refunded")) {
+    return "REFUNDED";
+  }
+
+  if (
+    statuses.some((status) =>
+      ["pending", "created", "open", "processing"].includes(status),
+    )
+  ) {
+    return "PENDING";
+  }
+
+  return null;
+}
+
+function hasCaseMaterializationSignal({
+  client,
+  existingCase,
+  documents,
+  financialFiles,
+  payments,
+}: {
+  client: AdminClientProfile;
+  existingCase: ClientCase | null;
+  documents: ClientDocument[];
+  financialFiles: ClientFinancialFile[];
+  payments: Array<Record<string, unknown>>;
+}) {
+  if (existingCase) return true;
+  if (hasText(client.currentCaseId)) return true;
+  if (hasOperationalProfileSignal(client)) return true;
+  if (documents.some((document) => document.uid === client.uid)) return true;
+  if (financialFiles.some((file) => file.uid === client.uid)) return true;
+  if (payments.some((payment) => paymentBelongsToClient(payment, client))) {
+    return true;
+  }
+
+  return false;
+}
+
+function defaultCaseSourceFor(client: AdminClientProfile): ClientCase["source"] {
+  if (client.source === "admin_created") return "admin_created";
+  if (client.source === "user_profile") return "client_request";
+
+  return "reconciliation";
+}
+
 export class AdminOperationsStore {
   async upsertDefaultCase(client: AdminClientProfile, actor?: AdminActor) {
     const existingCases = await this.listCases();
@@ -314,6 +405,7 @@ export class AdminOperationsStore {
     if (existingCase) return { case: existingCase, created: false };
 
     const timestamp = now();
+    const caseSource = defaultCaseSourceFor(client);
     const clientCase: ClientCase = {
       id: id("case"),
       uid: client.uid,
@@ -336,8 +428,8 @@ export class AdminOperationsStore {
       certificateStatus: "NOT_STARTED",
       nextAction: "Qualifier la demande client",
       assignedAdminId: client.assignedAdminId,
-      notes: "Dossier opérationnel créé depuis la synchronisation Firebase Auth.",
-      source: "firebase_auth_sync",
+      notes: "Dossier opérationnel créé depuis la réconciliation admin.",
+      source: caseSource,
       createdAt: timestamp,
       updatedAt: timestamp,
     };
@@ -351,7 +443,7 @@ export class AdminOperationsStore {
       actorRole: actor?.role ?? "system",
       eventType: "case_reconciled",
       eventLabel: "Dossier opérationnel créé",
-      eventPayload: { source: "firebase_auth_sync", caseNumber: clientCase.caseNumber },
+      eventPayload: { source: caseSource, caseNumber: clientCase.caseNumber },
     });
 
     return { case: clientCase, created: true };
@@ -819,6 +911,10 @@ export class AdminOperationsStore {
     return getAllDocs<ClientFinancialFile>("client_financial_files", state.financialFiles);
   }
 
+  async listPayments() {
+    return getAllDocs<Record<string, unknown>>("payments", state.payments);
+  }
+
   async listNotifications() {
     return sortNewest(await getAllDocs<AdminNotification>("admin_notifications", state.notifications));
   }
@@ -893,7 +989,6 @@ export class AdminOperationsStore {
         "local-auth-user",
       );
       await upsertDoc("admin_client_profiles", demoClient.uid, demoClient, state.clients, (item) => item.uid);
-      await this.upsertDefaultCase(demoClient, actor);
       return { synced: 1, created: 1, updated: 0 };
     }
 
@@ -922,7 +1017,6 @@ export class AdminOperationsStore {
         };
 
         await upsertDoc("admin_client_profiles", merged.uid, merged, state.clients, (item) => item.uid);
-        await this.upsertDefaultCase(merged, actor);
 
         if (existing) {
           updated += 1;
@@ -966,6 +1060,8 @@ export class AdminOperationsStore {
     const clients = await this.listClients();
     const documents = await this.listDocuments();
     const financialFiles = await this.listFinancialFiles();
+    const payments = await this.listPayments();
+    const existingCases = await this.listCases();
     let casesCreated = 0;
     let casesUpdated = 0;
     let documentsLinked = 0;
@@ -973,6 +1069,21 @@ export class AdminOperationsStore {
     let notificationsCreated = 0;
 
     for (const client of clients) {
+      const existingCase = existingCases.find((clientCase) => clientCase.uid === client.uid) ?? null;
+      const clientPayments = payments.filter((payment) => paymentBelongsToClient(payment, client));
+
+      if (
+        !hasCaseMaterializationSignal({
+          client,
+          existingCase,
+          documents,
+          financialFiles,
+          payments: clientPayments,
+        })
+      ) {
+        continue;
+      }
+
       const result = await this.upsertDefaultCase(client, actor);
       const clientCase = result.case;
       if (result.created) {
@@ -983,7 +1094,7 @@ export class AdminOperationsStore {
       const caseDocuments = documents.filter((document) => document.uid === client.uid);
       const caseFinancialFiles = financialFiles.filter((file) => file.uid === client.uid);
       const documentStatus = computeDocumentStatus(caseDocuments);
-      const paymentStatus = computePaymentStatus(clientCase);
+      const paymentStatus = mapPaymentSignalStatus(clientPayments) ?? computePaymentStatus(clientCase);
       const financeStatus = computeFinanceStatus(caseFinancialFiles);
       const certificateStatus = computeCertificateStatus(clientCase, caseDocuments);
       const updatedCase: ClientCase = {
