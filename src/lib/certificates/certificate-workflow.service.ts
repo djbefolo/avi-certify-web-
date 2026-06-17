@@ -49,8 +49,12 @@ export type GenerateCaseCertificateResult = {
   verificationUrl: string | null;
   reason?:
     | "certificate_already_exists"
-    | "missing_profile_data";
+    | "missing_profile_data"
+    | "payment_not_confirmed"
+    | "housing_address_unavailable";
+  message: string;
   missingProfileFields?: string[];
+  missingFieldLabels?: string[];
   email: SendEmailResult;
 };
 
@@ -150,6 +154,57 @@ function isProfileNameUsable(fullName: string | null) {
       fullName !== FALLBACK_STUDENT_NAME &&
       !fullName.includes("@") &&
       fullName.replace(/\s+/g, " ").trim().length >= 3,
+  );
+}
+
+const missingProfileFieldLabels: Record<string, string> = {
+  fullName: "nom complet",
+  dateOfBirth: "date de naissance",
+  placeOfBirth: "lieu de naissance",
+  nationality: "nationalite",
+  intendedArrivalDate: "date d'arrivee",
+  expectedStayDuration: "duree de sejour",
+  preferredHousingCity: "ville ou adresse d'hebergement",
+};
+
+function getMissingFieldLabels(fields: string[]) {
+  return fields.map((field) => missingProfileFieldLabels[field] ?? field);
+}
+
+function buildBlockedMessage({
+  reason,
+  missingProfileFields = [],
+}: {
+  reason: NonNullable<GenerateCaseCertificateResult["reason"]>;
+  missingProfileFields?: string[];
+}) {
+  if (reason === "payment_not_confirmed") {
+    return "Generation bloquee : le paiement du dossier n'est pas confirme.";
+  }
+
+  if (reason === "housing_address_unavailable") {
+    return "Generation bloquee : aucune adresse d'hebergement disponible pour ce dossier.";
+  }
+
+  if (reason === "missing_profile_data") {
+    const labels = getMissingFieldLabels(missingProfileFields);
+
+    return labels.length
+      ? `Generation bloquee : profil incomplet (${labels.join(", ")}).`
+      : "Generation bloquee : profil incomplet.";
+  }
+
+  return "Attestation deja disponible pour ce dossier.";
+}
+
+function isPaymentConfirmed(clientCase: ClientCase) {
+  return (
+    clientCase.paymentStatus === "CONFIRMED" ||
+    clientCase.status === "PAYMENT_CONFIRMED" ||
+    clientCase.status === "CERTIFICATE_GENERATED" ||
+    clientCase.certificateStatus === "GENERATED" ||
+    clientCase.certificateStatus === "SENT" ||
+    clientCase.certificateStatus === "VERIFIED"
   );
 }
 
@@ -363,21 +418,29 @@ async function writeBlockedAudit({
   clientCase,
   actor,
   certificateId,
+  reason,
+  message,
   missingProfileFields,
 }: {
   caseId: string;
   clientCase: ClientCase;
   actor: AdminActor;
   certificateId: string;
-  missingProfileFields: string[];
+  reason: Exclude<
+    NonNullable<GenerateCaseCertificateResult["reason"]>,
+    "certificate_already_exists"
+  >;
+  message: string;
+  missingProfileFields?: string[];
 }) {
   const store = getAdminOperationsStore();
+  const missingFields = missingProfileFields ?? [];
 
   await store.createNotification({
     type: "admin_action_required",
     severity: "warning",
     title: "Attestation bloquee",
-    body: `${clientCase.caseNumber} : profil incomplet (${missingProfileFields.join(", ")}).`,
+    body: `${clientCase.caseNumber} : ${message}`,
     relatedUid: clientCase.uid,
     relatedCaseId: caseId,
   });
@@ -392,7 +455,10 @@ async function writeBlockedAudit({
     eventLabel: "Generation attestation bloquee",
     eventPayload: {
       certificateId,
-      missingProfileFields,
+      reason,
+      message,
+      missingProfileFields: missingFields,
+      missingFieldLabels: getMissingFieldLabels(missingFields),
     },
   });
 }
@@ -443,13 +509,15 @@ export async function generateHousingCertificateForCase({
       certificateId,
       certificateNumber: getStringField(existingCertificate.get("certificateNumber")),
       verificationUrl: getStringField(existingCertificate.get("verificationUrl")),
+      message: buildBlockedMessage({ reason: "certificate_already_exists" }),
       email,
     };
   }
 
-  const missingProfileFields = getMissingHousingCertificateFields(profile);
+  if (!isPaymentConfirmed(clientCase)) {
+    const reason = "payment_not_confirmed" as const;
+    const message = buildBlockedMessage({ reason });
 
-  if (missingProfileFields.length > 0) {
     await certificateRef.set(
       {
         ownerId,
@@ -457,10 +525,9 @@ export async function generateHousingCertificateForCase({
         caseId,
         certificateType: CERTIFICATE_TYPE,
         documentType: CERTIFICATE_DOCUMENT_TYPE,
-        status: "PENDING_PROFILE",
-        missingProfileFields,
-        generationBlockedReason:
-          "Certificate generation is blocked until required profile fields are complete.",
+        status: "DRAFT",
+        blockedReason: reason,
+        generationBlockedReason: message,
         createdAt: existingCertificate.exists
           ? existingCertificate.get("createdAt") ?? FieldValue.serverTimestamp()
           : FieldValue.serverTimestamp(),
@@ -473,25 +540,117 @@ export async function generateHousingCertificateForCase({
       clientCase,
       actor,
       certificateId,
+      reason,
+      message,
+    });
+
+    return {
+      generated: false,
+      reason,
+      certificateId,
+      certificateNumber: null,
+      verificationUrl: null,
+      message,
+      email: emptyEmailResult("RECIPIENT_MISSING"),
+    };
+  }
+
+  const missingProfileFields = getMissingHousingCertificateFields(profile);
+
+  if (missingProfileFields.length > 0) {
+    const reason = "missing_profile_data" as const;
+    const message = buildBlockedMessage({ reason, missingProfileFields });
+
+    await certificateRef.set(
+      {
+        ownerId,
+        uid: ownerId,
+        caseId,
+        certificateType: CERTIFICATE_TYPE,
+        documentType: CERTIFICATE_DOCUMENT_TYPE,
+        status: "PENDING_PROFILE",
+        blockedReason: reason,
+        missingProfileFields,
+        missingFieldLabels: getMissingFieldLabels(missingProfileFields),
+        generationBlockedReason: message,
+        createdAt: existingCertificate.exists
+          ? existingCertificate.get("createdAt") ?? FieldValue.serverTimestamp()
+          : FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+    await writeBlockedAudit({
+      caseId,
+      clientCase,
+      actor,
+      certificateId,
+      reason,
+      message,
       missingProfileFields,
     });
 
     return {
       generated: false,
-      reason: "missing_profile_data",
+      reason,
       certificateId,
       certificateNumber: null,
       verificationUrl: null,
+      message,
       missingProfileFields,
+      missingFieldLabels: getMissingFieldLabels(missingProfileFields),
       email: emptyEmailResult("RECIPIENT_MISSING"),
     };
   }
 
-  const housing = selectHousingAddress({
-    region: housingRegion,
-    city: profile.preferredHousingCity ?? profile.destinationCity,
-    seed: `${ownerId}:${caseId}`,
-  });
+  let housing: ReturnType<typeof selectHousingAddress>;
+
+  try {
+    housing = selectHousingAddress({
+      region: housingRegion,
+      city: profile.preferredHousingCity ?? profile.destinationCity,
+      seed: `${ownerId}:${caseId}`,
+    });
+  } catch {
+    const reason = "housing_address_unavailable" as const;
+    const message = buildBlockedMessage({ reason });
+
+    await certificateRef.set(
+      {
+        ownerId,
+        uid: ownerId,
+        caseId,
+        certificateType: CERTIFICATE_TYPE,
+        documentType: CERTIFICATE_DOCUMENT_TYPE,
+        status: "DRAFT",
+        blockedReason: reason,
+        generationBlockedReason: message,
+        createdAt: existingCertificate.exists
+          ? existingCertificate.get("createdAt") ?? FieldValue.serverTimestamp()
+          : FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+    await writeBlockedAudit({
+      caseId,
+      clientCase,
+      actor,
+      certificateId,
+      reason,
+      message,
+    });
+
+    return {
+      generated: false,
+      reason,
+      certificateId,
+      certificateNumber: null,
+      verificationUrl: null,
+      message,
+      email: emptyEmailResult("RECIPIENT_MISSING"),
+    };
+  }
   const certificateNumber =
     getStringField(existingCertificate.get("certificateNumber")) ??
     buildCertificateNumber(caseId);
@@ -653,6 +812,7 @@ export async function generateHousingCertificateForCase({
     certificateId,
     certificateNumber,
     verificationUrl,
+    message: "Attestation generee.",
     email,
   };
 }

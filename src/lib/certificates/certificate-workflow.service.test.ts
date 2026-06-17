@@ -179,6 +179,7 @@ describe("certificate workflow service", () => {
     });
 
     expect(result.generated).toBe(true);
+    expect(result.message).toBe("Attestation generee.");
     expect(result.email.status).toBe("SENT");
     expect(firebaseMocks.save).toHaveBeenCalledWith(
       Buffer.from("%PDF-certificate"),
@@ -241,6 +242,13 @@ describe("certificate workflow service", () => {
 
     expect(result.generated).toBe(false);
     expect(result.reason).toBe("missing_profile_data");
+    expect(result.message).toContain("profil incomplet");
+    expect(result.missingFieldLabels).toEqual(
+      expect.arrayContaining([
+        "date de naissance",
+        "ville ou adresse d'hebergement",
+      ]),
+    );
     expect(result.missingProfileFields).toEqual(
       expect.arrayContaining(["dateOfBirth", "preferredHousingCity"]),
     );
@@ -261,6 +269,52 @@ describe("certificate workflow service", () => {
     expect(opsMocks.createEvent).toHaveBeenCalledWith(
       expect.objectContaining({
         eventType: "certificate_generation_blocked",
+        eventPayload: expect.objectContaining({
+          reason: "missing_profile_data",
+          message: expect.stringContaining("profil incomplet"),
+          missingFieldLabels: expect.arrayContaining([
+            "date de naissance",
+            "ville ou adresse d'hebergement",
+          ]),
+        }),
+      }),
+    );
+  });
+
+  it("blocks generation when payment is not confirmed", async () => {
+    opsMocks.getCase.mockResolvedValue({
+      ...clientCase,
+      status: "DOCUMENTS_PENDING",
+      paymentStatus: "PENDING",
+    });
+
+    const result = await generateHousingCertificateForCase({
+      caseId: "case-1",
+      actor,
+    });
+
+    expect(result.generated).toBe(false);
+    expect(result.reason).toBe("payment_not_confirmed");
+    expect(result.message).toContain("paiement");
+    expect(firebaseMocks.save).not.toHaveBeenCalled();
+    expect(
+      firebaseMocks
+        .collectionMap("certificates")
+        .get("case-1-housing-certificate"),
+    ).toEqual(
+      expect.objectContaining({
+        status: "DRAFT",
+        blockedReason: "payment_not_confirmed",
+        generationBlockedReason: expect.stringContaining("paiement"),
+      }),
+    );
+    expect(opsMocks.createEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventType: "certificate_generation_blocked",
+        eventPayload: expect.objectContaining({
+          reason: "payment_not_confirmed",
+          message: expect.stringContaining("paiement"),
+        }),
       }),
     );
   });

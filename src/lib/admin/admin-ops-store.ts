@@ -528,6 +528,8 @@ export class AdminOperationsStore {
             ? "REQUESTED"
             : data.status === "uploaded"
               ? "UPLOADED"
+              : data.status === "generated"
+                ? "APPROVED"
               : data.status === "under_review"
                 ? "UNDER_REVIEW"
                 : data.status === "expired"

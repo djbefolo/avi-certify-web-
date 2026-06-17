@@ -27,6 +27,10 @@ describe("admin case certificates route", () => {
     generateHousingCertificateForCase.mockResolvedValue({
       generated: true,
       certificateId: "case-1-housing-certificate",
+      certificateNumber: "AVI-HBG-2026-CASE1",
+      verificationUrl: "https://www.avicertify.fr/verifier/token-1",
+      message: "Attestation generee.",
+      email: { sent: true, status: "SENT", messageId: "email-1", provider: "resend" },
     });
   });
 
@@ -49,5 +53,38 @@ describe("admin case certificates route", () => {
 
     expect(response.status).toBe(500);
     expect(generateHousingCertificateForCase).not.toHaveBeenCalled();
+  });
+
+  it("returns an explicit business result when generation is blocked", async () => {
+    generateHousingCertificateForCase.mockResolvedValueOnce({
+      generated: false,
+      reason: "missing_profile_data",
+      certificateId: "case-1-housing-certificate",
+      certificateNumber: null,
+      verificationUrl: null,
+      message: "Generation bloquee : profil incomplet (date de naissance).",
+      missingProfileFields: ["dateOfBirth"],
+      missingFieldLabels: ["date de naissance"],
+      email: {
+        sent: false,
+        status: "RECIPIENT_MISSING",
+        messageId: null,
+        provider: "resend",
+      },
+    });
+
+    const response = await POST(
+      request({ certificateType: "accommodation_certificate" }),
+      context,
+    );
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({
+      generated: false,
+      reason: "missing_profile_data",
+      message: "Generation bloquee : profil incomplet (date de naissance).",
+      missingFieldLabels: ["date de naissance"],
+    });
   });
 });
