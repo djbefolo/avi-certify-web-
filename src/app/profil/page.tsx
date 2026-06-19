@@ -309,7 +309,7 @@ export default function ProfilPage() {
   const completion = useMemo(() => getProfileCompletion(profile), [profile]);
   const email = profile?.email ?? user?.email ?? "A renseigner";
   const uid = profile?.uid ?? user?.uid ?? "Non disponible";
-  const canSave = Boolean(user && isEmailVerified && profile);
+  const canSave = Boolean(user && isEmailVerified);
 
   const updateField = (
     name: keyof EditableStudentProfile,
@@ -321,7 +321,7 @@ export default function ProfilPage() {
 
   const saveProfile = async () => {
     if (!user || !canSave) {
-      setErrorMessage("Le profil doit exister avant de pouvoir être mis à jour.");
+      setErrorMessage("Vous devez etre connecte avec un email verifie.");
       return;
     }
 
@@ -330,7 +330,7 @@ export default function ProfilPage() {
     setSuccessMessage(null);
 
     try {
-      await updateStudentProfile(user.uid, form);
+      await updateStudentProfile(user.uid, form, { email: user.email });
       const nextProfile = await getStudentProfile(user.uid);
 
       setProfile(nextProfile);

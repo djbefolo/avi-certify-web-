@@ -2,8 +2,8 @@ import {
   doc,
   getDoc,
   serverTimestamp,
+  setDoc,
   Timestamp,
-  updateDoc,
   type DocumentData,
 } from "firebase/firestore";
 import { getFirebaseDb } from "@/lib/firebase/client";
@@ -266,6 +266,7 @@ function cleanString(value: string | null) {
 export async function updateStudentProfile(
   uid: string,
   profile: EditableStudentProfile,
+  account?: { email?: string | null },
 ) {
   const firstName = cleanString(profile.firstName);
   const lastName = cleanString(profile.lastName);
@@ -273,8 +274,10 @@ export async function updateStudentProfile(
     [firstName, lastName].filter(Boolean).join(" ").trim() ||
     cleanString(profile.fullName);
   const birthDate = cleanString(profile.birthDate ?? profile.dateOfBirth);
-
-  await updateDoc(doc(getFirebaseDb(), USERS_COLLECTION, uid), {
+  const timestamp = serverTimestamp();
+  const userRef = doc(getFirebaseDb(), USERS_COLLECTION, uid);
+  const existingProfile = await getDoc(userRef);
+  const profileFields = {
     firstName,
     lastName,
     fullName,
@@ -304,8 +307,27 @@ export async function updateStudentProfile(
     previousVisaRefusalCountry: cleanString(profile.previousVisaRefusalCountry),
     emergencyContactName: cleanString(profile.emergencyContactName),
     emergencyContactPhone: cleanString(profile.emergencyContactPhone),
-    updatedAt: serverTimestamp(),
-  });
+    updatedAt: timestamp,
+    profileUpdatedAt: timestamp,
+  };
+
+  if (existingProfile.exists()) {
+    await setDoc(userRef, profileFields, { merge: true });
+    return;
+  }
+
+  await setDoc(
+    userRef,
+    {
+      uid,
+      email: cleanString(account?.email ?? null)?.toLowerCase() ?? null,
+      role: "student",
+      status: "active",
+      createdAt: timestamp,
+      ...profileFields,
+    },
+    { merge: true },
+  );
 }
 
 function hasProfileValue(value: StudentProfile[keyof StudentProfile]) {
