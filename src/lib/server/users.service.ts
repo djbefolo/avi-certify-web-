@@ -54,6 +54,13 @@ export type CreateUserProfileInput = z.output<typeof createUserProfileSchema>;
 
 type FirestoreServerTimestamp = ReturnType<typeof FieldValue.serverTimestamp>;
 
+type TraceTouch = {
+  source: string | null;
+  medium: string | null;
+  campaign: string | null;
+  referrer: string | null;
+};
+
 export type UserProfileDocument = {
   uid: string;
   email: string;
@@ -66,6 +73,15 @@ export type UserProfileDocument = {
   phone: string | null;
   role: "student";
   status: "active";
+  createdVia: "signup";
+  profileSource: "firebase_auth";
+  clientOrigin: "web_app";
+  serviceInterest: string | null;
+  lastIntent: "signup";
+  marketingConsent: false;
+  marketingConsentAt: FirestoreServerTimestamp | null;
+  firstTouch: TraceTouch | null;
+  lastTouch: TraceTouch | null;
   createdAt: FirestoreServerTimestamp;
   updatedAt: FirestoreServerTimestamp;
 };
@@ -91,6 +107,15 @@ export function mapUserProfileToFirestore(
     phone: data.phone ?? null,
     role: "student",
     status: "active",
+    createdVia: "signup",
+    profileSource: "firebase_auth",
+    clientOrigin: "web_app",
+    serviceInterest: null,
+    lastIntent: "signup",
+    marketingConsent: false,
+    marketingConsentAt: null,
+    firstTouch: null,
+    lastTouch: null,
     createdAt: FieldValue.serverTimestamp(),
     updatedAt: FieldValue.serverTimestamp(),
   };

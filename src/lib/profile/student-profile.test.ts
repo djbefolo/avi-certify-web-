@@ -150,6 +150,9 @@ describe("student profile mapping", () => {
         lastName: "Ndiaye",
         fullName: "Awa Ndiaye",
         phoneWhatsApp: "+221 77 000 00 00",
+        serviceInterest: "attestation_hebergement",
+        profileSource: "user_profile",
+        lastIntent: "profile_update",
         updatedAt: "server-timestamp",
         profileUpdatedAt: "server-timestamp",
       }),
@@ -166,6 +169,12 @@ describe("student profile mapping", () => {
     expect(payload).not.toHaveProperty("createdAt");
     expect(payload).not.toHaveProperty("role");
     expect(payload).not.toHaveProperty("accountStatus");
+    expect(payload).not.toHaveProperty("createdVia");
+    expect(payload).not.toHaveProperty("clientOrigin");
+    expect(payload).not.toHaveProperty("marketingConsent");
+    expect(payload).not.toHaveProperty("marketingConsentAt");
+    expect(payload).not.toHaveProperty("firstTouch");
+    expect(payload).not.toHaveProperty("lastTouch");
   });
 
   it("repairs a missing users/{uid} document with minimal safe fields", async () => {
@@ -182,6 +191,16 @@ describe("student profile mapping", () => {
         email: "auth-only@example.com",
         role: "student",
         status: "active",
+        createdVia: "profile_recovery",
+        profileSource: "user_profile",
+        clientOrigin: "dashboard",
+        selectedService: "attestation_hebergement",
+        serviceInterest: "attestation_hebergement",
+        lastIntent: "profile_update",
+        marketingConsent: false,
+        marketingConsentAt: null,
+        firstTouch: null,
+        lastTouch: null,
         firstName: "Awa",
         lastName: "Ndiaye",
         fullName: "Awa Ndiaye",
