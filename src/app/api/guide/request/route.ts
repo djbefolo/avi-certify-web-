@@ -3,6 +3,7 @@ import {
   captureLead,
   LeadCaptureError,
 } from "@/lib/server/lead-capture.service";
+import { prepareGuideDeliveryForLead } from "@/lib/server/guide-delivery.service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -124,12 +125,15 @@ export async function POST(request: NextRequest) {
         ? { ...body, source: "guide" }
         : { source: "guide" };
     const result = await captureLead(payload);
+    const guideDelivery = await prepareGuideDeliveryForLead(result.id);
 
     return jsonResponse(
       {
         ok: true,
         leadId: result.id,
         status: result.status,
+        guideDeliveryStatus: guideDelivery.guideDeliveryStatus,
+        guideDeliveryChannel: guideDelivery.guideDeliveryChannel,
       },
       { status: 201 },
     );
