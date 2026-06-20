@@ -14,12 +14,17 @@ const serviceMocks = vi.hoisted(() => {
   return {
     captureLead: vi.fn(),
     LeadCaptureError: MockLeadCaptureError,
+    prepareGuideDeliveryForLead: vi.fn(),
   };
 });
 
 vi.mock("@/lib/server/lead-capture.service", () => ({
   captureLead: serviceMocks.captureLead,
   LeadCaptureError: serviceMocks.LeadCaptureError,
+}));
+
+vi.mock("@/lib/server/guide-delivery.service", () => ({
+  prepareGuideDeliveryForLead: serviceMocks.prepareGuideDeliveryForLead,
 }));
 
 import { POST } from "@/app/api/guide/request/route";
@@ -37,12 +42,20 @@ function request(body: unknown) {
 describe("POST /api/guide/request", () => {
   beforeEach(() => {
     serviceMocks.captureLead.mockReset();
+    serviceMocks.prepareGuideDeliveryForLead.mockReset();
   });
 
   it("captures a guide request and forces the guide source", async () => {
     serviceMocks.captureLead.mockResolvedValueOnce({
       id: "lead-1",
       status: "NEW",
+    });
+    serviceMocks.prepareGuideDeliveryForLead.mockResolvedValueOnce({
+      leadId: "lead-1",
+      guideResourceId: "guide-france-2026",
+      guideDeliveryStatus: "READY",
+      guideDeliveryChannel: "client_space",
+      guideDelivered: false,
     });
 
     const response = await POST(
@@ -59,6 +72,8 @@ describe("POST /api/guide/request", () => {
       ok: true,
       leadId: "lead-1",
       status: "NEW",
+      guideDeliveryStatus: "READY",
+      guideDeliveryChannel: "client_space",
     });
     expect(serviceMocks.captureLead).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -67,6 +82,9 @@ describe("POST /api/guide/request", () => {
         source: "guide",
         marketingConsent: true,
       }),
+    );
+    expect(serviceMocks.prepareGuideDeliveryForLead).toHaveBeenCalledWith(
+      "lead-1",
     );
   });
 
