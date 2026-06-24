@@ -19,6 +19,10 @@ import {
   renderDocumentRequestEmail,
   type DocumentRequestEmailInput,
 } from "@/lib/email/templates/document-request";
+import {
+  renderGuideAvailableEmail,
+  type GuideAvailableEmailInput,
+} from "@/lib/email/templates/guide-available";
 import { renderLeadConfirmationEmail } from "@/lib/email/templates/lead-confirmation";
 import { renderPaymentStartedEmail } from "@/lib/email/templates/payment-started";
 import {
@@ -169,6 +173,16 @@ export async function sendDocumentRequestEmail(
     to: input.recipientEmail ?? null,
     template: renderDocumentRequestEmail(input),
     context: "document request",
+  });
+}
+
+export async function sendGuideAvailableEmail(
+  input: GuideAvailableEmailInput & { recipientEmail?: string | null },
+): Promise<SendEmailResult> {
+  return sendEmailWithResult({
+    to: input.recipientEmail ?? null,
+    template: renderGuideAvailableEmail(input),
+    context: "guide available",
   });
 }
 

@@ -15,6 +15,7 @@ const serviceMocks = vi.hoisted(() => {
     captureLead: vi.fn(),
     LeadCaptureError: MockLeadCaptureError,
     prepareGuideDeliveryForLead: vi.fn(),
+    sendGuideDeliveryEmailForLead: vi.fn(),
   };
 });
 
@@ -24,7 +25,9 @@ vi.mock("@/lib/server/lead-capture.service", () => ({
 }));
 
 vi.mock("@/lib/server/guide-delivery.service", () => ({
+  GuideDeliveryError: class MockGuideDeliveryError extends Error {},
   prepareGuideDeliveryForLead: serviceMocks.prepareGuideDeliveryForLead,
+  sendGuideDeliveryEmailForLead: serviceMocks.sendGuideDeliveryEmailForLead,
 }));
 
 import { POST } from "@/app/api/guide/request/route";
@@ -43,6 +46,7 @@ describe("POST /api/guide/request", () => {
   beforeEach(() => {
     serviceMocks.captureLead.mockReset();
     serviceMocks.prepareGuideDeliveryForLead.mockReset();
+    serviceMocks.sendGuideDeliveryEmailForLead.mockReset();
   });
 
   it("captures a guide request and forces the guide source", async () => {
@@ -55,6 +59,13 @@ describe("POST /api/guide/request", () => {
       guideResourceId: "guide-france-2026",
       guideDeliveryStatus: "READY",
       guideDeliveryChannel: "client_space",
+      guideDelivered: false,
+    });
+    serviceMocks.sendGuideDeliveryEmailForLead.mockResolvedValueOnce({
+      leadId: "lead-1",
+      guideEmailSent: true,
+      guideEmailStatus: "SENT",
+      guideEmailMessageId: "resend-guide-1",
       guideDelivered: false,
     });
 
@@ -74,6 +85,8 @@ describe("POST /api/guide/request", () => {
       status: "NEW",
       guideDeliveryStatus: "READY",
       guideDeliveryChannel: "client_space",
+      guideEmailSent: true,
+      guideEmailStatus: "SENT",
     });
     expect(serviceMocks.captureLead).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -84,6 +97,9 @@ describe("POST /api/guide/request", () => {
       }),
     );
     expect(serviceMocks.prepareGuideDeliveryForLead).toHaveBeenCalledWith(
+      "lead-1",
+    );
+    expect(serviceMocks.sendGuideDeliveryEmailForLead).toHaveBeenCalledWith(
       "lead-1",
     );
   });

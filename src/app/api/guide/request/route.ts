@@ -3,7 +3,11 @@ import {
   captureLead,
   LeadCaptureError,
 } from "@/lib/server/lead-capture.service";
-import { prepareGuideDeliveryForLead } from "@/lib/server/guide-delivery.service";
+import {
+  GuideDeliveryError,
+  prepareGuideDeliveryForLead,
+  sendGuideDeliveryEmailForLead,
+} from "@/lib/server/guide-delivery.service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -126,6 +130,7 @@ export async function POST(request: NextRequest) {
         : { source: "guide" };
     const result = await captureLead(payload);
     const guideDelivery = await prepareGuideDeliveryForLead(result.id);
+    const guideEmail = await sendGuideDeliveryEmailForLead(result.id);
 
     return jsonResponse(
       {
@@ -134,6 +139,8 @@ export async function POST(request: NextRequest) {
         status: result.status,
         guideDeliveryStatus: guideDelivery.guideDeliveryStatus,
         guideDeliveryChannel: guideDelivery.guideDeliveryChannel,
+        guideEmailSent: guideEmail.guideEmailSent,
+        guideEmailStatus: guideEmail.guideEmailStatus,
       },
       { status: 201 },
     );
@@ -149,6 +156,13 @@ export async function POST(request: NextRequest) {
       return jsonResponse(
         { ok: false, error: error.message, details: error.details },
         { status: 400 },
+      );
+    }
+
+    if (error instanceof GuideDeliveryError) {
+      return jsonResponse(
+        { ok: false, error: error.message },
+        { status: 409 },
       );
     }
 
