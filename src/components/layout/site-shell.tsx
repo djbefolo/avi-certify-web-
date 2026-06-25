@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { Footer } from "@/components/layout/footer";
 import { Header } from "@/components/layout/header";
+import { FloatingGuideCta } from "@/components/guide/floating-guide-cta";
 import { FloatingCta } from "@/components/navigation/floating-cta";
 
 type SiteShellProps = {
@@ -30,6 +31,7 @@ export function SiteShell({ children }: SiteShellProps) {
       <Header />
       <main className="flex-1">{children}</main>
       <Footer />
+      <FloatingGuideCta />
       <FloatingCta />
     </div>
   );
