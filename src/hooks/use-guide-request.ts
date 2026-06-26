@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { getGuideRequestAttribution } from "@/lib/analytics/attribution";
 
 export const GUIDE_REQUEST_SUCCESS_MESSAGE =
   "Votre demande a bien été enregistrée. Si votre email est valide, vous recevrez un message AVI CERTIFY avec l'accès au guide depuis votre espace client sécurisé.";
@@ -62,49 +63,6 @@ function cleanOptionalText(value?: string | null) {
   return cleaned || null;
 }
 
-function addIfPresent(
-  target: Partial<
-    Pick<GuideRequestPayload, "utmSource" | "utmMedium" | "utmCampaign" | "referrer">
-  >,
-  key: "utmSource" | "utmMedium" | "utmCampaign" | "referrer",
-  value: string | null,
-) {
-  if (value) {
-    target[key] = value;
-  }
-}
-
-function readGuideRequestAttribution() {
-  const attribution: Partial<
-    Pick<GuideRequestPayload, "utmSource" | "utmMedium" | "utmCampaign" | "referrer">
-  > = {};
-
-  if (typeof window === "undefined") {
-    return attribution;
-  }
-
-  const searchParams = new URLSearchParams(window.location.search);
-
-  addIfPresent(
-    attribution,
-    "utmSource",
-    cleanOptionalText(searchParams.get("utm_source")),
-  );
-  addIfPresent(
-    attribution,
-    "utmMedium",
-    cleanOptionalText(searchParams.get("utm_medium")),
-  );
-  addIfPresent(
-    attribution,
-    "utmCampaign",
-    cleanOptionalText(searchParams.get("utm_campaign")),
-  );
-  addIfPresent(attribution, "referrer", cleanOptionalText(document.referrer));
-
-  return attribution;
-}
-
 function buildGuideRequestPayload(input: GuideRequestInput): GuideRequestPayload {
   return {
     fullName: cleanText(input.fullName),
@@ -117,7 +75,7 @@ function buildGuideRequestPayload(input: GuideRequestInput): GuideRequestPayload
     origin: cleanOptionalText(input.origin),
     marketingConsent: input.marketingConsent,
     source: "guide",
-    ...readGuideRequestAttribution(),
+    ...getGuideRequestAttribution(),
   };
 }
 

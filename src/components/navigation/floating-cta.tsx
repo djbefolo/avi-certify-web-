@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useAnalytics } from "@/hooks/use-analytics";
 
 /**
  * Premium institutional floating CTA that adapts based on auth state:
@@ -17,6 +18,7 @@ import { cn } from "@/lib/utils";
  */
 export function FloatingCta() {
   const { isAuthenticated } = useAuth();
+  const { trackWhatsAppCtaClicked } = useAnalytics();
   const pathname = usePathname();
   const [visible, setVisible] = useState(false);
 
@@ -77,6 +79,7 @@ export function FloatingCta() {
           href="https://wa.me/message/XOKRBYI3ZEQBM1"
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => trackWhatsAppCtaClicked("floating_cta")}
           className="group flex items-center gap-3 rounded-lg border border-accent/30 bg-accent shadow-lg backdrop-blur-sm transition-all duration-300 hover:shadow-xl hover:scale-105"
         >
           <span className="flex h-14 w-14 items-center justify-center rounded-l-lg bg-accent-dark">

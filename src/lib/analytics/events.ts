@@ -35,6 +35,27 @@ export type AnalyticsEventPayloads = {
   logout_clicked: {
     location: string;
   };
+  guide_cta_clicked: {
+    origin: string;
+  };
+  guide_modal_opened: {
+    origin: string;
+  };
+  guide_request_submitted: {
+    origin: string;
+  };
+  guide_request_success: {
+    origin: string;
+  };
+  guide_request_failed: {
+    origin: string;
+  };
+  whatsapp_cta_clicked: {
+    location: string;
+  };
+  pricing_viewed: {
+    path: string;
+  };
 };
 
 export type AnalyticsEventName = keyof AnalyticsEventPayloads;

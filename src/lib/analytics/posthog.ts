@@ -5,6 +5,7 @@ import type {
   AnalyticsEventName,
   AnalyticsEventPayloads,
 } from "@/lib/analytics/events";
+import { hasAcceptedAnalyticsConsent } from "@/lib/analytics/consent";
 
 const postHogKey = process.env.NEXT_PUBLIC_POSTHOG_KEY?.trim();
 const postHogHost =
@@ -16,7 +17,11 @@ let postHogClient: PostHogClient | null = null;
 let initPromise: Promise<PostHogClient | null> | null = null;
 
 function canUsePostHog() {
-  return typeof window !== "undefined" && Boolean(postHogKey);
+  return (
+    typeof window !== "undefined" &&
+    Boolean(postHogKey) &&
+    hasAcceptedAnalyticsConsent()
+  );
 }
 
 export function isPostHogConfigured() {
@@ -47,7 +52,7 @@ async function getPostHogClient(): Promise<PostHogClient | null> {
         capture_pageleave: false,
         disable_session_recording: true,
         person_profiles: "identified_only",
-        persistence: "localStorage+cookie",
+        persistence: "localStorage",
       });
       postHogClient = posthog;
 
@@ -111,20 +116,9 @@ export function captureAnalyticsEvent<TEventName extends AnalyticsEventName>(
 }
 
 export function identifyAnalyticsUser(uid: string) {
-  if (!canUsePostHog() || !postHogKey) {
-    return false;
-  }
+  void uid;
 
-  void withPostHogClient(
-    (posthog) => {
-      posthog.identify(uid, {
-        authProvider: "firebase",
-      });
-    },
-    "Failed to identify user.",
-  );
-
-  return true;
+  return false;
 }
 
 export function resetAnalyticsUser() {

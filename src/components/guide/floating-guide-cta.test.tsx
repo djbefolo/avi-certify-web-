@@ -3,6 +3,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { FloatingGuideCta } from "@/components/guide/floating-guide-cta";
 
 const TEST_STORAGE_KEY = "avi-guide-cta-test-dismissed-at";
+const analyticsMocks = vi.hoisted(() => ({
+  trackGuideCtaClicked: vi.fn(),
+  trackGuideModalOpened: vi.fn(),
+}));
+
+vi.mock("@/hooks/use-analytics", () => ({
+  useAnalytics: () => analyticsMocks,
+}));
 
 function advanceGuideCtaTimer(delayMs: number) {
   act(() => {
@@ -13,6 +21,8 @@ function advanceGuideCtaTimer(delayMs: number) {
 afterEach(() => {
   vi.useRealTimers();
   window.localStorage.removeItem(TEST_STORAGE_KEY);
+  analyticsMocks.trackGuideCtaClicked.mockReset();
+  analyticsMocks.trackGuideModalOpened.mockReset();
 });
 
 describe("FloatingGuideCta", () => {
@@ -54,6 +64,12 @@ describe("FloatingGuideCta", () => {
       screen.getByRole("button", { name: /recevoir le guide 2026 gratuit/i }),
     );
 
+    expect(analyticsMocks.trackGuideCtaClicked).toHaveBeenCalledWith(
+      "floating_cta",
+    );
+    expect(analyticsMocks.trackGuideModalOpened).toHaveBeenCalledWith(
+      "floating_cta",
+    );
     expect(
       screen.getByRole("dialog", { name: /installation en france/i }),
     ).toBeInTheDocument();

@@ -91,6 +91,55 @@ export function useAnalytics() {
     [track],
   );
 
+  const trackGuideCtaClicked = useCallback(
+    (origin: string) => {
+      track("guide_cta_clicked", { origin });
+    },
+    [track],
+  );
+
+  const trackGuideModalOpened = useCallback(
+    (origin: string) => {
+      track("guide_modal_opened", { origin });
+    },
+    [track],
+  );
+
+  const trackGuideRequestSubmitted = useCallback(
+    (origin: string) => {
+      track("guide_request_submitted", { origin });
+    },
+    [track],
+  );
+
+  const trackGuideRequestSuccess = useCallback(
+    (origin: string) => {
+      track("guide_request_success", { origin });
+    },
+    [track],
+  );
+
+  const trackGuideRequestFailed = useCallback(
+    (origin: string) => {
+      track("guide_request_failed", { origin });
+    },
+    [track],
+  );
+
+  const trackWhatsAppCtaClicked = useCallback(
+    (location: string) => {
+      track("whatsapp_cta_clicked", { location });
+    },
+    [track],
+  );
+
+  const trackPricingViewed = useCallback(
+    (path: string) => {
+      track("pricing_viewed", { path });
+    },
+    [track],
+  );
+
   return {
     track,
     identifyUser,
@@ -104,6 +153,12 @@ export function useAnalytics() {
     trackPaymentStarted,
     trackCheckoutStarted,
     trackLogoutClicked,
+    trackGuideCtaClicked,
+    trackGuideModalOpened,
+    trackGuideRequestSubmitted,
+    trackGuideRequestSuccess,
+    trackGuideRequestFailed,
+    trackWhatsAppCtaClicked,
+    trackPricingViewed,
   };
 }
-
