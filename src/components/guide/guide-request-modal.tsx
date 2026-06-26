@@ -21,6 +21,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useGuideRequest } from "@/hooks/use-guide-request";
+import { useAnalytics } from "@/hooks/use-analytics";
 
 type GuideRequestModalProps = {
   open: boolean;
@@ -139,6 +140,11 @@ export function GuideRequestModal({
     useState<GuideRequestFormValues>(defaultValues);
   const [errors, setErrors] = useState<GuideRequestFormErrors>({});
   const { state, submitGuideRequest, resetGuideRequest } = useGuideRequest();
+  const {
+    trackGuideRequestFailed,
+    trackGuideRequestSubmitted,
+    trackGuideRequestSuccess,
+  } = useAnalytics();
   const isSubmitting = state.status === "submitting";
 
   useEffect(() => {
@@ -214,7 +220,9 @@ export function GuideRequestModal({
       return;
     }
 
-    await submitGuideRequest({
+    trackGuideRequestSubmitted(origin);
+
+    const submitted = await submitGuideRequest({
       fullName: values.fullName,
       email: values.email,
       phone: values.phone,
@@ -225,6 +233,12 @@ export function GuideRequestModal({
       origin,
       marketingConsent: true,
     });
+
+    if (submitted) {
+      trackGuideRequestSuccess(origin);
+    } else {
+      trackGuideRequestFailed(origin);
+    }
   };
 
   return (

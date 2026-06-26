@@ -4,6 +4,7 @@ import { BookOpenCheck, X } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { GuideRequestModal } from "@/components/guide/guide-request-modal";
+import { useAnalytics } from "@/hooks/use-analytics";
 
 const DEFAULT_GUIDE_CTA_DELAY_MS = 120_000;
 const DEFAULT_GUIDE_CTA_DISMISS_DURATION_MS = 24 * 60 * 60 * 1000;
@@ -89,6 +90,7 @@ export function FloatingGuideCta({
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [visible, setVisible] = useState(false);
+  const { trackGuideCtaClicked, trackGuideModalOpened } = useAnalytics();
   const shouldHide = shouldHideGuideCta(pathname);
 
   const dismissGuideCta = useCallback(() => {
@@ -131,6 +133,12 @@ export function FloatingGuideCta({
     }
   };
 
+  const handleOpenModal = () => {
+    trackGuideCtaClicked("floating_cta");
+    trackGuideModalOpened("floating_cta");
+    setOpen(true);
+  };
+
   if (shouldHide || !visible) {
     return null;
   }
@@ -141,7 +149,7 @@ export function FloatingGuideCta({
         <button
           aria-label="Recevoir le guide 2026 gratuit"
           className="group flex w-full items-center gap-3 rounded-2xl border border-accent/25 bg-white/95 p-3 pr-10 text-left shadow-xl shadow-slate-950/10 backdrop-blur transition duration-300 hover:-translate-y-0.5 hover:border-accent/50 hover:shadow-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          onClick={() => setOpen(true)}
+          onClick={handleOpenModal}
           type="button"
         >
           <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-foreground shadow-sm">

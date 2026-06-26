@@ -1,13 +1,18 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { AnalyticsConsentBanner } from "@/components/analytics/analytics-consent-banner";
 import {
   captureAnalyticsEvent,
-  identifyAnalyticsUser,
   initPostHog,
 } from "@/lib/analytics/posthog";
-import { useAuth } from "@/hooks/use-auth";
+import { captureAnalyticsAttribution } from "@/lib/analytics/attribution";
+import {
+  ANALYTICS_CONSENT_CHANGED_EVENT,
+  readAnalyticsConsent,
+  type AnalyticsConsentChoice,
+} from "@/lib/analytics/consent";
 
 type AnalyticsProviderProps = {
   children: ReactNode;
@@ -25,43 +30,47 @@ function getSafeCurrentPath() {
 
 export function AnalyticsProvider({ children }: AnalyticsProviderProps) {
   const pathname = usePathname();
-  const { user, loading } = useAuth();
-  const identifiedUidRef = useRef<string | null>(null);
+  const [consent, setConsent] = useState<AnalyticsConsentChoice | null>(null);
 
   useEffect(() => {
-    initPostHog();
+    const syncConsent = () => {
+      setConsent(readAnalyticsConsent());
+    };
+
+    syncConsent();
+
+    window.addEventListener(ANALYTICS_CONSENT_CHANGED_EVENT, syncConsent);
+    window.addEventListener("storage", syncConsent);
+
+    return () => {
+      window.removeEventListener(ANALYTICS_CONSENT_CHANGED_EVENT, syncConsent);
+      window.removeEventListener("storage", syncConsent);
+    };
   }, []);
 
   useEffect(() => {
+    if (consent !== "accepted") {
+      return;
+    }
+
     const path = getSafeCurrentPath();
 
     if (!path || lastTrackedPath === path) {
       return;
     }
 
+    captureAnalyticsAttribution();
+    initPostHog();
     lastTrackedPath = path;
     captureAnalyticsEvent("page_view", {
       path,
     });
-  }, [pathname]);
+  }, [consent, pathname]);
 
-  useEffect(() => {
-    if (loading) {
-      return;
-    }
-
-    if (!user) {
-      identifiedUidRef.current = null;
-      return;
-    }
-
-    if (identifiedUidRef.current === user.uid) {
-      return;
-    }
-
-    identifiedUidRef.current = user.uid;
-    identifyAnalyticsUser(user.uid);
-  }, [loading, user]);
-
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      <AnalyticsConsentBanner />
+    </>
+  );
 }

@@ -15,6 +15,7 @@ import {
   PricingFormula,
   PricingSimulator,
 } from "@/components/marketing/pricing-simulator";
+import { PricingViewTracker } from "@/components/analytics/pricing-view-tracker";
 import { Button } from "@/components/ui/button";
 import { createPageMetadata } from "@/lib/seo/metadata";
 
@@ -221,6 +222,7 @@ const faqs = [
 export default function PricingPage() {
   return (
     <>
+      <PricingViewTracker />
       <section className="relative overflow-hidden border-b bg-[hsl(222,75%,8%)] text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_10%,rgba(5,150,105,0.22),transparent_30%),radial-gradient(circle_at_78%_0%,rgba(249,200,70,0.13),transparent_26%)]" />
         <div className="container relative py-14 md:py-20">
