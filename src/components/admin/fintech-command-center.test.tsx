@@ -13,6 +13,19 @@ import {
 import type { FinancingQuote, FinancialAuditEvent } from "@/types/fintech";
 import { usePathname } from "next/navigation";
 
+const mockedUsePathname = vi.hoisted(() => vi.fn(() => "/"));
+
+vi.mock("next/navigation", () => ({
+  usePathname: mockedUsePathname,
+}));
+
+vi.mock("@/hooks/use-auth", () => ({
+  useAuth: () => ({
+    isAuthenticated: false,
+    logout: vi.fn(),
+  }),
+}));
+
 const service = new FinancingSimulationService();
 const comparison = service.compare("canada", 8_000_000);
 const simulation = comparison.optionA;
@@ -166,6 +179,7 @@ function mockAdminFetch() {
 describe("FintechCommandCenter", () => {
   beforeEach(() => {
     window.sessionStorage.setItem("avi_admin_api_token", "avi-local-admin");
+    vi.mocked(usePathname).mockReturnValue("/");
   });
 
   it("renders the completed command-center navigation and first-screen cockpit", async () => {

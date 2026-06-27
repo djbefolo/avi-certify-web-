@@ -10,6 +10,7 @@ import type {
   ClientDocument,
   ClientFinancialFile,
 } from "@/types/admin-ops";
+import type { AdminLead, AdminLeadStats } from "@/types/admin-crm";
 
 vi.mock("@/components/admin/fintech-command-center", () => ({
   FintechCommandCenter: ({
@@ -135,6 +136,52 @@ const event: AdminCaseEvent = {
   eventPayload: { synced: 1 },
   createdAt: "2026-05-25T08:00:00.000Z",
 };
+
+const lead: AdminLead = {
+  id: "lead-1",
+  fullName: "Awa Prospect",
+  email: "awa@example.com",
+  phone: "+237600000000",
+  country: "Cameroun",
+  destinationCountry: "France",
+  serviceInterest: "guide_france_2026",
+  projectHorizon: "rentree-2026",
+  source: "guide",
+  origin: "floating_cta",
+  status: "NEW",
+  marketingConsent: true,
+  utmSource: "google",
+  utmMedium: "cpc",
+  utmCampaign: "guide_launch",
+  referrer: "https://google.example/search",
+  guideRequested: true,
+  guideDelivered: false,
+  guideDeliveryStatus: "READY",
+  guideDeliveryChannel: "client_space",
+  guideEmailSent: true,
+  guideEmailStatus: "SENT",
+  crmStatus: "new",
+  crmPriority: "normal",
+  crmOwner: null,
+  crmNotes: null,
+  lastContactedAt: null,
+  qualifiedAt: null,
+  convertedAt: null,
+  lostReason: null,
+  createdAt: "2026-06-27T10:00:00.000Z",
+  updatedAt: "2026-06-27T10:00:00.000Z",
+};
+
+const leadStats: AdminLeadStats = {
+  total: 1,
+  new: 1,
+  contacted: 0,
+  qualified: 0,
+  converted: 0,
+  lost: 0,
+  guideSucceeded: 1,
+  guideEmailFailures: 0,
+};
 function jsonResponse(body: unknown) {
   return {
     ok: true,
@@ -157,6 +204,24 @@ function mockOperationsFetch({
     const url = String(input);
     if (url.includes("/api/admin/operations/sync-auth-users")) {
       return jsonResponse({ result: { synced: 1, created: 1, updated: 0 } });
+    }
+    if (url.includes("/api/admin/leads/lead-1")) {
+      return jsonResponse({
+        lead: {
+          ...lead,
+          crmStatus: "contacted",
+          crmPriority: "high",
+          crmNotes: "Relance effectuée.",
+          lastContactedAt: "2026-06-27T11:00:00.000Z",
+          updatedAt: "2026-06-27T11:00:00.000Z",
+        },
+      });
+    }
+    if (url.includes("/api/admin/leads")) {
+      return jsonResponse({
+        leads: [lead],
+        stats: leadStats,
+      });
     }
     if (url.includes("/api/admin/clients/client-1")) {
       return jsonResponse({
@@ -286,6 +351,7 @@ describe("SuperAdminOperationsOS", () => {
     expect(await screen.findByText("AVI CERTIFY Super Admin Operations OS")).toBeInTheDocument();
     for (const label of [
       "Vue d'ensemble",
+      "Prospects",
       "Clients",
       "Dossiers",
       "Documents",
@@ -317,6 +383,44 @@ describe("SuperAdminOperationsOS", () => {
     expect((await screen.findAllByText("Awa Student")).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/passport.pdf/).length).toBeGreaterThan(0);
     expect(screen.getByText(/Synchronisation Firebase Auth exécutée/)).toBeInTheDocument();
+  });
+
+  it("shows CRM leads and saves CRM status without creating an operational case", async () => {
+    const fetchMock = mockOperationsFetch();
+    const user = userEvent.setup();
+
+    render(<SuperAdminOperationsOS adminRole="super_admin" adminEmail="admin@avicertify.fr" />);
+
+    await screen.findByText("AVI CERTIFY Super Admin Operations OS");
+    await user.click(screen.getAllByRole("button", { name: "Prospects" })[0]);
+
+    expect(await screen.findByText("Prospects CRM")).toBeInTheDocument();
+    expect(screen.getAllByText("Awa Prospect").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("awa@example.com").length).toBeGreaterThan(0);
+    expect(screen.getByText("google / cpc / guide_launch")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /créer dossier/i })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Ouvrir CRM" }));
+    await user.selectOptions(screen.getByLabelText("Statut CRM"), "contacted");
+    await user.selectOptions(screen.getByLabelText("Priorité"), "high");
+    await user.type(screen.getByLabelText("Notes internes"), "Relance effectuée.");
+    await user.click(screen.getByRole("button", { name: "Sauvegarder CRM" }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/admin/leads/lead-1",
+        expect.objectContaining({
+          method: "PATCH",
+          body: JSON.stringify({
+            crmStatus: "contacted",
+            crmPriority: "high",
+            crmOwner: null,
+            crmNotes: "Relance effectuée.",
+            lostReason: null,
+          }),
+        }),
+      );
+    });
   });
 
   it("shows the super-admin Firebase sync action and calls the protected API", async () => {
@@ -448,7 +552,7 @@ describe("SuperAdminOperationsOS", () => {
     await screen.findByText("AVI CERTIFY Super Admin Operations OS");
     await user.click(screen.getAllByRole("button", { name: "Clients" })[0]);
     await user.click(await screen.findByRole("button", { name: "Ouvrir 360" }));
-    await user.click(screen.getByRole("button", { name: "GÃ©nÃ©rer attestation" }));
+    await user.click(screen.getByRole("button", { name: /g.n.rer attestation/i }));
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
