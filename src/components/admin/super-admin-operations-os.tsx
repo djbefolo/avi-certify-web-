@@ -37,6 +37,13 @@ import type {
   ClientDocument,
   ClientFinancialFile,
 } from "@/types/admin-ops";
+import type {
+  AdminLead,
+  AdminLeadCrmPriority,
+  AdminLeadCrmStatus,
+  AdminLeadStats,
+  AdminLeadUpdateInput,
+} from "@/types/admin-crm";
 
 type Props = {
   adminRole: AdminRole;
@@ -45,6 +52,8 @@ type Props = {
 
 type OperationsData = {
   overview: AdminOperationsOverview | null;
+  leads: AdminLead[];
+  leadStats: AdminLeadStats | null;
   clients: AdminClientProfile[];
   cases: ClientCase[];
   documents: ClientDocument[];
@@ -74,6 +83,7 @@ type ClientAction =
 
 const tabs = [
   ["Vue d'ensemble", "overview", Landmark],
+  ["Prospects", "leads", UserRound],
   ["Clients", "clients", UsersRound],
   ["Dossiers", "cases", BriefcaseBusiness],
   ["Documents", "documents", FileArchive],
@@ -166,6 +176,49 @@ function productLabel(product: string | null | undefined) {
   return product ? labels[product] ?? product : "-";
 }
 
+function crmStatusLabel(status: AdminLeadCrmStatus) {
+  const labels: Record<AdminLeadCrmStatus, string> = {
+    new: "Nouveau",
+    contacted: "Contacté",
+    qualified: "Qualifié",
+    converted: "Converti",
+    lost: "Perdu",
+  };
+
+  return labels[status];
+}
+
+function crmPriorityLabel(priority: AdminLeadCrmPriority) {
+  const labels: Record<AdminLeadCrmPriority, string> = {
+    low: "Basse",
+    normal: "Normale",
+    high: "Haute",
+  };
+
+  return labels[priority];
+}
+
+function summarizeLeadsForUi(leads: AdminLead[]): AdminLeadStats {
+  return {
+    total: leads.length,
+    new: leads.filter((lead) => lead.crmStatus === "new").length,
+    contacted: leads.filter((lead) => lead.crmStatus === "contacted").length,
+    qualified: leads.filter((lead) => lead.crmStatus === "qualified").length,
+    converted: leads.filter((lead) => lead.crmStatus === "converted").length,
+    lost: leads.filter((lead) => lead.crmStatus === "lost").length,
+    guideSucceeded: leads.filter(
+      (lead) =>
+        lead.guideDeliveryStatus === "READY" ||
+        lead.guideEmailStatus === "SENT",
+    ).length,
+    guideEmailFailures: leads.filter(
+      (lead) =>
+        lead.guideEmailStatus === "SEND_FAILED" ||
+        lead.guideEmailStatus === "RECIPIENT_MISSING",
+    ).length,
+  };
+}
+
 function certificateGenerationMessage(result: CertificateGenerationResult) {
   if (result.message?.trim()) {
     return result.message.trim();
@@ -235,6 +288,8 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
   const [selectedClient, setSelectedClient] = useState<AdminClient360 | null>(null);
   const [data, setData] = useState<OperationsData>({
     overview: null,
+    leads: [],
+    leadStats: null,
     clients: [],
     cases: [],
     documents: [],
@@ -259,9 +314,10 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
     setIsLoading(true);
     setError(null);
     try {
-      const [clients, casesResponse, documents, notifications, audit] =
+      const [clients, leadsResponse, casesResponse, documents, notifications, audit] =
         await Promise.all([
           readApi<{ clients: AdminClientProfile[]; overview: AdminOperationsOverview }>("/api/admin/clients"),
+          readApi<{ leads: AdminLead[]; stats: AdminLeadStats }>("/api/admin/leads"),
           readApi<{ cases: ClientCase[] }>("/api/admin/cases"),
           readApi<{ documents: ClientDocument[] }>("/api/admin/documents"),
           readApi<{ notifications: AdminNotification[] }>("/api/admin/notifications"),
@@ -269,6 +325,8 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
         ]);
       setData({
         overview: clients.overview,
+        leads: leadsResponse.leads,
+        leadStats: leadsResponse.stats,
         clients: clients.clients,
         cases: casesResponse.cases,
         documents: documents.documents,
@@ -291,6 +349,39 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
       setSelectedClient(response.client);
     } catch (clientError) {
       setError(clientError instanceof Error ? clientError.message : "Impossible de charger la fiche client.");
+    }
+  }
+
+  async function updateLeadCrm(leadId: string, input: AdminLeadUpdateInput) {
+    setIsBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const response = await writeApi<{ lead: AdminLead }>(
+        `/api/admin/leads/${encodeURIComponent(leadId)}`,
+        input,
+        "PATCH",
+      );
+      setData((current) => {
+        const leads = current.leads.map((lead) =>
+          lead.id === response.lead.id ? response.lead : lead,
+        );
+
+        return {
+          ...current,
+          leads,
+          leadStats: summarizeLeadsForUi(leads),
+        };
+      });
+      setNotice("Prospect CRM mis à jour.");
+    } catch (leadError) {
+      setError(
+        leadError instanceof Error
+          ? leadError.message
+          : "Mise à jour CRM prospect impossible.",
+      );
+    } finally {
+      setIsBusy(false);
     }
   }
 
@@ -583,6 +674,15 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
               <OverviewPanel data={data} />
             ) : null}
 
+            {!isLoading && active === "leads" ? (
+              <AdminLeadsPanel
+                leads={data.leads}
+                stats={data.leadStats}
+                isBusy={isBusy}
+                onUpdateLead={updateLeadCrm}
+              />
+            ) : null}
+
             {!isLoading && active === "clients" ? (
               <section className="space-y-6" aria-labelledby="clients-title">
                 <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-end">
@@ -686,6 +786,324 @@ function OverviewPanel({ data }: { data: OperationsData }) {
         <NotificationsPanel notifications={data.notifications.slice(0, 5)} />
         <AuditPanel events={data.events.slice(0, 5)} />
       </div>
+    </section>
+  );
+}
+
+function AdminLeadsPanel({
+  leads,
+  stats,
+  isBusy,
+  onUpdateLead,
+}: {
+  leads: AdminLead[];
+  stats: AdminLeadStats | null;
+  isBusy: boolean;
+  onUpdateLead: (leadId: string, input: AdminLeadUpdateInput) => Promise<void>;
+}) {
+  const [statusFilter, setStatusFilter] = useState<AdminLeadCrmStatus | "all">("all");
+  const [search, setSearch] = useState("");
+  const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
+  const [crmStatus, setCrmStatus] = useState<AdminLeadCrmStatus>("new");
+  const [crmPriority, setCrmPriority] = useState<AdminLeadCrmPriority>("normal");
+  const [crmOwner, setCrmOwner] = useState("");
+  const [crmNotes, setCrmNotes] = useState("");
+  const [lostReason, setLostReason] = useState("");
+  const effectiveStats = stats ?? summarizeLeadsForUi(leads);
+  const filteredLeads = useMemo(() => {
+    const normalized = search.trim().toLowerCase();
+
+    return leads.filter((lead) => {
+      if (statusFilter !== "all" && lead.crmStatus !== statusFilter) {
+        return false;
+      }
+
+      if (
+        normalized &&
+        !`${lead.fullName} ${lead.email} ${lead.phone ?? ""} ${lead.source}`.toLowerCase().includes(normalized)
+      ) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [leads, search, statusFilter]);
+  const selectedLead =
+    filteredLeads.find((lead) => lead.id === selectedLeadId) ??
+    filteredLeads[0] ??
+    leads[0] ??
+    null;
+
+  useEffect(() => {
+    if (!selectedLead && selectedLeadId) {
+      setSelectedLeadId(null);
+    }
+
+    if (!selectedLeadId && selectedLead) {
+      setSelectedLeadId(selectedLead.id);
+    }
+  }, [selectedLead, selectedLeadId]);
+
+  useEffect(() => {
+    if (!selectedLead) {
+      return;
+    }
+
+    setCrmStatus(selectedLead.crmStatus);
+    setCrmPriority(selectedLead.crmPriority);
+    setCrmOwner(selectedLead.crmOwner ?? "");
+    setCrmNotes(selectedLead.crmNotes ?? "");
+    setLostReason(selectedLead.lostReason ?? "");
+  }, [selectedLead]);
+
+  const saveLead = async () => {
+    if (!selectedLead) {
+      return;
+    }
+
+    await onUpdateLead(selectedLead.id, {
+      crmStatus,
+      crmPriority,
+      crmOwner: crmOwner || null,
+      crmNotes: crmNotes || null,
+      lostReason: crmStatus === "lost" ? lostReason || null : null,
+    });
+  };
+
+  return (
+    <section className="space-y-6" aria-labelledby="leads-title">
+      <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-end">
+        <div>
+          <h2 id="leads-title" className="text-xl font-semibold">
+            Prospects CRM
+          </h2>
+          <p className="mt-1 text-sm text-slate-600">
+            Leads marketing issus du guide et des campagnes. Aucun dossier
+            opérationnel n'est créé depuis cette section.
+          </p>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <label className="relative block">
+            <Search
+              className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+              aria-hidden="true"
+            />
+            <Input
+              className="pl-9 sm:w-72"
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Rechercher prospect"
+              value={search}
+            />
+          </label>
+          <select
+            aria-label="Filtrer par statut CRM"
+            className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm"
+            onChange={(event) =>
+              setStatusFilter(event.target.value as AdminLeadCrmStatus | "all")
+            }
+            value={statusFilter}
+          >
+            <option value="all">Tous statuts</option>
+            <option value="new">Nouveaux</option>
+            <option value="contacted">Contactés</option>
+            <option value="qualified">Qualifiés</option>
+            <option value="converted">Convertis</option>
+            <option value="lost">Perdus</option>
+          </select>
+        </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-7">
+        <MetricCard label="Total leads" value={effectiveStats.total} detail="Prospects marketing" />
+        <MetricCard label="Nouveaux" value={effectiveStats.new} detail="À traiter" />
+        <MetricCard label="Contactés" value={effectiveStats.contacted} detail="Relance engagée" />
+        <MetricCard label="Qualifiés" value={effectiveStats.qualified} detail="Intérêt confirmé" />
+        <MetricCard label="Convertis" value={effectiveStats.converted} detail="Conversion CRM" />
+        <MetricCard label="Perdus" value={effectiveStats.lost} detail="Hors cible" />
+        <MetricCard label="Guide prêt" value={effectiveStats.guideSucceeded} detail="Livraison guide" />
+      </div>
+
+      {!leads.length ? (
+        <EmptyState
+          title="Aucun prospect capturé"
+          text="Les demandes de guide apparaîtront ici après capture dans la collection leads."
+        />
+      ) : (
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,0.8fr)]">
+          <section className="overflow-x-auto rounded-lg border bg-white shadow-sm">
+            <table className="w-full min-w-[980px] text-left text-sm">
+              <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+                <tr>
+                  <th className="px-4 py-3">Prospect</th>
+                  <th className="px-4 py-3">Projet</th>
+                  <th className="px-4 py-3">Attribution</th>
+                  <th className="px-4 py-3">Guide</th>
+                  <th className="px-4 py-3">CRM</th>
+                  <th className="px-4 py-3">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {filteredLeads.map((lead) => (
+                  <tr
+                    className={lead.id === selectedLead?.id ? "bg-emerald-50/60" : undefined}
+                    key={lead.id}
+                  >
+                    <td className="px-4 py-3">
+                      <p className="font-semibold text-slate-950">{lead.fullName}</p>
+                      <p className="text-slate-600">{lead.email}</p>
+                      <p className="text-xs text-slate-500">{lead.phone ?? "Téléphone non renseigné"}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <p>{lead.serviceInterest ?? "Service non précisé"}</p>
+                      <p className="text-xs text-slate-500">
+                        {lead.destinationCountry ?? "Destination non précisée"} · {lead.projectHorizon ?? "horizon libre"}
+                      </p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <p>{lead.source}</p>
+                      <p className="text-xs text-slate-500">
+                        {lead.utmSource ?? "-"} / {lead.utmMedium ?? "-"} / {lead.utmCampaign ?? "-"}
+                      </p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <p>{lead.guideDeliveryStatus ?? "-"}</p>
+                      <p className="text-xs text-slate-500">{lead.guideEmailStatus ?? "email guide non tracé"}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold">
+                        {crmStatusLabel(lead.crmStatus)}
+                      </span>
+                      <p className="mt-2 text-xs text-slate-500">
+                        Priorité {crmPriorityLabel(lead.crmPriority).toLowerCase()}
+                      </p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <Button
+                        onClick={() => setSelectedLeadId(lead.id)}
+                        size="sm"
+                        type="button"
+                        variant="outline"
+                      >
+                        Ouvrir CRM
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </section>
+
+          {selectedLead ? (
+            <aside className="rounded-lg border bg-white p-5 shadow-sm" aria-label="Détail prospect CRM">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase text-emerald-700">
+                    Prospect marketing
+                  </p>
+                  <h3 className="mt-1 text-lg font-semibold">{selectedLead.fullName}</h3>
+                  <p className="text-sm text-slate-600">{selectedLead.email}</p>
+                </div>
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold">
+                  {selectedLead.source}
+                </span>
+              </div>
+
+              <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                <StatusBadge label="Créé le" value={formatDate(selectedLead.createdAt)} />
+                <StatusBadge label="Consentement marketing" value={selectedLead.marketingConsent ? "Oui" : "Non"} />
+                <StatusBadge label="Pays" value={selectedLead.country ?? "-"} />
+                <StatusBadge label="Destination" value={selectedLead.destinationCountry ?? "-"} />
+              </div>
+
+              <div className="mt-5 rounded-lg bg-slate-50 p-4 text-sm">
+                <p className="font-semibold">Attribution marketing</p>
+                <dl className="mt-3 grid gap-2 text-slate-700">
+                  <div className="flex justify-between gap-3">
+                    <dt>UTM source</dt>
+                    <dd>{selectedLead.utmSource ?? "-"}</dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <dt>UTM medium</dt>
+                    <dd>{selectedLead.utmMedium ?? "-"}</dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <dt>UTM campaign</dt>
+                    <dd>{selectedLead.utmCampaign ?? "-"}</dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <dt>Referrer</dt>
+                    <dd className="max-w-56 truncate">{selectedLead.referrer ?? "-"}</dd>
+                  </div>
+                </dl>
+              </div>
+
+              <div className="mt-5 grid gap-4">
+                <label className="grid gap-2 text-sm font-medium">
+                  Statut CRM
+                  <select
+                    className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm"
+                    onChange={(event) => setCrmStatus(event.target.value as AdminLeadCrmStatus)}
+                    value={crmStatus}
+                  >
+                    <option value="new">Nouveau</option>
+                    <option value="contacted">Contacté</option>
+                    <option value="qualified">Qualifié</option>
+                    <option value="converted">Converti</option>
+                    <option value="lost">Perdu</option>
+                  </select>
+                </label>
+
+                <label className="grid gap-2 text-sm font-medium">
+                  Priorité
+                  <select
+                    className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm"
+                    onChange={(event) => setCrmPriority(event.target.value as AdminLeadCrmPriority)}
+                    value={crmPriority}
+                  >
+                    <option value="low">Basse</option>
+                    <option value="normal">Normale</option>
+                    <option value="high">Haute</option>
+                  </select>
+                </label>
+
+                <label className="grid gap-2 text-sm font-medium">
+                  Owner CRM
+                  <Input
+                    onChange={(event) => setCrmOwner(event.target.value)}
+                    placeholder="Admin responsable"
+                    value={crmOwner}
+                  />
+                </label>
+
+                <label className="grid gap-2 text-sm font-medium">
+                  Notes internes
+                  <textarea
+                    className="min-h-24 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
+                    onChange={(event) => setCrmNotes(event.target.value)}
+                    placeholder="Notes commerciales internes, sans créer de dossier"
+                    value={crmNotes}
+                  />
+                </label>
+
+                {crmStatus === "lost" ? (
+                  <label className="grid gap-2 text-sm font-medium">
+                    Raison de perte
+                    <Input
+                      onChange={(event) => setLostReason(event.target.value)}
+                      placeholder="Budget, hors cible, délai..."
+                      value={lostReason}
+                    />
+                  </label>
+                ) : null}
+
+                <Button disabled={isBusy} onClick={saveLead} type="button" variant="cta">
+                  Sauvegarder CRM
+                </Button>
+              </div>
+            </aside>
+          ) : null}
+        </div>
+      )}
     </section>
   );
 }
