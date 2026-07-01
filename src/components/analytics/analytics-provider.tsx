@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { AnalyticsConsentBanner } from "@/components/analytics/analytics-consent-banner";
 import {
-  captureAnalyticsEvent,
+  capturePageView,
   initPostHog,
 } from "@/lib/analytics/posthog";
 import { captureAnalyticsAttribution } from "@/lib/analytics/attribution";
@@ -19,13 +19,38 @@ type AnalyticsProviderProps = {
 };
 
 let lastTrackedPath: string | null = null;
+const excludedPageviewPrefixes = [
+  "/admin",
+  "/api",
+  "/dashboard",
+  "/dossier",
+  "/profil",
+  "/verifier",
+];
 
-function getSafeCurrentPath() {
+function getSafeCurrentLocation() {
   if (typeof window === "undefined") {
     return null;
   }
 
-  return window.location.pathname;
+  const { pathname, search, href } = window.location;
+
+  if (
+    excludedPageviewPrefixes.some(
+      (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+    )
+  ) {
+    return null;
+  }
+
+  return {
+    path: `${pathname}${search}`,
+    pathname,
+    search: search || undefined,
+    url: href,
+    referrer: document.referrer || undefined,
+    title: document.title || undefined,
+  };
 }
 
 export function AnalyticsProvider({ children }: AnalyticsProviderProps) {
@@ -53,18 +78,16 @@ export function AnalyticsProvider({ children }: AnalyticsProviderProps) {
       return;
     }
 
-    const path = getSafeCurrentPath();
+    const location = getSafeCurrentLocation();
 
-    if (!path || lastTrackedPath === path) {
+    if (!location || lastTrackedPath === location.path) {
       return;
     }
 
     captureAnalyticsAttribution();
     initPostHog();
-    lastTrackedPath = path;
-    captureAnalyticsEvent("page_view", {
-      path,
-    });
+    lastTrackedPath = location.path;
+    capturePageView(location);
   }, [consent, pathname]);
 
   return (

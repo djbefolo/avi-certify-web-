@@ -7,11 +7,21 @@ import type {
 } from "@/lib/analytics/events";
 import { hasAcceptedAnalyticsConsent } from "@/lib/analytics/consent";
 
+export const DEFAULT_POSTHOG_HOST = "https://us.i.posthog.com";
+
 const postHogKey = process.env.NEXT_PUBLIC_POSTHOG_KEY?.trim();
 const postHogHost =
-  process.env.NEXT_PUBLIC_POSTHOG_HOST?.trim() || "https://eu.i.posthog.com";
+  process.env.NEXT_PUBLIC_POSTHOG_HOST?.trim() || DEFAULT_POSTHOG_HOST;
 
 type PostHogClient = typeof posthogDefault;
+type PageViewProperties = {
+  path: string;
+  pathname?: string;
+  search?: string;
+  url?: string;
+  referrer?: string;
+  title?: string;
+};
 
 let postHogClient: PostHogClient | null = null;
 let initPromise: Promise<PostHogClient | null> | null = null;
@@ -110,6 +120,31 @@ export function captureAnalyticsEvent<TEventName extends AnalyticsEventName>(
       posthog.capture(eventName, properties);
     },
     `Failed to capture ${eventName}.`,
+  );
+
+  return true;
+}
+
+export function capturePageView(properties: PageViewProperties) {
+  if (!canUsePostHog() || !postHogKey) {
+    return false;
+  }
+
+  void withPostHogClient(
+    (posthog) => {
+      posthog.capture("$pageview", {
+        $current_url: properties.url,
+        path: properties.path,
+        pathname: properties.pathname ?? properties.path,
+        search: properties.search,
+        referrer: properties.referrer,
+        title: properties.title,
+      });
+      posthog.capture("page_view", {
+        path: properties.path,
+      });
+    },
+    "Failed to capture pageview.",
   );
 
   return true;
