@@ -67,6 +67,23 @@ describe("PostHog consent gate", () => {
     });
   });
 
+  it("defaults to the PostHog US ingestion host", async () => {
+    vi.stubEnv("NEXT_PUBLIC_POSTHOG_KEY", "ph_test");
+    writeAnalyticsConsent("accepted");
+    const { DEFAULT_POSTHOG_HOST, initPostHog } = await importPostHogModule();
+
+    expect(initPostHog()).toBe(true);
+
+    await vi.waitFor(() => {
+      expect(posthogMocks.init).toHaveBeenCalledWith(
+        "ph_test",
+        expect.objectContaining({
+          api_host: DEFAULT_POSTHOG_HOST,
+        }),
+      );
+    });
+  });
+
   it("does not capture events when analytics consent is rejected", async () => {
     vi.stubEnv("NEXT_PUBLIC_POSTHOG_KEY", "ph_test");
     writeAnalyticsConsent("rejected");
@@ -95,5 +112,37 @@ describe("PostHog consent gate", () => {
       });
     });
     expect(posthogMocks.identify).not.toHaveBeenCalled();
+  });
+
+  it("captures standard PostHog pageviews for Web Analytics after consent", async () => {
+    vi.stubEnv("NEXT_PUBLIC_POSTHOG_KEY", "ph_test");
+    writeAnalyticsConsent("accepted");
+    const { capturePageView } = await importPostHogModule();
+
+    expect(
+      capturePageView({
+        path: "/prix?utm_source=google",
+        pathname: "/prix",
+        search: "?utm_source=google",
+        url: "https://avicertify.fr/prix?utm_source=google",
+        referrer: "https://google.example/search",
+        title: "Prix | AVI CERTIFY",
+      }),
+    ).toBe(true);
+
+    await vi.waitFor(() => {
+      expect(posthogMocks.capture).toHaveBeenCalledWith(
+        "$pageview",
+        expect.objectContaining({
+          $current_url: "https://avicertify.fr/prix?utm_source=google",
+          path: "/prix?utm_source=google",
+          pathname: "/prix",
+          search: "?utm_source=google",
+        }),
+      );
+      expect(posthogMocks.capture).toHaveBeenCalledWith("page_view", {
+        path: "/prix?utm_source=google",
+      });
+    });
   });
 });

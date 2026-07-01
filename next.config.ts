@@ -13,7 +13,7 @@ function getCspOrigin(value: string | undefined, fallback: string) {
 function buildContentSecurityPolicy() {
   const postHogOrigin = getCspOrigin(
     process.env.NEXT_PUBLIC_POSTHOG_HOST,
-    "https://eu.i.posthog.com",
+    "https://us.i.posthog.com",
   );
 
   return [
