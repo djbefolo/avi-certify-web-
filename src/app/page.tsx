@@ -47,7 +47,7 @@ export default function HomePage() {
               Votre projet d'études en France mérite un accompagnement sérieux
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-              AVI CERTIFY structure votre dossier financier et documentaire pour vos démarches Campus France et consulaires. Documents vérifiables, paiement sécurisé, suivi transparent.
+              AVI CERTIFY accompagne vos projets de mobilité en Europe et au Canada : AVI, preuve de fonds, virements internationaux, paiement de frais de scolarité, attestation de logement, visa et suivi documentaire humain.
             </p>
             <div className="mt-8 flex flex-col gap-4 sm:flex-row">
               <Button size="lg" variant="cta" className="text-base" asChild>
@@ -134,7 +134,7 @@ export default function HomePage() {
         <SectionHeading
           eyebrow="Services"
           title="Les démarches essentielles, organisées au même endroit"
-          description="Choisissez le service adapté à votre projet d'études et avancez avec un parcours clair, documenté et suivi."
+          description="Preuve de fonds, AVI, transferts internationaux, paiement de frais de scolarité, attestation de logement et visa : une équipe spécialisée vous aide à structurer chaque étape."
         />
         <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {services.map((service) => (
@@ -164,7 +164,7 @@ export default function HomePage() {
               Un parcours lisible pour l'étudiant et pour l'équipe
             </h2>
             <p className="mt-4 text-lg leading-8 text-slate-200">
-              Vous savez quelles informations fournir, où en est votre dossier et quelle est la prochaine action attendue.
+              Vous savez quelles informations fournir, comment organiser vos justificatifs financiers, vos virements et vos documents, et quelle est la prochaine action attendue.
             </p>
           </div>
           <ProcessSteps />
@@ -176,19 +176,19 @@ export default function HomePage() {
           {
             icon: FileCheck2,
             title: "Dossier clarifié",
-            text: "Les informations importantes sont structurées pour limiter les oublis et accélérer le traitement.",
+            text: "Fonds, devise, logement, paiement et justificatifs sont structurés pour limiter les oublis et accélérer l'analyse.",
             href: "/a-propos/mission",
           },
           {
             icon: Building2,
             title: "Présence internationale",
-            text: "Un accompagnement pensé pour les étudiants d'Afrique francophone visant l'Europe.",
+            text: "Un accompagnement pensé pour les étudiants d'Afrique francophone visant l'Europe ou le Canada.",
             href: "/a-propos/vision",
           },
           {
             icon: ShieldCheck,
             title: "Sécurité documentaire",
-            text: "Les pièces sensibles sont déposées dans un espace client protégé et contrôlé.",
+            text: "Les preuves de fonds, pièces sensibles et documents vérifiables restent rattachés à un parcours contrôlé.",
             href: "/a-propos/confiance",
           },
         ].map((item) => (
@@ -235,7 +235,7 @@ export default function HomePage() {
               Besoin d'échanger avant de commencer ?
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
-              Notre équipe répond à vos questions sur les démarches, les délais et l'accompagnement adapté à votre situation.
+              Notre équipe répond à vos questions sur les preuves de fonds, l'hébergement, les virements internationaux, les frais de scolarité et l'accompagnement adapté à votre situation.
             </p>
             <div className="mt-8 space-y-4">
               <Button size="lg" variant="cta" className="w-full text-base sm:w-auto" asChild>
@@ -265,7 +265,7 @@ export default function HomePage() {
               Un accompagnement pensé par des professionnels de la mobilité internationale
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
-              AVI CERTIFY est une société immatriculée avec une expertise en accompagnement financier et documentaire pour étudiants internationaux.
+              AVI CERTIFY réunit des spécialistes mobilité internationale, finance documentaire, paiement international, visa et vérification de dossier pour accompagner les étudiants et leurs familles.
             </p>
           </div>
           <div className="mt-12 overflow-hidden rounded-lg border bg-background shadow-lg">
@@ -310,7 +310,7 @@ export default function HomePage() {
               Un écosystème financier et administratif connecté
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
-              Les parcours étudiants internationaux évoluent dans un environnement financier, administratif et académique nécessitant compréhension et coordination des démarches.
+              Les parcours étudiants internationaux combinent devises, preuves financières, transferts, frais académiques, justificatifs et contraintes consulaires. AVI CERTIFY aide à rendre ces étapes lisibles.
             </p>
           </div>
 
@@ -355,7 +355,7 @@ export default function HomePage() {
           </div>
 
           <p className="mt-8 text-center text-sm text-muted-foreground">
-            Institutions financières internationales présentes dans les parcours de mobilité étudiante
+            Institutions financières internationales présentes dans les parcours de mobilité étudiante, notamment pour les paiements et transferts multi-devises.
           </p>
         </div>
       </section>

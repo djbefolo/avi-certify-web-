@@ -58,21 +58,19 @@ export default async function ServiceDetailPage({ params }: ServicePageProps) {
         <div className="rounded-md border bg-card p-5">
           <h2 className="text-xl font-semibold">Ce service inclut</h2>
           <ul className="mt-5 space-y-3 text-muted-foreground">
-            <li>Analyse du besoin et du pays d'étude visé.</li>
-            <li>Liste claire des informations et documents à préparer.</li>
-            <li>Suivi humain jusqu'à la prochaine étape du dossier.</li>
+            {service.detail.includes.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
           </ul>
         </div>
         <div>
-          <h2 className="text-2xl font-semibold">Objectif</h2>
+          <h2 className="text-2xl font-semibold">{service.detail.objectiveTitle}</h2>
           <p className="mt-4 leading-8 text-muted-foreground">
-            AVI CERTIFY vous aide à identifier les pièces nécessaires, à
-            structurer vos informations et à avancer avec un conseiller jusqu'à
-            la validation de la prochaine étape.
+            {service.detail.objective}
           </p>
           <Button className="mt-8" asChild>
             <Link href="/contact">
-              Demander un accompagnement
+              {service.detail.ctaLabel}
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Link>
           </Button>
