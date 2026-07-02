@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { SuperAdminOperationsOS } from "@/components/admin/super-admin-operations-os";
 import type {
   AdminCaseEvent,
@@ -191,17 +191,46 @@ function jsonResponse(body: unknown) {
   } as Response;
 }
 
+function manualAviPdfResponse() {
+  return {
+    ok: true,
+    status: 200,
+    statusText: "OK",
+    headers: {
+      get: (name: string) =>
+        name.toLowerCase() === "x-avi-reference"
+          ? "AVI-2026-MANUAL-TEST01"
+          : null,
+    },
+    blob: async () => new Blob(["%PDF manual AVI"], { type: "application/pdf" }),
+  } as Response;
+}
+
 function mockOperationsFetch({
   certificateResponse,
   documents = [documentRow],
   clientCertificates = [],
+  manualAviError,
 }: {
   certificateResponse?: Record<string, unknown>;
   documents?: ClientDocument[];
   clientCertificates?: Array<Record<string, unknown>>;
+  manualAviError?: string;
 } = {}) {
   const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
     const url = String(input);
+    if (url.includes("/api/admin/avi/generate")) {
+      if (manualAviError) {
+        return {
+          ok: false,
+          status: 400,
+          statusText: "Bad Request",
+          json: async () => ({ error: manualAviError }),
+        } as Response;
+      }
+
+      return manualAviPdfResponse();
+    }
     if (url.includes("/api/admin/operations/sync-auth-users")) {
       return jsonResponse({ result: { synced: 1, created: 1, updated: 0 } });
     }
@@ -324,6 +353,29 @@ function mockOperationsFetch({
 
   vi.stubGlobal("fetch", fetchMock);
   return fetchMock;
+}
+
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
+
+function mockDownloadApis() {
+  const createObjectURL = vi.fn(() => "blob:manual-avi");
+  const revokeObjectURL = vi.fn();
+  Object.defineProperty(URL, "createObjectURL", {
+    configurable: true,
+    value: createObjectURL,
+  });
+  Object.defineProperty(URL, "revokeObjectURL", {
+    configurable: true,
+    value: revokeObjectURL,
+  });
+  const click = vi
+    .spyOn(HTMLAnchorElement.prototype, "click")
+    .mockImplementation(() => undefined);
+
+  return { createObjectURL, revokeObjectURL, click };
 }
 
 function getGenerateCertificateButton() {
@@ -624,6 +676,68 @@ describe("SuperAdminOperationsOS", () => {
     expect(await screen.findByText("attestation-hebergement-avi-certify.pdf")).toBeInTheDocument();
     expect(screen.getByText("Awa Student")).toBeInTheDocument();
     expect(screen.getByText("APPROVED")).toBeInTheDocument();
+  });
+
+  it("renders the manual AVI generator and downloads the generated PDF", async () => {
+    const fetchMock = mockOperationsFetch();
+    const downloadMocks = mockDownloadApis();
+    const user = userEvent.setup();
+
+    render(<SuperAdminOperationsOS adminRole="super_admin" adminEmail="admin@avicertify.fr" />);
+
+    await screen.findByText("AVI CERTIFY Super Admin Operations OS");
+    await user.click(screen.getAllByRole("button", { name: "Attestations / AVI" })[0]);
+
+    expect(await screen.findByText("Generateur AVI manuel")).toBeInTheDocument();
+    await user.type(screen.getByLabelText(/Nom complet client/i), "Awa Student");
+    await user.type(screen.getByLabelText(/Montant AVI/i), "7420");
+    await user.type(screen.getByLabelText(/Reference AVI/i), "AVI-2026-MANUAL-TEST01");
+    await user.type(screen.getByLabelText(/Email client/i), "awa@example.com");
+    await user.click(screen.getByRole("button", { name: "Generer l'AVI" }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/admin/avi/generate",
+        expect.objectContaining({
+          method: "POST",
+          credentials: "same-origin",
+        }),
+      );
+    });
+
+    const call = fetchMock.mock.calls.find(([url]) =>
+      String(url).includes("/api/admin/avi/generate"),
+    ) as [RequestInfo | URL, RequestInit] | undefined;
+    const body = JSON.parse(String(call?.[1]?.body));
+
+    expect(body).toMatchObject({
+      studentFullName: "Awa Student",
+      aviAmount: 7420,
+      currency: "EUR",
+      academicYear: "2026-2027",
+      destinationCountry: "France",
+      aviReference: "AVI-2026-MANUAL-TEST01",
+      studentEmail: "awa@example.com",
+    });
+    expect(downloadMocks.createObjectURL).toHaveBeenCalled();
+    expect(downloadMocks.click).toHaveBeenCalled();
+    expect(await screen.findByText(/AVI AVI-2026-MANUAL-TEST01 generee/i)).toBeInTheDocument();
+  });
+
+  it("shows an error when manual AVI generation fails", async () => {
+    mockOperationsFetch({ manualAviError: "Payload AVI invalide." });
+    mockDownloadApis();
+    const user = userEvent.setup();
+
+    render(<SuperAdminOperationsOS adminRole="super_admin" adminEmail="admin@avicertify.fr" />);
+
+    await screen.findByText("AVI CERTIFY Super Admin Operations OS");
+    await user.click(screen.getAllByRole("button", { name: "Attestations / AVI" })[0]);
+    await user.type(screen.getByLabelText(/Nom complet client/i), "Awa Student");
+    await user.type(screen.getByLabelText(/Montant AVI/i), "7420");
+    await user.click(screen.getByRole("button", { name: "Generer l'AVI" }));
+
+    expect(await screen.findByText("Payload AVI invalide.")).toBeInTheDocument();
   });
 
   it("resolves document identity and approve/reject actions without primary raw UID display", async () => {

@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { FintechCommandCenter } from "@/components/admin/fintech-command-center";
 import type { AdminRole } from "@/lib/admin/admin-auth";
 import {
@@ -97,6 +98,47 @@ const tabs = [
 
 type TabKey = (typeof tabs)[number][1];
 type FinanceSection = "simulateur" | "simulations" | "devis" | "rapports";
+type ManualAviFormState = {
+  studentFullName: string;
+  studentDateOfBirth: string;
+  studentPlaceOfBirth: string;
+  studentEmail: string;
+  destinationCountry: string;
+  originCountry: string;
+  aviAmount: string;
+  currency: string;
+  academicYear: string;
+  schoolName: string;
+  issueDate: string;
+  validUntil: string;
+  aviReference: string;
+  internalCaseReference: string;
+  notesForAdmin: string;
+};
+
+function todayInputValue() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function defaultManualAviForm(): ManualAviFormState {
+  return {
+    studentFullName: "",
+    studentDateOfBirth: "",
+    studentPlaceOfBirth: "",
+    studentEmail: "",
+    destinationCountry: "France",
+    originCountry: "",
+    aviAmount: "",
+    currency: "EUR",
+    academicYear: "2026-2027",
+    schoolName: "",
+    issueDate: todayInputValue(),
+    validUntil: "",
+    aviReference: "",
+    internalCaseReference: "",
+    notesForAdmin: "",
+  };
+}
 
 function apiHeaders() {
   return { "content-type": "application/json" };
@@ -1415,6 +1457,7 @@ function CertificatesPanel({
           Attestations reellement generees et rattachees aux dossiers clients.
         </p>
       </div>
+      <ManualAviGeneratorPanel />
       {certificates.length ? (
         <div className="overflow-x-auto rounded-lg border bg-white shadow-sm">
           <table className="w-full min-w-[860px] text-left text-sm">
@@ -1452,6 +1495,211 @@ function CertificatesPanel({
           text="Les attestations apparaissent ici uniquement apres une generation reussie."
         />
       )}
+    </section>
+  );
+}
+
+function compactManualAviPayload(form: ManualAviFormState) {
+  const payload: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(form)) {
+    const trimmed = value.trim();
+    if (!trimmed) continue;
+
+    payload[key] =
+      key === "aviAmount" ? Number(trimmed.replace(/\s/g, "").replace(",", ".")) : trimmed;
+  }
+
+  return payload;
+}
+
+async function readManualAviError(response: Response) {
+  try {
+    const body = (await response.json()) as { error?: unknown };
+    if (typeof body.error === "string" && body.error.trim()) {
+      return body.error;
+    }
+  } catch {
+    // The route normally returns JSON on errors, but keep a safe fallback.
+  }
+
+  return "Generation AVI impossible.";
+}
+
+function downloadBlob(blob: Blob, filename: string) {
+  if (typeof URL.createObjectURL !== "function") {
+    return;
+  }
+
+  const objectUrl = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = objectUrl;
+  link.download = filename;
+  link.rel = "noopener";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(objectUrl);
+}
+
+function ManualAviGeneratorPanel() {
+  const [form, setForm] = useState<ManualAviFormState>(() => defaultManualAviForm());
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [manualAviError, setManualAviError] = useState<string | null>(null);
+  const [manualAviNotice, setManualAviNotice] = useState<string | null>(null);
+
+  function updateField(field: keyof ManualAviFormState, value: string) {
+    setForm((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  }
+
+  async function generateManualAvi(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setIsGenerating(true);
+    setManualAviError(null);
+    setManualAviNotice(null);
+
+    try {
+      const response = await fetch("/api/admin/avi/generate", {
+        method: "POST",
+        cache: "no-store",
+        credentials: "same-origin",
+        headers: apiHeaders(),
+        body: JSON.stringify(compactManualAviPayload(form)),
+      });
+
+      if (!response.ok) {
+        throw new Error(await readManualAviError(response));
+      }
+
+      const blob = await response.blob();
+      const reference =
+        response.headers.get("X-AVI-Reference") ??
+        form.aviReference.trim() ??
+        "AVI-MANUAL";
+
+      downloadBlob(blob, `${reference}.pdf`);
+      setManualAviNotice(
+        `AVI ${reference} generee. Verifier les informations avant usage officiel.`,
+      );
+    } catch (error) {
+      setManualAviError(
+        error instanceof Error ? error.message : "Generation AVI impossible.",
+      );
+    } finally {
+      setIsGenerating(false);
+    }
+  }
+
+  return (
+    <section className="rounded-xl border border-blue-100 bg-white p-4 shadow-sm" aria-labelledby="manual-avi-title">
+      <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-start">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">
+            Admin only - generation manuelle
+          </p>
+          <h3 id="manual-avi-title" className="mt-1 text-lg font-semibold">
+            Generateur AVI manuel
+          </h3>
+          <p className="mt-1 max-w-3xl text-sm text-slate-600">
+            Genere un PDF a telecharger directement. Cette v1 ne persiste rien,
+            n'envoie aucun email et ne se declenche jamais depuis Stripe.
+          </p>
+        </div>
+        <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
+          Verifier avant usage officiel
+        </span>
+      </div>
+
+      {manualAviError ? (
+        <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-800">
+          {manualAviError}
+        </div>
+      ) : null}
+      {manualAviNotice ? (
+        <div role="status" className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-900">
+          {manualAviNotice}
+        </div>
+      ) : null}
+
+      <form className="mt-5 grid gap-4" onSubmit={generateManualAvi}>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <label className="grid gap-1 text-sm font-medium text-slate-700">
+            Nom complet client *
+            <Input value={form.studentFullName} onChange={(event) => updateField("studentFullName", event.target.value)} required />
+          </label>
+          <label className="grid gap-1 text-sm font-medium text-slate-700">
+            Montant AVI *
+            <Input type="number" min="1" step="0.01" value={form.aviAmount} onChange={(event) => updateField("aviAmount", event.target.value)} required />
+          </label>
+          <label className="grid gap-1 text-sm font-medium text-slate-700">
+            Devise
+            <Input value={form.currency} maxLength={3} onChange={(event) => updateField("currency", event.target.value.toUpperCase())} />
+          </label>
+          <label className="grid gap-1 text-sm font-medium text-slate-700">
+            Annee academique *
+            <Input value={form.academicYear} onChange={(event) => updateField("academicYear", event.target.value)} required />
+          </label>
+          <label className="grid gap-1 text-sm font-medium text-slate-700">
+            Destination
+            <Input value={form.destinationCountry} onChange={(event) => updateField("destinationCountry", event.target.value)} />
+          </label>
+          <label className="grid gap-1 text-sm font-medium text-slate-700">
+            Date d'emission
+            <Input type="date" value={form.issueDate} onChange={(event) => updateField("issueDate", event.target.value)} />
+          </label>
+          <label className="grid gap-1 text-sm font-medium text-slate-700">
+            Reference AVI
+            <Input placeholder="AVI-2026-MANUAL-ABC123" value={form.aviReference} onChange={(event) => updateField("aviReference", event.target.value)} />
+          </label>
+          <label className="grid gap-1 text-sm font-medium text-slate-700">
+            Email client
+            <Input type="email" value={form.studentEmail} onChange={(event) => updateField("studentEmail", event.target.value)} />
+          </label>
+          <label className="grid gap-1 text-sm font-medium text-slate-700">
+            Ecole
+            <Input value={form.schoolName} onChange={(event) => updateField("schoolName", event.target.value)} />
+          </label>
+          <label className="grid gap-1 text-sm font-medium text-slate-700">
+            Date de naissance
+            <Input type="date" value={form.studentDateOfBirth} onChange={(event) => updateField("studentDateOfBirth", event.target.value)} />
+          </label>
+          <label className="grid gap-1 text-sm font-medium text-slate-700">
+            Lieu de naissance
+            <Input value={form.studentPlaceOfBirth} onChange={(event) => updateField("studentPlaceOfBirth", event.target.value)} />
+          </label>
+          <label className="grid gap-1 text-sm font-medium text-slate-700">
+            Pays d'origine
+            <Input value={form.originCountry} onChange={(event) => updateField("originCountry", event.target.value)} />
+          </label>
+          <label className="grid gap-1 text-sm font-medium text-slate-700">
+            Valide jusqu'au
+            <Input type="date" value={form.validUntil} onChange={(event) => updateField("validUntil", event.target.value)} />
+          </label>
+          <label className="grid gap-1 text-sm font-medium text-slate-700">
+            Reference dossier interne
+            <Input value={form.internalCaseReference} onChange={(event) => updateField("internalCaseReference", event.target.value)} />
+          </label>
+        </div>
+        <label className="grid gap-1 text-sm font-medium text-slate-700">
+          Notes admin internes
+          <Textarea
+            value={form.notesForAdmin}
+            onChange={(event) => updateField("notesForAdmin", event.target.value)}
+            placeholder="Note interne non imprimee sur le PDF"
+          />
+        </label>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button type="submit" disabled={isGenerating}>
+            {isGenerating ? "Generation..." : "Generer l'AVI"}
+          </Button>
+          <p className="text-xs text-slate-500">
+            Pas de Storage path, pas d'HTML brut, pas de creation client_cases.
+          </p>
+        </div>
+      </form>
     </section>
   );
 }
