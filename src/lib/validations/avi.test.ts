@@ -15,7 +15,7 @@ describe("manual AVI validation", () => {
       currency: "eur",
       academicYear: "2026-2027",
       issueDate: "2026-07-02",
-      aviReference: "AVI-2026-MANUAL-TEST01",
+      aviReference: "AVI-FR-26-CMR-01-TEST01",
       notesForAdmin: "Internal note only.",
     });
 
@@ -23,7 +23,7 @@ describe("manual AVI validation", () => {
       studentFullName: "Awa Student",
       aviAmount: 7420.5,
       currency: "EUR",
-      aviReference: "AVI-2026-MANUAL-TEST01",
+      aviReference: "AVI-FR-26-CMR-01-TEST01",
       templateVersion: manualAviTemplateVersion,
       notesForAdmin: "Internal note only.",
     });
@@ -57,8 +57,7 @@ describe("manual AVI validation", () => {
 
   it("generates a readable manual reference without a Firestore counter", () => {
     expect(buildManualAviReference("2026-07-02", "abc123ef")).toBe(
-      "AVI-2026-MANUAL-ABC123EF",
+      "AVI-FR-26-CMR-01-ABC123EF",
     );
   });
 });
-

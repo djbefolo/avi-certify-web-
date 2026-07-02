@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { adminErrorResponse, requireAdmin } from "@/lib/admin/admin-auth";
-import { generateManualAviPdf } from "@/lib/avi/manual-avi-pdf.service";
+import { generateAndStoreManualAvi } from "@/lib/avi/manual-avi-pdf.service";
 import { parseManualAviPayload } from "@/lib/validations/avi";
 
 export const runtime = "nodejs";
@@ -111,25 +111,19 @@ async function readBoundedJson(request: NextRequest) {
   }
 }
 
-function filenameForReference(reference: string) {
-  return `${reference.replace(/[^A-Za-z0-9_-]/g, "-")}.pdf`;
-}
-
 export async function POST(request: NextRequest) {
   try {
-    await requireAdmin(request);
+    const actor = await requireAdmin(request);
     const body = await readBoundedJson(request);
     const payload = parseManualAviPayload(body);
-    const pdf = await generateManualAviPdf(payload);
+    const result = await generateAndStoreManualAvi({ payload, actor });
 
-    return new NextResponse(new Uint8Array(pdf), {
-      status: 200,
+    return NextResponse.json(result, {
+      status: 201,
       headers: {
-        "Cache-Control": "private, no-store",
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${filenameForReference(payload.aviReference)}"`,
+        "Cache-Control": "no-store",
         "X-Content-Type-Options": "nosniff",
-        "X-AVI-Reference": payload.aviReference,
+        "X-AVI-Reference": result.reference,
         "X-AVI-Template": payload.templateVersion,
       },
     });
@@ -152,4 +146,3 @@ export async function POST(request: NextRequest) {
     return adminErrorResponse(error);
   }
 }
-

@@ -191,18 +191,24 @@ function jsonResponse(body: unknown) {
   } as Response;
 }
 
-function manualAviPdfResponse() {
+function manualAviResponse() {
   return {
     ok: true,
-    status: 200,
-    statusText: "OK",
-    headers: {
-      get: (name: string) =>
-        name.toLowerCase() === "x-avi-reference"
-          ? "AVI-2026-MANUAL-TEST01"
-          : null,
-    },
-    blob: async () => new Blob(["%PDF manual AVI"], { type: "application/pdf" }),
+    status: 201,
+    statusText: "Created",
+    json: async () => ({
+      generated: true,
+      reference: "AVI-FR-26-CMR-01-00001011",
+      documentId: "AVI-FR-26-CMR-01-00001011",
+      aviNumberDisplay: "AVI/FR/26/CMR/01/00001011",
+      verificationCode: "AVI-FR-26-CMR-01-00001011",
+      verificationUrl: "https://verify.avicertify.fr/AVI-FR-26-CMR-01-00001011",
+      storagePath: "avi-certificates/AVI-FR-26-CMR-01-00001011.pdf",
+      htmlStoragePath: "avi-certificates/AVI-FR-26-CMR-01-00001011.html",
+      downloadUrl: "/api/admin/avi/AVI-FR-26-CMR-01-00001011/download",
+      templateName: "avi-certificate-europe-france.html",
+      pdfGenerationEngine: "chromium-html",
+    }),
   } as Response;
 }
 
@@ -229,7 +235,7 @@ function mockOperationsFetch({
         } as Response;
       }
 
-      return manualAviPdfResponse();
+      return manualAviResponse();
     }
     if (url.includes("/api/admin/operations/sync-auth-users")) {
       return jsonResponse({ result: { synced: 1, created: 1, updated: 0 } });
@@ -360,22 +366,8 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function mockDownloadApis() {
-  const createObjectURL = vi.fn(() => "blob:manual-avi");
-  const revokeObjectURL = vi.fn();
-  Object.defineProperty(URL, "createObjectURL", {
-    configurable: true,
-    value: createObjectURL,
-  });
-  Object.defineProperty(URL, "revokeObjectURL", {
-    configurable: true,
-    value: revokeObjectURL,
-  });
-  const click = vi
-    .spyOn(HTMLAnchorElement.prototype, "click")
-    .mockImplementation(() => undefined);
-
-  return { createObjectURL, revokeObjectURL, click };
+function mockWindowOpen() {
+  return vi.spyOn(window, "open").mockImplementation(() => null);
 }
 
 function getGenerateCertificateButton() {
@@ -678,9 +670,9 @@ describe("SuperAdminOperationsOS", () => {
     expect(screen.getByText("APPROVED")).toBeInTheDocument();
   });
 
-  it("renders the manual AVI generator and downloads the generated PDF", async () => {
+  it("renders the manual AVI generator and exposes the stored PDF download", async () => {
     const fetchMock = mockOperationsFetch();
-    const downloadMocks = mockDownloadApis();
+    const windowOpen = mockWindowOpen();
     const user = userEvent.setup();
 
     render(<SuperAdminOperationsOS adminRole="super_admin" adminEmail="admin@avicertify.fr" />);
@@ -691,7 +683,7 @@ describe("SuperAdminOperationsOS", () => {
     expect(await screen.findByText("Generateur AVI manuel")).toBeInTheDocument();
     await user.type(screen.getByLabelText(/Nom complet client/i), "Awa Student");
     await user.type(screen.getByLabelText(/Montant AVI/i), "7420");
-    await user.type(screen.getByLabelText(/Reference AVI/i), "AVI-2026-MANUAL-TEST01");
+    await user.type(screen.getByLabelText(/Reference AVI/i), "AVI-FR-26-CMR-01-00001011");
     await user.type(screen.getByLabelText(/Email client/i), "awa@example.com");
     await user.click(screen.getByRole("button", { name: "Generer l'AVI" }));
 
@@ -716,17 +708,26 @@ describe("SuperAdminOperationsOS", () => {
       currency: "EUR",
       academicYear: "2026-2027",
       destinationCountry: "France",
-      aviReference: "AVI-2026-MANUAL-TEST01",
+      aviReference: "AVI-FR-26-CMR-01-00001011",
       studentEmail: "awa@example.com",
     });
-    expect(downloadMocks.createObjectURL).toHaveBeenCalled();
-    expect(downloadMocks.click).toHaveBeenCalled();
-    expect(await screen.findByText(/AVI AVI-2026-MANUAL-TEST01 generee/i)).toBeInTheDocument();
+    expect(await screen.findByText(/AVI AVI-FR-26-CMR-01-00001011 generee/i)).toBeInTheDocument();
+    expect(screen.getByText("AVI/FR/26/CMR/01/00001011")).toBeInTheDocument();
+    expect(screen.getByText("avi-certificates/AVI-FR-26-CMR-01-00001011.pdf")).toBeInTheDocument();
+    expect(screen.getByText("https://verify.avicertify.fr/AVI-FR-26-CMR-01-00001011")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Telecharger le PDF officiel" }));
+
+    expect(windowOpen).toHaveBeenCalledWith(
+      "/api/admin/avi/AVI-FR-26-CMR-01-00001011/download",
+      "_blank",
+      "noopener,noreferrer",
+    );
   });
 
   it("shows an error when manual AVI generation fails", async () => {
     mockOperationsFetch({ manualAviError: "Payload AVI invalide." });
-    mockDownloadApis();
+    mockWindowOpen();
     const user = userEvent.setup();
 
     render(<SuperAdminOperationsOS adminRole="super_admin" adminEmail="admin@avicertify.fr" />);

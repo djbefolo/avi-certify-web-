@@ -115,6 +115,19 @@ type ManualAviFormState = {
   internalCaseReference: string;
   notesForAdmin: string;
 };
+type ManualAviGenerationResult = {
+  generated: true;
+  reference: string;
+  documentId: string;
+  aviNumberDisplay: string;
+  verificationCode: string;
+  verificationUrl: string;
+  storagePath: string;
+  htmlStoragePath: string;
+  downloadUrl: string;
+  templateName: string;
+  pdfGenerationEngine: string;
+};
 
 function todayInputValue() {
   return new Date().toISOString().slice(0, 10);
@@ -1526,27 +1539,13 @@ async function readManualAviError(response: Response) {
   return "Generation AVI impossible.";
 }
 
-function downloadBlob(blob: Blob, filename: string) {
-  if (typeof URL.createObjectURL !== "function") {
-    return;
-  }
-
-  const objectUrl = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = objectUrl;
-  link.download = filename;
-  link.rel = "noopener";
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(objectUrl);
-}
-
 function ManualAviGeneratorPanel() {
   const [form, setForm] = useState<ManualAviFormState>(() => defaultManualAviForm());
   const [isGenerating, setIsGenerating] = useState(false);
   const [manualAviError, setManualAviError] = useState<string | null>(null);
   const [manualAviNotice, setManualAviNotice] = useState<string | null>(null);
+  const [manualAviResult, setManualAviResult] =
+    useState<ManualAviGenerationResult | null>(null);
 
   function updateField(field: keyof ManualAviFormState, value: string) {
     setForm((current) => ({
@@ -1560,6 +1559,7 @@ function ManualAviGeneratorPanel() {
     setIsGenerating(true);
     setManualAviError(null);
     setManualAviNotice(null);
+    setManualAviResult(null);
 
     try {
       const response = await fetch("/api/admin/avi/generate", {
@@ -1574,15 +1574,10 @@ function ManualAviGeneratorPanel() {
         throw new Error(await readManualAviError(response));
       }
 
-      const blob = await response.blob();
-      const reference =
-        response.headers.get("X-AVI-Reference") ??
-        form.aviReference.trim() ??
-        "AVI-MANUAL";
-
-      downloadBlob(blob, `${reference}.pdf`);
+      const result = (await response.json()) as ManualAviGenerationResult;
+      setManualAviResult(result);
       setManualAviNotice(
-        `AVI ${reference} generee. Verifier les informations avant usage officiel.`,
+        `AVI ${result.reference} generee, stockee et prete a verifier.`,
       );
     } catch (error) {
       setManualAviError(
@@ -1604,8 +1599,9 @@ function ManualAviGeneratorPanel() {
             Generateur AVI manuel
           </h3>
           <p className="mt-1 max-w-3xl text-sm text-slate-600">
-            Genere un PDF a telecharger directement. Cette v1 ne persiste rien,
-            n'envoie aucun email et ne se declenche jamais depuis Stripe.
+            Genere le PDF officiel depuis les templates AVI CERTIFY,
+            l'enregistre dans Firebase Storage et cree les metadonnees de verification.
+            Aucun email et aucun declenchement Stripe.
           </p>
         </div>
         <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">
@@ -1621,6 +1617,37 @@ function ManualAviGeneratorPanel() {
       {manualAviNotice ? (
         <div role="status" className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm font-medium text-emerald-900">
           {manualAviNotice}
+        </div>
+      ) : null}
+      {manualAviResult ? (
+        <div className="mt-4 grid gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950 md:grid-cols-2">
+          <div>
+            <span className="block text-xs font-semibold uppercase text-emerald-700">Reference AVI</span>
+            <span className="font-mono text-xs">{manualAviResult.aviNumberDisplay}</span>
+          </div>
+          <div>
+            <span className="block text-xs font-semibold uppercase text-emerald-700">Code verification</span>
+            <span className="font-mono text-xs">{manualAviResult.verificationCode}</span>
+          </div>
+          <div>
+            <span className="block text-xs font-semibold uppercase text-emerald-700">Storage PDF</span>
+            <span className="font-mono text-xs">{manualAviResult.storagePath}</span>
+          </div>
+          <div>
+            <span className="block text-xs font-semibold uppercase text-emerald-700">Template</span>
+            <span className="font-mono text-xs">{manualAviResult.templateName}</span>
+          </div>
+          <div className="md:col-span-2">
+            <span className="block text-xs font-semibold uppercase text-emerald-700">Verification publique</span>
+            <a className="font-mono text-xs underline" href={manualAviResult.verificationUrl} target="_blank" rel="noreferrer">
+              {manualAviResult.verificationUrl}
+            </a>
+          </div>
+          <div className="md:col-span-2">
+            <Button type="button" variant="outline" onClick={() => window.open(manualAviResult.downloadUrl, "_blank", "noopener,noreferrer")}>
+              Telecharger le PDF officiel
+            </Button>
+          </div>
         </div>
       ) : null}
 
@@ -1696,7 +1723,7 @@ function ManualAviGeneratorPanel() {
             {isGenerating ? "Generation..." : "Generer l'AVI"}
           </Button>
           <p className="text-xs text-slate-500">
-            Pas de Storage path, pas d'HTML brut, pas de creation client_cases.
+            Pas de Storage path accepte depuis le client, pas d'HTML brut, pas de creation client_cases.
           </p>
         </div>
       </form>

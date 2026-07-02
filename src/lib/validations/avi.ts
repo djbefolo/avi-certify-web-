@@ -76,9 +76,14 @@ export const manualAviPayloadSchema = z
     issueDate: safeDate.default(todayIsoDate),
     validUntil: safeDate,
     aviReference: optionalText(80).refine(
-      (value) => !value || /^[A-Za-z0-9_-]{6,80}$/.test(value),
+      (value) => !value || /^[A-Za-z0-9_/-]{6,80}$/.test(value),
       { message: "Reference AVI invalide." },
     ),
+    seriesCode: optionalText(8).refine(
+      (value) => !value || /^[A-Za-z0-9]{1,8}$/.test(value),
+      { message: "Serie AVI invalide." },
+    ),
+    studentCivility: optionalText(24),
     internalCaseReference: optionalText(120),
     notesForAdmin: optionalText(500),
   })
@@ -86,19 +91,15 @@ export const manualAviPayloadSchema = z
 
 export type ManualAviPayloadInput = z.input<typeof manualAviPayloadSchema>;
 export type ManualAviPayload = z.output<typeof manualAviPayloadSchema> & {
-  aviReference: string;
   templateVersion: typeof manualAviTemplateVersion;
 };
 
-function yearFromIssueDate(issueDate: string) {
-  return issueDate.slice(0, 4);
-}
-
 export function buildManualAviReference(
   issueDate = todayIsoDate(),
-  randomId = crypto.randomUUID().replace(/-/g, "").slice(0, 8),
+  randomId = String(Math.floor(Math.random() * 99_999_999) + 1).padStart(8, "0"),
 ) {
-  return `AVI-${yearFromIssueDate(issueDate)}-MANUAL-${randomId.toUpperCase()}`;
+  const year = issueDate.slice(2, 4);
+  return `AVI-FR-${year}-CMR-01-${randomId.toUpperCase()}`;
 }
 
 export function parseManualAviPayload(input: unknown): ManualAviPayload {
@@ -106,9 +107,6 @@ export function parseManualAviPayload(input: unknown): ManualAviPayload {
 
   return {
     ...parsed,
-    aviReference:
-      parsed.aviReference ?? buildManualAviReference(parsed.issueDate),
     templateVersion: manualAviTemplateVersion,
   };
 }
-

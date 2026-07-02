@@ -1,6 +1,12 @@
 import { NextRequest } from "next/server";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { POST } from "./route";
+
+const generateAndStoreManualAvi = vi.hoisted(() => vi.fn());
+
+vi.mock("@/lib/avi/manual-avi-pdf.service", () => ({
+  generateAndStoreManualAvi,
+}));
 
 function request(body: unknown, headers: Record<string, string> = {}) {
   return new NextRequest("http://localhost/api/admin/avi/generate", {
@@ -14,23 +20,50 @@ function request(body: unknown, headers: Record<string, string> = {}) {
   });
 }
 
+const validPayload = {
+  studentFullName: "Awa Student",
+  studentEmail: "awa@example.com",
+  destinationCountry: "France",
+  originCountry: "Cameroun",
+  aviAmount: 7420,
+  currency: "EUR",
+  academicYear: "2026-2027",
+  issueDate: "2026-07-02",
+  aviReference: "AVI-FR-26-CMR-01-00001011",
+  notesForAdmin: "Internal note only.",
+};
+
 describe("/api/admin/avi/generate", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    generateAndStoreManualAvi.mockResolvedValue({
+      generated: true,
+      reference: "AVI-FR-26-CMR-01-00001011",
+      documentId: "AVI-FR-26-CMR-01-00001011",
+      aviNumberDisplay: "AVI/FR/26/CMR/01/00001011",
+      verificationCode: "AVI-FR-26-CMR-01-00001011",
+      verificationUrl: "https://verify.avicertify.fr/AVI-FR-26-CMR-01-00001011",
+      storagePath: "avi-certificates/AVI-FR-26-CMR-01-00001011.pdf",
+      htmlStoragePath: "avi-certificates/AVI-FR-26-CMR-01-00001011.html",
+      downloadUrl: "/api/admin/avi/AVI-FR-26-CMR-01-00001011/download",
+      templateName: "avi-certificate-europe-france.html",
+      templateKey: "EUROPE_FRANCE",
+      pdfTemplateTitle: "ATTESTATION DE VIREMENT IRREVOCABLE",
+      pdfGenerationEngine: "chromium-html",
+      size: 1024,
+    });
+  });
+
   it("requires admin authentication", async () => {
     const response = await POST(
-      request(
-        {
-          studentFullName: "Awa Student",
-          aviAmount: 7420,
-          academicYear: "2026-2027",
-        },
-        { "x-admin-dev-token": "" },
-      ),
+      request(validPayload, { "x-admin-dev-token": "" }),
     );
 
     expect(response.status).toBe(401);
+    expect(generateAndStoreManualAvi).not.toHaveBeenCalled();
   });
 
-  it("rejects invalid payloads before PDF generation", async () => {
+  it("rejects invalid payloads before generation", async () => {
     const response = await POST(
       request({
         studentFullName: "",
@@ -42,6 +75,7 @@ describe("/api/admin/avi/generate", () => {
 
     expect(response.status).toBe(400);
     expect(body.error).toBe("Payload AVI invalide.");
+    expect(generateAndStoreManualAvi).not.toHaveBeenCalled();
   });
 
   it("rejects invalid amounts", async () => {
@@ -54,46 +88,42 @@ describe("/api/admin/avi/generate", () => {
     );
 
     expect(response.status).toBe(400);
+    expect(generateAndStoreManualAvi).not.toHaveBeenCalled();
   });
 
   it("rejects oversized payloads", async () => {
     const response = await POST(
-      request(
-        {
-          studentFullName: "Awa Student",
-          aviAmount: 7420,
-          academicYear: "2026-2027",
-        },
-        { "content-length": "20000" },
-      ),
+      request(validPayload, { "content-length": "20000" }),
     );
     const body = await response.json();
 
     expect(response.status).toBe(413);
     expect(body.error).toMatch(/trop volumineuse/i);
+    expect(generateAndStoreManualAvi).not.toHaveBeenCalled();
   });
 
-  it("returns an attachment PDF for a valid admin request", async () => {
-    const response = await POST(
-      request({
+  it("stores an official AVI and returns verification metadata", async () => {
+    const response = await POST(request(validPayload));
+    const body = await response.json();
+
+    expect(response.status).toBe(201);
+    expect(response.headers.get("x-avi-reference")).toBe("AVI-FR-26-CMR-01-00001011");
+    expect(generateAndStoreManualAvi).toHaveBeenCalledWith({
+      actor: expect.objectContaining({ uid: "local-admin" }),
+      payload: expect.objectContaining({
         studentFullName: "Awa Student",
-        studentEmail: "awa@example.com",
-        destinationCountry: "France",
         aviAmount: 7420,
-        currency: "EUR",
-        academicYear: "2026-2027",
-        issueDate: "2026-07-02",
-        aviReference: "AVI-2026-MANUAL-TEST01",
         notesForAdmin: "Internal note only.",
       }),
-    );
-    const buffer = Buffer.from(await response.arrayBuffer());
-
-    expect(response.status).toBe(200);
-    expect(response.headers.get("content-type")).toBe("application/pdf");
-    expect(response.headers.get("content-disposition")).toContain("attachment");
-    expect(response.headers.get("x-avi-reference")).toBe("AVI-2026-MANUAL-TEST01");
-    expect(buffer.subarray(0, 4).toString()).toBe("%PDF");
+    });
+    expect(body).toMatchObject({
+      generated: true,
+      reference: "AVI-FR-26-CMR-01-00001011",
+      verificationUrl: "https://verify.avicertify.fr/AVI-FR-26-CMR-01-00001011",
+      storagePath: "avi-certificates/AVI-FR-26-CMR-01-00001011.pdf",
+      downloadUrl: "/api/admin/avi/AVI-FR-26-CMR-01-00001011/download",
+      pdfGenerationEngine: "chromium-html",
+    });
   });
 });
 
