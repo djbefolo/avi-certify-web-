@@ -44,7 +44,7 @@ export default function HomePage() {
               Société immatriculée • Documents vérifiables
             </div>
             <h1 className="text-balance text-4xl font-semibold leading-tight tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-              Votre projet d'études en France mérite un accompagnement sérieux
+              Votre projet de mobilité mérite un accompagnement sérieux
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
               AVI CERTIFY accompagne vos projets de mobilité en Europe et au Canada : AVI, preuve de fonds, virements internationaux, paiement de frais de scolarité, attestation de logement, visa et suivi documentaire humain.
