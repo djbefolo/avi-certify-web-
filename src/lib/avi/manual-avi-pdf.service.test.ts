@@ -131,6 +131,7 @@ function payload() {
     academicYear: "2026-2027",
     schoolName: "Universite test",
     issueDate: "2026-07-02",
+    studentCivility: "Madame",
     internalCaseReference: "CASE-1",
     notesForAdmin: "Do not print this note.",
   });
@@ -142,6 +143,18 @@ const actor = {
   role: "admin" as const,
   authProvider: "dev-token" as const,
 };
+
+const franceLegalFooterText =
+  "AVI CERTIFY est une société de courtage financier régie par le Code Monétaire et Financier Français, immatriculée au registre des intermédiaires en opérations de banque et service de paiement sous le N°25005516 (www.orias.fr) et ayant souscrit à une assurance Responsabilité Civile Professionnelle (police N°BZIOB0001804) est une garantie financière (police N°BZIOB001804) auprès de l’assureur Lloyd’s Insurance Company S.A, représentée par +Simple (www.plusimple.fr), en application des articles L.519-3-4 et R.519-16-17 du Code Monétaire et Financier. AVI CERTIFY est partenaire de BNP PARIBAS, établissement de crédit de droit français agrée et supervisé conformément à la réglementation bancaire applicable, SA au capital de 2 233 569 514 euros, immatriculée au RCS de Paris sous le numéro 662 042 449, et dont le siège social est situé : 16 Boulevard des Italiens, 75009 Paris. AVI CERTIFY exerce ses activités sous le contrôle de l’ACPR, 4 Place de Budapest, 75436 Paris Cedex 09.";
+
+function latestRenderedHtml() {
+  const call = setContentMock.mock.calls[setContentMock.mock.calls.length - 1];
+  return String(call?.[0] ?? "");
+}
+
+function textContent(html: string) {
+  return html.replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+}
 
 describe("official manual AVI generator", () => {
   beforeEach(() => {
@@ -176,6 +189,71 @@ describe("official manual AVI generator", () => {
       expect.objectContaining({ waitUntil: "load" }),
     );
     expect(result.pdf.subarray(0, 4).toString()).toBe("%PDF");
+  });
+
+  it("keeps the France legal footer exact and fixed", async () => {
+    await generateManualAviPdf(payload());
+
+    const html = latestRenderedHtml();
+    expect(html).toContain('<h1 class="france-title">ATTESTATION DE VIREMENT IRREVOCABLE</h1>');
+    expect(html).toContain(".avi-body-france { font-family:Arial, sans-serif; font-size:11pt;");
+    expect(html).toContain(".legal-footer-france {");
+    expect(html).toContain("legal-footer-france");
+    expect(html).toContain("font-family: Arial, sans-serif;");
+    expect(html).toContain("font-size: 6pt;");
+    expect(html).toContain("color: #000;");
+    expect(html).toContain("color: #0000ee;");
+    expect(html).toContain("text-decoration: underline;");
+    expect(textContent(html)).toContain(franceLegalFooterText);
+
+    [
+      "AVI CERTIFY",
+      "Code Monétaire et Financier Français",
+      "N°25005516",
+      "N°BZIOB0001804",
+      "N°BZIOB001804",
+      "Lloyd’s Insurance Company S.A",
+      "+Simple",
+      "BNP PARIBAS",
+      "ACPR",
+    ].forEach((segment) => {
+      expect(html).toContain(`<strong>${segment}</strong>`);
+    });
+
+    expect(html).toContain('<a href="https://www.orias.fr">www.orias.fr</a>');
+    expect(html).toContain('<a href="https://www.plusimple.fr">www.plusimple.fr</a>');
+    expect(html).toContain('<a href="https://www.bnpparibas.com">www.bnpparibas.com</a>');
+    expect(html).toContain("FR76 3000 4029 9900 0106 8306 473");
+    expect(html).toContain("établissement de crédit de droit français agrée et supervisé ,");
+    expect(html).toContain("Immatriculée au RCS de Paris sous le numéro 662 042 449");
+    expect(html).toContain("16 boulevard des Italiens");
+    expect(html).toContain("ORIAS n° 07022 735");
+    expect(html).toContain("IDF INNOVATION (02999)");
+    expect(html).toContain("<strong>Gabriel BEFOLO NKOA</strong>");
+    expect(html).toContain("Madame <strong>Awa Student</strong>");
+    expect(html).toContain("la somme de 7 420 (7 420 FCFA) soit 7 420 (7 420 €)");
+    expect(html).toContain("la somme de 618,33 (618,33 FCFA) soit 618,33 (618,33 €)");
+    expect(html).toContain("<strong>Cette attestation est valable jusqu’au 02/07/2027.</strong>");
+    expect(html).toContain(
+      "<strong>Passé cette date, notre attestation deviendra automatiquement nulle et non avenue",
+    );
+    expect(html).toContain('<p class="signature-place">Fait à Pontarlier, le 02/07/2026</p>');
+    expect(html).not.toContain("{{");
+    expect(html).not.toContain("}}");
+    expect(html).not.toContain("amountXafFormatted");
+    expect(html).not.toContain("monthlyXafFormatted");
+    expect(html).not.toContain("studentCivility");
+    expect(html).not.toContain("adminNotes");
+    expect(html).not.toContain("generatedBy");
+    expect(html).not.toContain("storagePath");
+    expect(html).not.toContain("debug");
+    expect(html).not.toContain("partnerBankName");
+    expect(html).not.toContain("partnerBankFooterLegal");
+    expect(html).not.toContain("Document admin manuel");
+    expect(html).not.toContain("QR reporté");
+    expect(html).not.toContain("Texte juridique/business à valider");
+    expect(html).not.toContain("Stripe");
+    expect(html).not.toContain("phase P5C");
   });
 
   it("stores PDF/HTML and writes verification metadata without admin notes", async () => {

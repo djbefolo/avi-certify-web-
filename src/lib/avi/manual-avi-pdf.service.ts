@@ -338,26 +338,35 @@ function destinationAmountFields(payload: ManualAviPayload, templateKey: Templat
   const currency = payload.currency.toUpperCase();
   const xafAmount = currency === "XAF" ? payload.aviAmount : payload.aviAmount;
   const destinationAmount = currency === "XAF" ? payload.aviAmount : payload.aviAmount;
+  const monthlyXafAmount = xafAmount / 12;
+  const amountXafFormatted = formatNumberFr(xafAmount);
+  const monthlyXafFormatted = formatNumberFr(monthlyXafAmount);
+  const amountDestinationFormatted = formatNumberFr(destinationAmount);
+  const monthlyDestinationFormatted = formatNumberFr(monthlyAmount);
 
   return {
-    amountXaf: xafAmount,
-    amountXafFormatted: formatNumberFr(xafAmount),
-    amountXafWords: formatNumberFr(xafAmount),
-    monthlyXaf: xafAmount / 12,
-    monthlyXafFormatted: formatNumberFr(xafAmount / 12),
-    monthlyXafWords: formatNumberFr(xafAmount / 12),
-    amountEur: templateKey === "EUROPE_FRANCE" ? destinationAmount : undefined,
-    amountEurFormatted: templateKey === "EUROPE_FRANCE" ? formatNumberFr(destinationAmount) : "",
-    amountEurWords: templateKey === "EUROPE_FRANCE" ? formatNumberFr(destinationAmount) : "",
+    amountXaf: amountXafFormatted,
+    amountXafFormatted,
+    amountXafWords: amountXafFormatted,
+    monthlyXaf: monthlyXafAmount,
+    monthlyXafFormatted,
+    monthlyXafWords: monthlyXafFormatted,
+    monthlyAmountXaf: monthlyXafFormatted,
+    monthlyAmountXafWords: monthlyXafFormatted,
+    amountEur: templateKey === "EUROPE_FRANCE" ? amountDestinationFormatted : undefined,
+    amountEurFormatted: templateKey === "EUROPE_FRANCE" ? amountDestinationFormatted : "",
+    amountEurWords: templateKey === "EUROPE_FRANCE" ? amountDestinationFormatted : "",
     monthlyEur: templateKey === "EUROPE_FRANCE" ? monthlyAmount : undefined,
-    monthlyEurFormatted: templateKey === "EUROPE_FRANCE" ? formatNumberFr(monthlyAmount) : "",
-    monthlyEurWords: templateKey === "EUROPE_FRANCE" ? formatNumberFr(monthlyAmount) : "",
+    monthlyEurFormatted: templateKey === "EUROPE_FRANCE" ? monthlyDestinationFormatted : "",
+    monthlyEurWords: templateKey === "EUROPE_FRANCE" ? monthlyDestinationFormatted : "",
+    monthlyAmountEur: templateKey === "EUROPE_FRANCE" ? monthlyDestinationFormatted : "",
+    monthlyAmountEurWords: templateKey === "EUROPE_FRANCE" ? monthlyDestinationFormatted : "",
     amountCad: templateKey === "CANADA" ? destinationAmount : undefined,
-    amountCadFormatted: templateKey === "CANADA" ? formatNumberFr(destinationAmount) : "",
-    amountCadWords: templateKey === "CANADA" ? formatNumberFr(destinationAmount) : "",
+    amountCadFormatted: templateKey === "CANADA" ? amountDestinationFormatted : "",
+    amountCadWords: templateKey === "CANADA" ? amountDestinationFormatted : "",
     monthlyCad: templateKey === "CANADA" ? monthlyAmount : undefined,
-    monthlyCadFormatted: templateKey === "CANADA" ? formatNumberFr(monthlyAmount) : "",
-    monthlyCadWords: templateKey === "CANADA" ? formatNumberFr(monthlyAmount) : "",
+    monthlyCadFormatted: templateKey === "CANADA" ? monthlyDestinationFormatted : "",
+    monthlyCadWords: templateKey === "CANADA" ? monthlyDestinationFormatted : "",
   };
 }
 
@@ -503,6 +512,8 @@ function buildAviTemplateValues(
 ) {
   const issuedDate = parseDateLike(payload.issueDate) ?? new Date();
   const expiresDate = parseDateLike(payload.validUntil) ?? addMonths(issuedDate, 12);
+  const issuedAt = formatDateFr(issuedDate);
+  const expiresAt = formatDateFr(expiresDate);
   const amounts = destinationAmountFields(payload, templateKey);
   const destinationCountryName = getCountryName(identifiers.destinationCountryCode, payload.destinationCountry);
 
@@ -512,12 +523,15 @@ function buildAviTemplateValues(
     aviNumberDisplay: identifiers.aviNumberDisplay,
     blockedAccountIban: valueString(process.env.EUROPE_BLOCKED_ACCOUNT_IBAN, "Compte partenaire AVI CERTIFY"),
     blockedAccountNumber: valueString(process.env.CANADA_BLOCKED_ACCOUNT_NUMBER, "Compte partenaire AVI CERTIFY"),
+    beneficiaryCivilite: payload.studentCivility ?? "Monsieur/Madame",
     departureCountryCode: identifiers.departureCountryCode,
     destinationCountryCode: identifiers.destinationCountryCode,
     destinationCountryName,
-    expiresAt: formatDateFr(expiresDate),
-    issuedAt: formatDateFr(issuedDate),
-    issuedValidityDate: formatDateFr(expiresDate),
+    expiresAt,
+    validUntil: expiresAt,
+    issuedAt,
+    issueDate: issuedAt,
+    issuedValidityDate: expiresAt,
     issueYearShort: identifiers.issueYearShort,
     partnerBankFooterLegal: valueString(process.env.EUROPE_PARTNER_BANK_FOOTER_LEGAL, "partenaire financier AVI CERTIFY"),
     partnerBankLawCountry: valueString(process.env.EUROPE_PARTNER_BANK_LAW_COUNTRY, destinationCountryName),
@@ -530,7 +544,7 @@ function buildAviTemplateValues(
     sequenceNumberPadded: identifiers.sequenceNumberPadded,
     seriesCode: identifiers.seriesCode,
     signatureStampDataUrl: "",
-    studentCivility: payload.studentCivility ?? "l'etudiant(e)",
+    studentCivility: payload.studentCivility ?? "Monsieur/Madame",
     studentFullName: payload.studentFullName,
     verificationCode: identifiers.verificationCode,
     verificationUrl: identifiers.verificationUrl,
