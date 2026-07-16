@@ -132,6 +132,29 @@ export type ClientDocument = {
   expiresAt?: string | null;
   isRequired?: boolean;
   deliveryStatus?: "QUEUED" | "SENT" | "DELIVERED" | "FAILED" | null;
+  ownerResolution?: {
+    uid: string;
+    fullName: string | null;
+    email: string | null;
+    phone: string | null;
+    source:
+      | "admin_client_profile"
+      | "users"
+      | "auth"
+      | "client_case"
+      | "lead_match"
+      | "document_metadata"
+      | "unresolved";
+    status:
+      | "RESOLVED"
+      | "PROFILE_SYNC_REQUIRED"
+      | "LEAD_NOT_CONVERTED"
+      | "UNRESOLVED";
+    caseId: string | null;
+    leadId: string | null;
+    canOpenClient360: boolean;
+    warning: string | null;
+  };
 };
 
 export type CommunicationLog = {
@@ -210,6 +233,27 @@ export type AdminClient360 = {
   profile: AdminClientProfile | null;
   cases: ClientCase[];
   documents: ClientDocument[];
+  documentDiagnostics: {
+    firebaseProjectId: string | null;
+    resolvedUid: string;
+    authUid: string | null;
+    email: string | null;
+    caseIds: string[];
+    firestoreCounts: {
+      documents: number;
+      clientDocuments: number;
+    };
+    storage: {
+      status: "CHECKED" | "NOT_CONFIGURED" | "ERROR";
+      bucketName: string | null;
+      fileCount: number | null;
+      orphanedFileCount: number | null;
+    };
+    sourcesQueried: string[];
+    lastRefresh: string;
+    message: string;
+    error: string | null;
+  };
   payments: Array<Record<string, unknown>>;
   financialFiles: ClientFinancialFile[];
   certificates: Array<Record<string, unknown>>;

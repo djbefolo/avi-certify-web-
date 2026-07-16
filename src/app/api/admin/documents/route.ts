@@ -4,7 +4,8 @@ import { getAdminOperationsStore } from "@/lib/admin/admin-ops-store";
 
 export async function GET(request: NextRequest) {
   return withAdminOps(request, async () => {
-    const documents = await getAdminOperationsStore().listDocuments();
+    const documents =
+      await getAdminOperationsStore().listDocumentsWithOwners();
 
     return { documents };
   });

@@ -777,7 +777,7 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
             ) : null}
 
             {!isLoading && active === "cases" ? <CasesPanel cases={data.cases} clientByUid={clientByUid} /> : null}
-            {!isLoading && active === "documents" ? <DocumentsPanel documents={data.documents} clientByUid={clientByUid} onVerify={verifyDocument} /> : null}
+            {!isLoading && active === "documents" ? <DocumentsPanel documents={data.documents} clientByUid={clientByUid} onVerify={verifyDocument} onOpenClient={loadClient} /> : null}
             {!isLoading && active === "payments" ? <OperationsPlaceholder title="Paiements" text="Rapprochement opérationnel des paiements par dossier, sans modifier le flux Stripe existant." empty="Aucun paiement opérationnel à traiter" /> : null}
             {!isLoading && active === "finance" ? (
               <FintechCommandCenter
@@ -1274,6 +1274,7 @@ function Client360Drawer({
 
   const profile = client.profile;
   const currentCase = cases[0] ?? null;
+  const documentDiagnostics = client.documentDiagnostics;
   return (
     <aside className="fixed inset-y-0 right-0 z-40 w-full max-w-4xl overflow-y-auto border-l border-slate-200 bg-white p-5 shadow-2xl" aria-labelledby="client-360-title">
       <div className="sticky top-0 z-10 -mx-5 -mt-5 mb-5 flex items-start justify-between gap-4 border-b bg-white/95 px-5 py-4 backdrop-blur">
@@ -1346,9 +1347,37 @@ function Client360Drawer({
         <details className="rounded-lg bg-slate-50 p-4">
           <summary className="cursor-pointer font-semibold">Détails techniques</summary>
           <dl className="mt-3 space-y-2 text-sm text-slate-700">
-            <div><dt className="font-semibold">UID</dt><dd className="font-mono text-xs">{client.profile.uid}</dd></div>
+            <div><dt className="font-semibold">Projet Firebase</dt><dd className="font-mono text-xs">{documentDiagnostics.firebaseProjectId ?? "Non configuré"}</dd></div>
+            <div><dt className="font-semibold">UID résolu</dt><dd className="font-mono text-xs">{documentDiagnostics.resolvedUid}</dd></div>
+            <div><dt className="font-semibold">UID Firebase Auth</dt><dd className="font-mono text-xs">{documentDiagnostics.authUid ?? "Non résolu"}</dd></div>
+            <div><dt className="font-semibold">Email</dt><dd className="break-all font-mono text-xs">{documentDiagnostics.email ?? "-"}</dd></div>
             <div><dt className="font-semibold">Case ID</dt><dd className="font-mono text-xs">{currentCase?.id ?? "-"}</dd></div>
+            <div>
+              <dt className="font-semibold">Firestore</dt>
+              <dd className="text-xs">
+                documents: {documentDiagnostics.firestoreCounts.documents} · client_documents: {documentDiagnostics.firestoreCounts.clientDocuments}
+              </dd>
+            </div>
+            <div>
+              <dt className="font-semibold">Storage</dt>
+              <dd className="text-xs">
+                {documentDiagnostics.storage.bucketName ?? "bucket non résolu"} · {documentDiagnostics.storage.status} · fichiers: {documentDiagnostics.storage.fileCount ?? "non vérifié"} · orphelins: {documentDiagnostics.storage.orphanedFileCount ?? "non vérifié"}
+              </dd>
+            </div>
+            <div>
+              <dt className="font-semibold">Sources interrogées</dt>
+              <dd className="break-words font-mono text-[11px] leading-5">{documentDiagnostics.sourcesQueried.join(" · ")}</dd>
+            </div>
+            <div><dt className="font-semibold">Dernier refresh</dt><dd className="text-xs">{formatDate(documentDiagnostics.lastRefresh)}</dd></div>
           </dl>
+          <p className="mt-3 rounded-md border border-slate-200 bg-white p-3 text-xs font-medium text-slate-700">
+            {documentDiagnostics.message}
+          </p>
+          {documentDiagnostics.error ? (
+            <p className="mt-2 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs font-medium text-amber-900" role="alert">
+              {documentDiagnostics.error}
+            </p>
+          ) : null}
         </details>
       </div>
 
@@ -1849,10 +1878,12 @@ function DocumentsPanel({
   documents,
   clientByUid,
   onVerify,
+  onOpenClient,
 }: {
   documents: ClientDocument[];
   clientByUid: Map<string, AdminClientProfile>;
   onVerify: (documentId: string, status: "APPROVED" | "REJECTED") => void;
+  onOpenClient: (uid: string) => void;
 }) {
   return (
     <section className="space-y-4" aria-labelledby="documents-title">
@@ -1870,16 +1901,47 @@ function DocumentsPanel({
             <tbody>
               {documents.map((document) => {
                 const client = clientByUid.get(document.uid);
+                const resolution = document.ownerResolution;
+                const resolvedName =
+                  client ? displayClientName(client) : resolution?.fullName;
+                const resolvedEmail = client?.email ?? resolution?.email ?? null;
+                const canOpenClient360 = Boolean(
+                  client || resolution?.canOpenClient360,
+                );
+                const resolutionStatus =
+                  resolution?.status === "PROFILE_SYNC_REQUIRED"
+                    ? "Profil admin à synchroniser"
+                    : resolution?.status === "LEAD_NOT_CONVERTED"
+                      ? "Lead non converti en dossier"
+                      : resolution?.status === "UNRESOLVED"
+                        ? "Identité non résolue"
+                        : null;
                 const hasFile =
                   Boolean(document.storagePath) &&
                   ["UPLOADED", "UNDER_REVIEW", "APPROVED"].includes(document.verificationStatus);
                 return (
                   <tr key={document.id} className="border-t">
                     <td className="px-4 py-3">
-                      <span className="font-semibold">{client ? displayClientName(client) : "Client à identifier"}</span>
+                      <span className="font-semibold">{resolvedName ?? resolvedEmail ?? "Client à identifier"}</span>
+                      {resolutionStatus ? (
+                        <span className="mt-1 block text-xs font-medium text-amber-700">
+                          {resolutionStatus}
+                        </span>
+                      ) : null}
                       <span className="block text-xs text-slate-500">UID {document.uid}</span>
+                      {resolution ? (
+                        <span className="block text-[11px] text-slate-400">
+                          Source : {resolution.source}
+                          {resolution.leadId ? ` · Lead ${resolution.leadId}` : ""}
+                        </span>
+                      ) : null}
+                      {resolution?.warning ? (
+                        <span className="mt-1 block text-xs font-medium text-red-700" role="alert">
+                          {resolution.warning}
+                        </span>
+                      ) : null}
                     </td>
-                    <td className="px-4 py-3">{client?.email ?? "-"}</td>
+                    <td className="px-4 py-3">{resolvedEmail ?? "-"}</td>
                     <td className="px-4 py-3">{document.documentType}</td>
                     <td className="px-4 py-3">{document.fileName}</td>
                     <td className="px-4 py-3">{formatDate(document.uploadedAt)}</td>
@@ -1891,7 +1953,10 @@ function DocumentsPanel({
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
+                        {canOpenClient360 ? (
+                          <Button type="button" size="sm" variant="outline" onClick={() => onOpenClient(document.uid)}>Ouvrir 360</Button>
+                        ) : null}
                         <Button type="button" size="sm" variant="outline" onClick={() => onVerify(document.id, "APPROVED")}>Approuver</Button>
                         <Button type="button" size="sm" variant="ghost" onClick={() => onVerify(document.id, "REJECTED")}>Rejeter</Button>
                       </div>

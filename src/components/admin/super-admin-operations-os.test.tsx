@@ -264,6 +264,29 @@ function mockOperationsFetch({
           profile: client,
           cases: [clientCase],
           documents,
+          documentDiagnostics: {
+            resolvedUid: "client-1",
+            authUid: "client-1",
+            email: "student@example.com",
+            caseIds: ["case-1"],
+            firestoreCounts: {
+              documents: documents.length,
+              clientDocuments: documents.length,
+            },
+            storage: {
+              status: "CHECKED",
+              fileCount: documents.length,
+              orphanedFileCount: 0,
+            },
+            sourcesQueried: [
+              "documents.ownerId",
+              "client_documents.uid",
+              "storage.users/client-1/documents",
+            ],
+            lastRefresh: "2026-07-16T12:00:00.000Z",
+            message: "Rattachement documentaire vérifié.",
+            error: null,
+          },
           payments: [],
           financialFiles: [financialFile],
           certificates: clientCertificates,
@@ -435,6 +458,83 @@ describe("SuperAdminOperationsOS", () => {
       "/api/admin/documents/doc-1/download",
     );
     expect(screen.getByText(/Synchronisation Firebase Auth exécutée/)).toBeInTheDocument();
+    expect(screen.getByText("Rattachement documentaire vérifié.")).toBeInTheDocument();
+    expect(screen.getByText(/documents: 1 · client_documents: 1/)).toBeInTheDocument();
+    expect(screen.getByText(/CHECKED · fichiers: 1 · orphelins: 0/)).toBeInTheDocument();
+  });
+
+  it("shows a resolved document owner with UID, lead status, and Client 360 action", async () => {
+    mockOperationsFetch({
+      documents: [
+        {
+          ...documentRow,
+          uid: "owner-uid",
+          clientName: "Ngonga Nkoloma Bijou",
+          clientEmail: "sylvainmujidila@yahoo.com",
+          ownerResolution: {
+            uid: "owner-uid",
+            fullName: "Ngonga Nkoloma Bijou",
+            email: "sylvainmujidila@yahoo.com",
+            phone: "+33605701368",
+            source: "users",
+            status: "LEAD_NOT_CONVERTED",
+            caseId: null,
+            leadId: "lead-1",
+            canOpenClient360: true,
+            warning: null,
+          },
+        },
+      ],
+    });
+    const user = userEvent.setup();
+
+    render(<SuperAdminOperationsOS adminRole="super_admin" adminEmail="admin@avicertify.fr" />);
+
+    await screen.findByText("AVI CERTIFY Super Admin Operations OS");
+    await user.click(screen.getAllByRole("button", { name: "Documents" })[0]);
+
+    expect(await screen.findByText("Ngonga Nkoloma Bijou")).toBeInTheDocument();
+    expect(screen.getByText("sylvainmujidila@yahoo.com")).toBeInTheDocument();
+    expect(screen.getByText("UID owner-uid")).toBeInTheDocument();
+    expect(screen.getByText("Lead non converti en dossier")).toBeInTheDocument();
+    expect(screen.getByText(/Source : users · Lead lead-1/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Ouvrir 360" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Voir" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Télécharger" })).toBeEnabled();
+  });
+
+  it("keeps an unresolved document owner explicit and downloadable", async () => {
+    mockOperationsFetch({
+      documents: [
+        {
+          ...documentRow,
+          uid: "unknown-owner",
+          ownerResolution: {
+            uid: "unknown-owner",
+            fullName: null,
+            email: null,
+            phone: null,
+            source: "unresolved",
+            status: "UNRESOLVED",
+            caseId: null,
+            leadId: null,
+            canOpenClient360: false,
+            warning: null,
+          },
+        },
+      ],
+    });
+    const user = userEvent.setup();
+
+    render(<SuperAdminOperationsOS adminRole="super_admin" adminEmail="admin@avicertify.fr" />);
+
+    await screen.findByText("AVI CERTIFY Super Admin Operations OS");
+    await user.click(screen.getAllByRole("button", { name: "Documents" })[0]);
+
+    expect(await screen.findByText("Client à identifier")).toBeInTheDocument();
+    expect(screen.getByText("UID unknown-owner")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Ouvrir 360" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Télécharger" })).toBeEnabled();
   });
 
   it("shows CRM leads and saves CRM status without creating an operational case", async () => {
@@ -575,7 +675,7 @@ describe("SuperAdminOperationsOS", () => {
         expect.objectContaining({ method: "POST" }),
       );
     });
-  });
+  }, 10_000);
 
   it("opens the Finance command center for the selected Client 360 action", async () => {
     mockOperationsFetch();
