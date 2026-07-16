@@ -70,7 +70,7 @@ const documentRow: ClientDocument = {
   storagePath: "users/client-1/documents/passport.pdf",
   downloadUrl: null,
   uploadStatus: "uploaded",
-  verificationStatus: "PENDING",
+  verificationStatus: "UPLOADED",
   rejectionReason: null,
   uploadedAt: "2026-05-25T08:30:00.000Z",
   verifiedAt: null,
@@ -426,6 +426,14 @@ describe("SuperAdminOperationsOS", () => {
 
     expect((await screen.findAllByText("Awa Student")).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/passport.pdf/).length).toBeGreaterThan(0);
+    expect(screen.getByRole("link", { name: "Voir" })).toHaveAttribute(
+      "href",
+      "/api/admin/documents/doc-1/preview",
+    );
+    expect(screen.getByRole("link", { name: "Télécharger" })).toHaveAttribute(
+      "href",
+      "/api/admin/documents/doc-1/download",
+    );
     expect(screen.getByText(/Synchronisation Firebase Auth exécutée/)).toBeInTheDocument();
   });
 

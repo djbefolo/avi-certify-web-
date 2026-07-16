@@ -256,12 +256,31 @@ export async function getAdminDocumentById(documentId: string) {
     operationsRef.get(),
   ]);
 
-  return mapDocumentRecord(documentId, {
+  const document = mapDocumentRecord(documentId, {
     publicData: publicSnapshot.exists ? publicSnapshot.data() : undefined,
     operationsData: operationsSnapshot.exists
       ? operationsSnapshot.data()
       : undefined,
   });
+
+  if (document.caseId) {
+    const caseSnapshot = await db
+      .collection("client_cases")
+      .doc(document.caseId)
+      .get();
+    const caseData = caseSnapshot.data();
+    const caseOwner =
+      stringValue(caseData?.uid) ?? stringValue(caseData?.userId);
+
+    if (!caseSnapshot.exists || !caseOwner || caseOwner !== document.uid) {
+      throw new AdminDocumentServiceError(
+        409,
+        "Document case ownership metadata is inconsistent.",
+      );
+    }
+  }
+
+  return document;
 }
 
 export async function transitionAdminDocument(

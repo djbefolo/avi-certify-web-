@@ -153,6 +153,160 @@ function matchesText(value: string | null | undefined, query: string) {
   return (value ?? "").toLowerCase().includes(query.toLowerCase());
 }
 
+function isoDate(value: unknown) {
+  if (typeof value === "string") return value;
+
+  if (
+    value &&
+    typeof value === "object" &&
+    "toDate" in value &&
+    typeof value.toDate === "function"
+  ) {
+    return value.toDate().toISOString();
+  }
+
+  return null;
+}
+
+function normalizedVerificationStatus(data: Record<string, unknown>) {
+  const explicitStatus =
+    typeof data.verificationStatus === "string"
+      ? data.verificationStatus.toUpperCase()
+      : "";
+  const allowedStatuses = new Set<ClientDocument["verificationStatus"]>([
+    "REQUESTED",
+    "UPLOADED",
+    "UNDER_REVIEW",
+    "APPROVED",
+    "REJECTED",
+    "EXPIRED",
+    "PENDING",
+    "CORRECTION_REQUESTED",
+  ]);
+
+  if (
+    allowedStatuses.has(
+      explicitStatus as ClientDocument["verificationStatus"],
+    )
+  ) {
+    return explicitStatus as ClientDocument["verificationStatus"];
+  }
+
+  const status = String(data.status ?? data.uploadStatus ?? "pending").toLowerCase();
+  const statusMap: Record<string, ClientDocument["verificationStatus"]> = {
+    requested: "REQUESTED",
+    uploaded: "UPLOADED",
+    under_review: "UNDER_REVIEW",
+    generated: "APPROVED",
+    approved: "APPROVED",
+    validated: "APPROVED",
+    rejected: "REJECTED",
+    expired: "EXPIRED",
+    correction_requested: "CORRECTION_REQUESTED",
+  };
+
+  return statusMap[status] ?? "PENDING";
+}
+
+function mapPublicDocument(
+  documentId: string,
+  data: Record<string, unknown>,
+): ClientDocument {
+  return {
+    id: documentId,
+    uid: String(data.ownerId ?? data.uid ?? data.userId ?? ""),
+    caseId: typeof data.caseId === "string" ? data.caseId : null,
+    clientEmail:
+      typeof data.clientEmail === "string"
+        ? data.clientEmail
+        : typeof data.email === "string"
+          ? data.email
+          : null,
+    clientName: typeof data.clientName === "string" ? data.clientName : null,
+    documentType: String(data.documentType ?? "other"),
+    fileName: String(data.originalFileName ?? data.safeFileName ?? documentId),
+    storagePath: String(data.storagePath ?? ""),
+    mimeType: typeof data.contentType === "string" ? data.contentType : null,
+    size: typeof data.size === "number" ? data.size : null,
+    downloadUrl: null,
+    uploadStatus: String(data.uploadStatus ?? data.status ?? "pending"),
+    verificationStatus: normalizedVerificationStatus(data),
+    rejectionReason:
+      typeof data.rejectionReason === "string" ? data.rejectionReason : null,
+    requestedAt:
+      isoDate(data.requestedAt) ??
+      (String(data.status ?? "").toLowerCase() === "requested"
+        ? isoDate(data.createdAt)
+        : null),
+    uploadedAt:
+      isoDate(data.uploadedAt) ??
+      isoDate(data.createdAt) ??
+      isoDate(data.updatedAt),
+    verifiedAt: isoDate(data.verifiedAt),
+    verifiedBy: typeof data.verifiedBy === "string" ? data.verifiedBy : null,
+    source:
+      data.source === "ADMIN" || data.source === "SYSTEM"
+        ? data.source
+        : "CLIENT",
+    uploadedBy: typeof data.uploadedBy === "string" ? data.uploadedBy : null,
+    expiresAt: isoDate(data.expiresAt),
+    isRequired: Boolean(data.isRequired),
+    deliveryStatus:
+      data.deliveryStatus === "SENT" ||
+      data.deliveryStatus === "FAILED" ||
+      data.deliveryStatus === "QUEUED" ||
+      data.deliveryStatus === "DELIVERED"
+        ? data.deliveryStatus
+        : null,
+  };
+}
+
+function mergeDocumentMetadata(
+  publicDocument: ClientDocument,
+  operationsDocument: ClientDocument,
+): ClientDocument {
+  const publicFileIsUploaded =
+    Boolean(publicDocument.storagePath) &&
+    ["UPLOADED", "UNDER_REVIEW", "APPROVED"].includes(
+      publicDocument.verificationStatus,
+    );
+  const operationsStatusIsPreUpload = ["REQUESTED", "PENDING"].includes(
+    operationsDocument.verificationStatus,
+  );
+
+  return {
+    ...publicDocument,
+    ...operationsDocument,
+    uid: operationsDocument.uid || publicDocument.uid,
+    caseId: operationsDocument.caseId ?? publicDocument.caseId,
+    clientEmail:
+      operationsDocument.clientEmail ?? publicDocument.clientEmail ?? null,
+    clientName:
+      operationsDocument.clientName ?? publicDocument.clientName ?? null,
+    fileName: operationsDocument.fileName || publicDocument.fileName,
+    storagePath:
+      operationsDocument.storagePath || publicDocument.storagePath,
+    mimeType: operationsDocument.mimeType ?? publicDocument.mimeType ?? null,
+    size: operationsDocument.size ?? publicDocument.size ?? null,
+    downloadUrl: null,
+    uploadStatus:
+      publicFileIsUploaded && operationsStatusIsPreUpload
+        ? publicDocument.uploadStatus
+        : operationsDocument.uploadStatus || publicDocument.uploadStatus,
+    verificationStatus:
+      publicFileIsUploaded && operationsStatusIsPreUpload
+        ? publicDocument.verificationStatus
+        : operationsDocument.verificationStatus,
+    uploadedAt:
+      operationsDocument.uploadedAt ?? publicDocument.uploadedAt ?? null,
+    requestedAt:
+      operationsDocument.requestedAt ?? publicDocument.requestedAt ?? null,
+    source: operationsDocument.source ?? publicDocument.source,
+    uploadedBy:
+      operationsDocument.uploadedBy ?? publicDocument.uploadedBy ?? null,
+  };
+}
+
 function caseNumberFor(uid: string) {
   let hash = 0;
   for (const char of uid) {
@@ -601,69 +755,24 @@ export class AdminOperationsStore {
       );
     }
 
-    const snapshot = await getAdminFirestore().collection("documents").limit(200).get();
+    // Client 360 promises complete visibility. A global limit silently hid
+    // documents once the collection exceeded the first 200 Firestore rows.
+    const snapshot = await getAdminFirestore().collection("documents").get();
     const publicDocuments = snapshot.docs.map((doc) => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        uid: String(data.ownerId ?? data.uid ?? ""),
-        caseId: typeof data.caseId === "string" ? data.caseId : null,
-        documentType: String(data.documentType ?? "other"),
-        fileName: String(data.originalFileName ?? data.safeFileName ?? doc.id),
-        storagePath: String(data.storagePath ?? ""),
-        mimeType: typeof data.contentType === "string" ? data.contentType : null,
-        size: typeof data.size === "number" ? data.size : null,
-        downloadUrl: typeof data.downloadUrl === "string" ? data.downloadUrl : null,
-        uploadStatus: String(data.status ?? "uploaded"),
-        verificationStatus:
-          data.status === "requested"
-            ? "REQUESTED"
-            : data.status === "uploaded"
-              ? "UPLOADED"
-              : data.status === "generated"
-                ? "APPROVED"
-              : data.status === "under_review"
-                ? "UNDER_REVIEW"
-                : data.status === "expired"
-                  ? "EXPIRED"
-                  : 
-          data.status === "approved" || data.status === "validated"
-            ? "APPROVED"
-            : data.status === "rejected"
-              ? "REJECTED"
-              : "PENDING",
-        rejectionReason: typeof data.rejectionReason === "string" ? data.rejectionReason : null,
-        requestedAt:
-          typeof data.requestedAt?.toDate === "function"
-            ? data.requestedAt.toDate().toISOString()
-            : typeof data.createdAt?.toDate === "function" && data.status === "requested"
-              ? data.createdAt.toDate().toISOString()
-              : null,
-        uploadedAt:
-          typeof data.createdAt?.toDate === "function"
-            ? data.createdAt.toDate().toISOString()
-            : null,
-        verifiedAt:
-          typeof data.verifiedAt?.toDate === "function"
-            ? data.verifiedAt.toDate().toISOString()
-            : null,
-        verifiedBy: typeof data.verifiedBy === "string" ? data.verifiedBy : null,
-        source: data.source === "ADMIN" || data.source === "SYSTEM" ? data.source : "CLIENT",
-        uploadedBy: typeof data.uploadedBy === "string" ? data.uploadedBy : null,
-        expiresAt: typeof data.expiresAt === "string" ? data.expiresAt : null,
-        isRequired: Boolean(data.isRequired),
-        deliveryStatus:
-          data.deliveryStatus === "SENT" || data.deliveryStatus === "FAILED" || data.deliveryStatus === "QUEUED" || data.deliveryStatus === "DELIVERED"
-            ? data.deliveryStatus
-            : null,
-      } satisfies ClientDocument;
+      return mapPublicDocument(doc.id, doc.data());
     });
 
     const byId = new Map<string, ClientDocument>(
       publicDocuments.map((document) => [document.id, document]),
     );
     for (const document of opsDocuments) {
-      byId.set(document.id, document);
+      const publicDocument = byId.get(document.id);
+      byId.set(
+        document.id,
+        publicDocument
+          ? mergeDocumentMetadata(publicDocument, document)
+          : document,
+      );
     }
 
     return sortNewest(
