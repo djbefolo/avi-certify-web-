@@ -1,4 +1,8 @@
-import { getAdminAuth, getAdminFirestore } from "@/lib/firebase/admin";
+import {
+  getAdminAuth,
+  getAdminFirestore,
+  getAdminStorage,
+} from "@/lib/firebase/admin";
 import type { AdminActor } from "@/lib/admin/admin-auth";
 import { sendDocumentRequestEmail } from "@/lib/server/email.service";
 import {
@@ -121,6 +125,14 @@ async function getAllDocs<T>(name: string, fallback: T[]) {
   return snapshot.docs.map((doc) => doc.data() as T);
 }
 
+async function getAllDocsWithIds(name: string) {
+  const ref = collection(name);
+  if (!ref) return [] as Array<Record<string, unknown> & { id: string }>;
+
+  const snapshot = await ref.get();
+  return snapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id }));
+}
+
 async function upsertDoc<T>(
   name: string,
   docId: string,
@@ -151,6 +163,203 @@ function sortNewest<T extends { createdAt?: string; updatedAt?: string }>(items:
 
 function matchesText(value: string | null | undefined, query: string) {
   return (value ?? "").toLowerCase().includes(query.toLowerCase());
+}
+
+function normalizedEmail(value: string | null | undefined) {
+  return value?.trim().toLowerCase() ?? null;
+}
+
+function normalizedPhone(value: string | null | undefined) {
+  return value?.replace(/[^+\d]/g, "") ?? null;
+}
+
+function stringField(
+  value: Record<string, unknown> | null | undefined,
+  ...keys: string[]
+) {
+  for (const key of keys) {
+    const candidate = value?.[key];
+    if (typeof candidate === "string" && candidate.trim()) {
+      return candidate.trim();
+    }
+  }
+
+  return null;
+}
+
+function documentBelongsToClient(
+  document: ClientDocument,
+  uid: string,
+  caseIds: Set<string>,
+  email: string | null,
+  includeEmail = false,
+) {
+  return (
+    document.uid === uid ||
+    Boolean(document.caseId && caseIds.has(document.caseId)) ||
+    Boolean(
+      includeEmail &&
+      email &&
+        document.clientEmail &&
+        normalizedEmail(document.clientEmail) === email,
+    )
+  );
+}
+
+function isoDate(value: unknown) {
+  if (typeof value === "string") return value;
+
+  if (
+    value &&
+    typeof value === "object" &&
+    "toDate" in value &&
+    typeof value.toDate === "function"
+  ) {
+    return value.toDate().toISOString();
+  }
+
+  return null;
+}
+
+function normalizedVerificationStatus(data: Record<string, unknown>) {
+  const explicitStatus =
+    typeof data.verificationStatus === "string"
+      ? data.verificationStatus.toUpperCase()
+      : "";
+  const allowedStatuses = new Set<ClientDocument["verificationStatus"]>([
+    "REQUESTED",
+    "UPLOADED",
+    "UNDER_REVIEW",
+    "APPROVED",
+    "REJECTED",
+    "EXPIRED",
+    "PENDING",
+    "CORRECTION_REQUESTED",
+  ]);
+
+  if (
+    allowedStatuses.has(
+      explicitStatus as ClientDocument["verificationStatus"],
+    )
+  ) {
+    return explicitStatus as ClientDocument["verificationStatus"];
+  }
+
+  const status = String(data.status ?? data.uploadStatus ?? "pending").toLowerCase();
+  const statusMap: Record<string, ClientDocument["verificationStatus"]> = {
+    requested: "REQUESTED",
+    uploaded: "UPLOADED",
+    under_review: "UNDER_REVIEW",
+    generated: "APPROVED",
+    approved: "APPROVED",
+    validated: "APPROVED",
+    rejected: "REJECTED",
+    expired: "EXPIRED",
+    correction_requested: "CORRECTION_REQUESTED",
+  };
+
+  return statusMap[status] ?? "PENDING";
+}
+
+function mapPublicDocument(
+  documentId: string,
+  data: Record<string, unknown>,
+): ClientDocument {
+  return {
+    id: documentId,
+    uid: String(
+      data.ownerId ?? data.uid ?? data.userId ?? data.clientId ?? "",
+    ),
+    caseId: typeof data.caseId === "string" ? data.caseId : null,
+    clientEmail:
+      typeof data.clientEmail === "string"
+        ? data.clientEmail
+        : typeof data.email === "string"
+          ? data.email
+          : null,
+    clientName: typeof data.clientName === "string" ? data.clientName : null,
+    documentType: String(data.documentType ?? "other"),
+    fileName: String(data.originalFileName ?? data.safeFileName ?? documentId),
+    storagePath: String(data.storagePath ?? ""),
+    mimeType: typeof data.contentType === "string" ? data.contentType : null,
+    size: typeof data.size === "number" ? data.size : null,
+    downloadUrl: null,
+    uploadStatus: String(data.uploadStatus ?? data.status ?? "pending"),
+    verificationStatus: normalizedVerificationStatus(data),
+    rejectionReason:
+      typeof data.rejectionReason === "string" ? data.rejectionReason : null,
+    requestedAt:
+      isoDate(data.requestedAt) ??
+      (String(data.status ?? "").toLowerCase() === "requested"
+        ? isoDate(data.createdAt)
+        : null),
+    uploadedAt:
+      isoDate(data.uploadedAt) ??
+      isoDate(data.createdAt) ??
+      isoDate(data.updatedAt),
+    verifiedAt: isoDate(data.verifiedAt),
+    verifiedBy: typeof data.verifiedBy === "string" ? data.verifiedBy : null,
+    source:
+      data.source === "ADMIN" || data.source === "SYSTEM"
+        ? data.source
+        : "CLIENT",
+    uploadedBy: typeof data.uploadedBy === "string" ? data.uploadedBy : null,
+    expiresAt: isoDate(data.expiresAt),
+    isRequired: Boolean(data.isRequired),
+    deliveryStatus:
+      data.deliveryStatus === "SENT" ||
+      data.deliveryStatus === "FAILED" ||
+      data.deliveryStatus === "QUEUED" ||
+      data.deliveryStatus === "DELIVERED"
+        ? data.deliveryStatus
+        : null,
+  };
+}
+
+function mergeDocumentMetadata(
+  publicDocument: ClientDocument,
+  operationsDocument: ClientDocument,
+): ClientDocument {
+  const publicFileIsUploaded =
+    Boolean(publicDocument.storagePath) &&
+    ["UPLOADED", "UNDER_REVIEW", "APPROVED"].includes(
+      publicDocument.verificationStatus,
+    );
+  const operationsStatusIsPreUpload = ["REQUESTED", "PENDING"].includes(
+    operationsDocument.verificationStatus,
+  );
+
+  return {
+    ...publicDocument,
+    ...operationsDocument,
+    uid: operationsDocument.uid || publicDocument.uid,
+    caseId: operationsDocument.caseId ?? publicDocument.caseId,
+    clientEmail:
+      operationsDocument.clientEmail ?? publicDocument.clientEmail ?? null,
+    clientName:
+      operationsDocument.clientName ?? publicDocument.clientName ?? null,
+    fileName: operationsDocument.fileName || publicDocument.fileName,
+    storagePath:
+      operationsDocument.storagePath || publicDocument.storagePath,
+    mimeType: operationsDocument.mimeType ?? publicDocument.mimeType ?? null,
+    size: operationsDocument.size ?? publicDocument.size ?? null,
+    downloadUrl: null,
+    uploadStatus:
+      publicFileIsUploaded && operationsStatusIsPreUpload
+        ? publicDocument.uploadStatus
+        : operationsDocument.uploadStatus || publicDocument.uploadStatus,
+    verificationStatus:
+      publicFileIsUploaded && operationsStatusIsPreUpload
+        ? publicDocument.verificationStatus
+        : operationsDocument.verificationStatus,
+    uploadedAt:
+      operationsDocument.uploadedAt ?? publicDocument.uploadedAt ?? null,
+    requestedAt:
+      operationsDocument.requestedAt ?? publicDocument.requestedAt ?? null,
+    source: operationsDocument.source ?? publicDocument.source,
+    uploadedBy:
+      operationsDocument.uploadedBy ?? publicDocument.uploadedBy ?? null,
+  };
 }
 
 function caseNumberFor(uid: string) {
@@ -399,6 +608,230 @@ function defaultCaseSourceFor(client: AdminClientProfile): ClientCase["source"] 
 }
 
 export class AdminOperationsStore {
+  private async loadDocumentSources() {
+    const operationsDocuments = await getAllDocs<ClientDocument>(
+      "client_documents",
+      state.documents,
+    );
+    if (!hasFirebaseAdminEnv()) {
+      return {
+        documents: sortNewest(
+          operationsDocuments.map((document) => ({
+            ...document,
+            createdAt: document.uploadedAt ?? "",
+          })),
+        ),
+        publicDocuments: [] as ClientDocument[],
+        operationsDocuments,
+      };
+    }
+
+    // Client 360 promises complete visibility. A global limit silently hid
+    // documents once the collection exceeded the first 200 Firestore rows.
+    const snapshot = await getAdminFirestore().collection("documents").get();
+    const publicDocuments = snapshot.docs.map((doc) =>
+      mapPublicDocument(doc.id, doc.data()),
+    );
+    const byId = new Map<string, ClientDocument>(
+      publicDocuments.map((document) => [document.id, document]),
+    );
+
+    for (const document of operationsDocuments) {
+      const publicDocument = byId.get(document.id);
+      byId.set(
+        document.id,
+        publicDocument
+          ? mergeDocumentMetadata(publicDocument, document)
+          : document,
+      );
+    }
+
+    return {
+      documents: sortNewest(
+        [...byId.values()].map((document) => ({
+          ...document,
+          createdAt: document.uploadedAt ?? document.requestedAt ?? "",
+        })),
+      ),
+      publicDocuments,
+      operationsDocuments,
+    };
+  }
+
+  async listDocumentsWithOwners() {
+    const documents = await this.listDocuments();
+    if (!documents.length) return documents;
+
+    const ownerIds = [...new Set(documents.map((document) => document.uid).filter(Boolean))];
+    const [adminProfiles, users, rawCases, leads] = hasFirebaseAdminEnv()
+      ? await Promise.all([
+          getAllDocsWithIds("admin_client_profiles"),
+          getAllDocsWithIds("users"),
+          getAllDocsWithIds("client_cases"),
+          getAllDocsWithIds("leads"),
+        ])
+      : [
+          state.clients.map((client) => ({ id: client.uid, ...client })),
+          [],
+          state.cases.map((clientCase) => ({ ...clientCase })),
+          [],
+        ];
+
+    const profileByUid = new Map(
+      adminProfiles.map((profile) => [
+        stringField(profile, "uid", "userId", "ownerId") ?? profile.id,
+        profile,
+      ]),
+    );
+    const userByUid = new Map(
+      users.map((user) => [
+        stringField(user, "uid", "userId", "ownerId") ?? user.id,
+        user,
+      ]),
+    );
+    const casesByUid = new Map<string, Array<Record<string, unknown> & { id: string }>>();
+    for (const clientCase of rawCases) {
+      const caseUid = stringField(
+        clientCase,
+        "uid",
+        "ownerId",
+        "userId",
+        "clientId",
+      );
+      if (!caseUid) continue;
+      casesByUid.set(caseUid, [...(casesByUid.get(caseUid) ?? []), clientCase]);
+    }
+
+    const authByUid = new Map<string, AdminClientProfile>();
+    if (hasFirebaseAdminEnv()) {
+      const authCandidateUids = ownerIds.filter(
+        (ownerId) => !profileByUid.has(ownerId) && !userByUid.has(ownerId),
+      );
+
+      for (let index = 0; index < authCandidateUids.length; index += 100) {
+        const chunk = authCandidateUids.slice(index, index + 100);
+        try {
+          const result = await getAdminAuth().getUsers(
+            chunk.map((uid) => ({ uid })),
+          );
+          for (const user of result.users) {
+            authByUid.set(user.uid, mapAuthUser(user));
+          }
+        } catch {
+          // A failed batch must not hide otherwise downloadable documents.
+        }
+      }
+    }
+
+    return documents.map((document) => {
+      const adminProfile = profileByUid.get(document.uid) ?? null;
+      const userProfile = userByUid.get(document.uid) ?? null;
+      const authProfile = authByUid.get(document.uid) ?? null;
+      const directCases = casesByUid.get(document.uid) ?? [];
+      const directCase = directCases[0] ?? null;
+      const emails = [
+        stringField(adminProfile, "email"),
+        stringField(userProfile, "email"),
+        authProfile?.email ?? null,
+        stringField(directCase, "clientEmail", "email"),
+        document.clientEmail ?? null,
+      ].filter((value): value is string => Boolean(value));
+      const email = emails[0] ?? null;
+      const casesMatchedByEmail = email
+        ? rawCases.filter(
+            (clientCase) =>
+              normalizedEmail(
+                stringField(clientCase, "clientEmail", "email"),
+              ) === normalizedEmail(email),
+          )
+        : [];
+      const clientCases = [
+        ...new Map(
+          [...directCases, ...casesMatchedByEmail].map((clientCase) => [
+            clientCase.id,
+            clientCase,
+          ]),
+        ).values(),
+      ];
+      const clientCase = clientCases[0] ?? null;
+      const phone =
+        stringField(adminProfile, "phone", "phoneNumber", "phoneWhatsApp") ??
+        stringField(userProfile, "phone", "phoneNumber", "phoneWhatsApp") ??
+        authProfile?.phone ??
+        stringField(clientCase, "phone", "phoneNumber");
+      const matchingLeads = leads.filter((lead) => {
+        const leadEmail = normalizedEmail(stringField(lead, "email"));
+        const leadPhone = normalizedPhone(
+          stringField(lead, "phone", "phoneNumber"),
+        );
+
+        return Boolean(
+          (email && leadEmail === normalizedEmail(email)) ||
+            (phone && leadPhone === normalizedPhone(phone)),
+        );
+      });
+      const lead = matchingLeads[0] ?? null;
+      const source: NonNullable<ClientDocument["ownerResolution"]>["source"] =
+        adminProfile
+          ? "admin_client_profile"
+          : userProfile
+            ? "users"
+            : lead
+              ? "lead_match"
+              : authProfile
+                ? "auth"
+                : clientCase
+                  ? "client_case"
+                  : email
+                    ? "document_metadata"
+                    : "unresolved";
+      const fullName =
+        stringField(adminProfile, "fullName", "displayName", "name") ??
+        stringField(lead, "fullName", "displayName", "name") ??
+        stringField(userProfile, "fullName", "displayName", "name") ??
+        authProfile?.fullName ??
+        stringField(clientCase, "clientName", "fullName", "name");
+      const distinctEmails = new Set(emails.map(normalizedEmail).filter(Boolean));
+      const warning =
+        distinctEmails.size > 1
+          ? "Plusieurs emails sont associés à cet UID. Validation humaine requise."
+          : matchingLeads.length > 1
+            ? "Plusieurs prospects correspondent à cette identité. Aucun rattachement automatique effectué."
+            : clientCases.length > 1
+              ? "Plusieurs dossiers correspondent à cette identité. Aucun rattachement automatique effectué."
+            : null;
+      const status: NonNullable<ClientDocument["ownerResolution"]>["status"] =
+        source === "unresolved"
+          ? "UNRESOLVED"
+          : !clientCase && lead
+            ? "LEAD_NOT_CONVERTED"
+            : !adminProfile && !clientCase
+              ? "PROFILE_SYNC_REQUIRED"
+              : "RESOLVED";
+      const canOpenClient360 = Boolean(
+        adminProfile || userProfile || authProfile || clientCase,
+      );
+
+      return {
+        ...document,
+        clientName: fullName ?? document.clientName ?? null,
+        clientEmail: email ?? document.clientEmail ?? null,
+        ownerResolution: {
+          uid: document.uid,
+          fullName,
+          email,
+          phone,
+          source,
+          status,
+          caseId: clientCase?.id ?? document.caseId ?? null,
+          leadId: lead?.id ?? null,
+          canOpenClient360,
+          warning,
+        },
+      };
+    });
+  }
+
   async upsertDefaultCase(client: AdminClientProfile, actor?: AdminActor) {
     const existingCases = await this.listCases();
     const existingCase = existingCases.find((clientCase) => clientCase.uid === client.uid);
@@ -475,22 +908,130 @@ export class AdminOperationsStore {
   }
 
   async getClient360(uid: string): Promise<AdminClient360> {
-    const [clients, cases, documents, financialFiles, events, communications] = await Promise.all([
+    const [clients, cases, documentSources, financialFiles, events, communications] = await Promise.all([
       this.listClients(),
       this.listCases({}),
-      this.listDocuments(),
+      this.loadDocumentSources(),
       this.listFinancialFiles(),
       this.listEvents(),
       this.listCommunications(),
     ]);
 
+    let profile = clients.find((client) => client.uid === uid) ?? null;
+    if (!profile && hasFirebaseAdminEnv()) {
+      const userSnapshot = await getAdminFirestore()
+        .collection("users")
+        .doc(uid)
+        .get();
+
+      if (userSnapshot.exists) {
+        profile = normalizeClient(
+          { ...userSnapshot.data(), source: "user_profile" },
+          uid,
+        );
+      } else {
+        try {
+          profile = mapAuthUser(await getAdminAuth().getUser(uid));
+        } catch {
+          profile = null;
+        }
+      }
+    }
     const clientCases = cases.filter((clientCase) => clientCase.uid === uid);
     const caseIds = new Set(clientCases.map((clientCase) => clientCase.id));
+    const email = normalizedEmail(profile?.email);
+    const documents = documentSources.documents.filter((document) =>
+      documentBelongsToClient(document, uid, caseIds, email),
+    );
+    const publicDocuments = documentSources.publicDocuments.filter((document) =>
+      documentBelongsToClient(document, uid, caseIds, email, true),
+    );
+    const operationsDocuments = documentSources.operationsDocuments.filter(
+      (document) => documentBelongsToClient(document, uid, caseIds, email, true),
+    );
+    let authUid: string | null = null;
+    let diagnosticError: string | null = null;
+
+    if (hasFirebaseAdminEnv() && email) {
+      try {
+        authUid = (await getAdminAuth().getUserByEmail(email)).uid;
+      } catch {
+        diagnosticError = "Firebase Auth lookup failed.";
+      }
+    }
+
+    let storageStatus: "CHECKED" | "NOT_CONFIGURED" | "ERROR" =
+      hasFirebaseAdminEnv() ? "CHECKED" : "NOT_CONFIGURED";
+    let storageBucketName: string | null = null;
+    let storageFileCount: number | null = null;
+    let orphanedFileCount: number | null = null;
+
+    if (hasFirebaseAdminEnv()) {
+      try {
+        const bucket = getAdminStorage().bucket();
+        storageBucketName = bucket.name;
+        const [files] = await bucket.getFiles({
+          prefix: `users/${authUid ?? uid}/documents/`,
+        });
+        const knownPaths = new Set(
+          [...publicDocuments, ...operationsDocuments]
+            .map((document) => document.storagePath)
+            .filter(Boolean),
+        );
+        storageFileCount = files.length;
+        orphanedFileCount = files.filter((file) => !knownPaths.has(file.name)).length;
+      } catch {
+        storageStatus = "ERROR";
+        diagnosticError ??= "Firebase Storage lookup failed.";
+      }
+    }
+
+    const diagnosticMessage =
+      authUid && authUid !== uid
+        ? "L'UID Firebase Auth diffère de l'UID du profil Client 360."
+        : storageStatus === "ERROR"
+          ? "Le contrôle Storage n'a pas pu être terminé."
+          : orphanedFileCount && orphanedFileCount > 0
+            ? "Fichiers détectés dans Storage sans métadonnées Firestore."
+            : documents.length === 0 && storageFileCount === 0
+              ? "Aucune soumission persistée dans Firestore ou Storage pour ce client."
+              : documents.length === 0
+                ? "Aucune métadonnée Firestore rattachée à ce client."
+                : "Rattachement documentaire vérifié.";
 
     return {
-      profile: clients.find((client) => client.uid === uid) ?? null,
+      profile,
       cases: clientCases,
-      documents: documents.filter((document) => document.uid === uid || Boolean(document.caseId && caseIds.has(document.caseId))),
+      documents,
+      documentDiagnostics: {
+        firebaseProjectId: process.env.FIREBASE_PROJECT_ID ?? null,
+        resolvedUid: uid,
+        authUid,
+        email: profile?.email ?? null,
+        caseIds: [...caseIds],
+        firestoreCounts: {
+          documents: publicDocuments.length,
+          clientDocuments: operationsDocuments.length,
+        },
+        storage: {
+          status: storageStatus,
+          bucketName: storageBucketName,
+          fileCount: storageFileCount,
+          orphanedFileCount,
+        },
+        sourcesQueried: [
+          "documents.ownerId",
+          "documents.caseId",
+          "documents.email",
+          "client_documents.uid",
+          "client_documents.caseId",
+          "client_documents.email",
+          `storage.users/${authUid ?? uid}/documents`,
+        ],
+        lastRefresh: now(),
+        message: diagnosticMessage,
+        error: diagnosticError,
+      },
       payments: [],
       financialFiles: financialFiles.filter((file) => file.uid === uid || caseIds.has(file.caseId)),
       certificates: documents
@@ -594,84 +1135,7 @@ export class AdminOperationsStore {
   }
 
   async listDocuments() {
-    const opsDocuments = await getAllDocs<ClientDocument>("client_documents", state.documents);
-    if (!hasFirebaseAdminEnv()) {
-      return sortNewest(
-        opsDocuments.map((document) => ({ ...document, createdAt: document.uploadedAt ?? "" })),
-      );
-    }
-
-    const snapshot = await getAdminFirestore().collection("documents").limit(200).get();
-    const publicDocuments = snapshot.docs.map((doc) => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        uid: String(data.ownerId ?? data.uid ?? ""),
-        caseId: typeof data.caseId === "string" ? data.caseId : null,
-        documentType: String(data.documentType ?? "other"),
-        fileName: String(data.originalFileName ?? data.safeFileName ?? doc.id),
-        storagePath: String(data.storagePath ?? ""),
-        mimeType: typeof data.contentType === "string" ? data.contentType : null,
-        size: typeof data.size === "number" ? data.size : null,
-        downloadUrl: typeof data.downloadUrl === "string" ? data.downloadUrl : null,
-        uploadStatus: String(data.status ?? "uploaded"),
-        verificationStatus:
-          data.status === "requested"
-            ? "REQUESTED"
-            : data.status === "uploaded"
-              ? "UPLOADED"
-              : data.status === "generated"
-                ? "APPROVED"
-              : data.status === "under_review"
-                ? "UNDER_REVIEW"
-                : data.status === "expired"
-                  ? "EXPIRED"
-                  : 
-          data.status === "approved" || data.status === "validated"
-            ? "APPROVED"
-            : data.status === "rejected"
-              ? "REJECTED"
-              : "PENDING",
-        rejectionReason: typeof data.rejectionReason === "string" ? data.rejectionReason : null,
-        requestedAt:
-          typeof data.requestedAt?.toDate === "function"
-            ? data.requestedAt.toDate().toISOString()
-            : typeof data.createdAt?.toDate === "function" && data.status === "requested"
-              ? data.createdAt.toDate().toISOString()
-              : null,
-        uploadedAt:
-          typeof data.createdAt?.toDate === "function"
-            ? data.createdAt.toDate().toISOString()
-            : null,
-        verifiedAt:
-          typeof data.verifiedAt?.toDate === "function"
-            ? data.verifiedAt.toDate().toISOString()
-            : null,
-        verifiedBy: typeof data.verifiedBy === "string" ? data.verifiedBy : null,
-        source: data.source === "ADMIN" || data.source === "SYSTEM" ? data.source : "CLIENT",
-        uploadedBy: typeof data.uploadedBy === "string" ? data.uploadedBy : null,
-        expiresAt: typeof data.expiresAt === "string" ? data.expiresAt : null,
-        isRequired: Boolean(data.isRequired),
-        deliveryStatus:
-          data.deliveryStatus === "SENT" || data.deliveryStatus === "FAILED" || data.deliveryStatus === "QUEUED" || data.deliveryStatus === "DELIVERED"
-            ? data.deliveryStatus
-            : null,
-      } satisfies ClientDocument;
-    });
-
-    const byId = new Map<string, ClientDocument>(
-      publicDocuments.map((document) => [document.id, document]),
-    );
-    for (const document of opsDocuments) {
-      byId.set(document.id, document);
-    }
-
-    return sortNewest(
-      [...byId.values()].map((document) => ({
-        ...document,
-        createdAt: document.uploadedAt ?? document.requestedAt ?? "",
-      })),
-    );
+    return (await this.loadDocumentSources()).documents;
   }
 
   async listCaseDocuments(caseId: string) {

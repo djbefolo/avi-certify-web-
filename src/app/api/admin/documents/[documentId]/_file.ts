@@ -155,6 +155,7 @@ export async function validateAdminDocumentFile(
 export async function serveAdminDocumentFile(
   request: NextRequest,
   documentId: string,
+  disposition: "inline" | "attachment" = "attachment",
 ) {
   try {
     await requireAdmin(request);
@@ -171,13 +172,18 @@ export async function serveAdminDocumentFile(
       await validateAdminDocumentFile(document);
     const [buffer] = await file.download();
     const fileName = document.fileName || `${document.documentType}.pdf`;
+    const encodedFileName = encodeURIComponent(
+      fileName.replace(/[\r\n"]/g, "_"),
+    );
 
     return new NextResponse(new Uint8Array(buffer), {
       status: 200,
       headers: {
         "Cache-Control": "private, no-store",
         "Content-Type": actualContentType,
-        "Content-Disposition": `attachment; filename="${encodeURIComponent(fileName)}"`,
+        "Content-Disposition": `${disposition}; filename="document"; filename*=UTF-8''${encodedFileName}`,
+        "Content-Security-Policy": "sandbox; default-src 'none'; img-src 'self' data:",
+        "Cross-Origin-Resource-Policy": "same-origin",
         "X-Content-Type-Options": "nosniff",
       },
     });

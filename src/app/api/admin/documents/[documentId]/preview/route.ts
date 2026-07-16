@@ -6,5 +6,5 @@ export async function GET(
   { params }: { params: Promise<{ documentId: string }> },
 ) {
   const { documentId } = await params;
-  return serveAdminDocumentFile(request, documentId);
+  return serveAdminDocumentFile(request, documentId, "inline");
 }

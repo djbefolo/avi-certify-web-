@@ -192,7 +192,7 @@ describe("admin document route security", () => {
     expect(download).not.toHaveBeenCalled();
   });
 
-  it("forces preview responses to attachment until content scanning exists", async () => {
+  it("serves previews inline with restrictive browser security headers", async () => {
     const response = await previewDocument(
       new NextRequest("http://localhost/api/admin/documents/doc-1/preview"),
       fileParams(),
@@ -200,10 +200,16 @@ describe("admin document route security", () => {
 
     expect(response.status).toBe(200);
     expect(response.headers.get("Content-Disposition")).toMatch(
-      /^attachment;/,
+      /^inline;/,
     );
     expect(response.headers.get("Content-Disposition")).not.toContain(
       uploadedDocument.storagePath,
+    );
+    expect(response.headers.get("Content-Security-Policy")).toContain(
+      "sandbox",
+    );
+    expect(response.headers.get("Cross-Origin-Resource-Policy")).toBe(
+      "same-origin",
     );
   });
 });
