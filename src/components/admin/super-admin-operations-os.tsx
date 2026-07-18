@@ -84,6 +84,25 @@ type ClientAction =
   | "add-note"
   | "send-notification";
 
+type FinanceSection = "simulateur" | "simulations" | "devis" | "rapports";
+
+const actionButtonLabels: Record<ClientAction, string> = {
+  "request-document": "Demander document",
+  "add-note": "Ajouter note",
+  "send-notification": "Envoyer notification",
+};
+
+const financeSectionLabels: Record<FinanceSection, string> = {
+  simulateur: "Lier simulation",
+  simulations: "Lier simulation",
+  devis: "Générer devis",
+  rapports: "Rapport préfinancement",
+};
+
+function actionRequiresCaseMessage(actionLabel: string) {
+  return `${actionLabel} indisponible : créez d'abord un dossier opérationnel pour ce client.`;
+}
+
 const tabs = [
   ["Vue d'ensemble", "overview", Landmark],
   ["Prospects", "leads", UserRound],
@@ -99,7 +118,6 @@ const tabs = [
 ] as const;
 
 type TabKey = (typeof tabs)[number][1];
-type FinanceSection = "simulateur" | "simulations" | "devis" | "rapports";
 type ManualAviFormState = {
   studentFullName: string;
   studentDateOfBirth: string;
@@ -359,6 +377,7 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
   const [title, setTitle] = useState("");
   const [documentType, setDocumentType] =
     useState<(typeof documentTypeValues)[number]>("passport");
+  const [clientActionMessage, setClientActionMessage] = useState<string | null>(null);
   const [financeClientUid, setFinanceClientUid] = useState<string | undefined>();
   const [financeSection, setFinanceSection] =
     useState<FinanceSection>("simulateur");
@@ -400,6 +419,7 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
   async function loadClient(uid: string) {
     setSelectedUid(uid);
     setSelectedClient(null);
+    setClientActionMessage(null);
     setError(null);
     try {
       const response = await readApi<{ client: AdminClient360 }>(`/api/admin/clients/${encodeURIComponent(uid)}`);
@@ -475,9 +495,12 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
 
   function openAction(nextAction: ClientAction, clientCase: ClientCase | null) {
     if (!clientCase) {
-      setError("Créez d'abord un dossier opérationnel pour ce client.");
+      setClientActionMessage(actionRequiresCaseMessage(actionButtonLabels[nextAction]));
+      setError(null);
       return;
     }
+    setClientActionMessage(null);
+    setError(null);
     setAction(nextAction);
     setActionCase(clientCase);
     setMessage("");
@@ -487,6 +510,7 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
 
   async function refreshAfterAction(success: string) {
     setAction(null);
+    setClientActionMessage(null);
     setNotice(normalizeActionNotice(success));
     await load();
     if (selectedUid) await loadClient(selectedUid);
@@ -523,10 +547,12 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
 
   async function markUnderReview(clientCase: ClientCase | null) {
     if (!clientCase) {
-      setError("Créez d'abord un dossier opérationnel pour ce client.");
+      setClientActionMessage(actionRequiresCaseMessage("Marquer en revue"));
+      setError(null);
       return;
     }
     setIsBusy(true);
+    setClientActionMessage(null);
     setError(null);
     try {
       await writeApi(`/api/admin/cases/${clientCase.id}/status`, { status: "UNDER_REVIEW" }, "PATCH");
@@ -540,10 +566,12 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
 
   async function generateCertificate(clientCase: ClientCase | null) {
     if (!clientCase) {
-      setError("Créez d'abord un dossier opérationnel pour ce client.");
+      setClientActionMessage(actionRequiresCaseMessage("Générer attestation"));
+      setError(null);
       return;
     }
     setIsBusy(true);
+    setClientActionMessage(null);
     setError(null);
     try {
       const result = await writeApi<CertificateGenerationResult>(
@@ -583,10 +611,12 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
     clientCase: ClientCase | null,
   ) {
     if (!clientCase) {
-      setError("Créez d'abord un dossier opérationnel pour ce client.");
+      setClientActionMessage(actionRequiresCaseMessage(financeSectionLabels[section]));
+      setError(null);
       return;
     }
 
+    setClientActionMessage(null);
     setFinanceClientUid(clientUid);
     setFinanceSection(section);
     setSelectedUid(null);
@@ -763,6 +793,7 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
                   financialFiles={selectedFinancialFiles}
                   events={selectedTimeline}
                   communications={selectedCommunications}
+                  actionMessage={clientActionMessage}
                   onCreateCase={reconcileCases}
                   onMarkUnderReview={markUnderReview}
                   onGenerateCertificate={generateCertificate}
@@ -771,6 +802,7 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
                   onClose={() => {
                     setSelectedUid(null);
                     setSelectedClient(null);
+                    setClientActionMessage(null);
                   }}
                 />
               </section>
@@ -1238,6 +1270,7 @@ function Client360Drawer({
   financialFiles,
   events,
   communications,
+  actionMessage,
   onCreateCase,
   onMarkUnderReview,
   onGenerateCertificate,
@@ -1252,6 +1285,7 @@ function Client360Drawer({
   financialFiles: ClientFinancialFile[];
   events: AdminCaseEvent[];
   communications: CommunicationLog[];
+  actionMessage: string | null;
   onCreateCase: () => void;
   onMarkUnderReview: (clientCase: ClientCase | null) => void;
   onGenerateCertificate: (clientCase: ClientCase | null) => void;
@@ -1313,6 +1347,24 @@ function Client360Drawer({
         <StatusBadge label="Paiement" value={statusLabel(currentCase?.paymentStatus)} />
         <StatusBadge label="Finance" value={statusLabel(currentCase?.financeStatus)} />
       </div>
+
+      {actionMessage ? (
+        <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm font-medium text-amber-950" role="alert">
+          <p>{actionMessage}</p>
+          <Button type="button" size="sm" variant="outline" className="mt-3" onClick={onCreateCase}>
+            Créer dossier opérationnel
+          </Button>
+        </div>
+      ) : null}
+
+      {!currentCase ? (
+        <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+          <p className="font-semibold text-slate-950">Dossier requis pour les actions Client 360</p>
+          <p className="mt-1">
+            Les actions document, notification, attestation, finance et devis nécessitent un dossier opérationnel relié au client.
+          </p>
+        </div>
+      ) : null}
 
       <div className="mt-6 grid gap-4 xl:grid-cols-2">
         <SectionList
