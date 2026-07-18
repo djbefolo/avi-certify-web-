@@ -172,7 +172,7 @@ Existing middleware tests now pass after hardening.
 | Rapport prefinancement | Local test yes | Finance tab or drawer alert | Fintech APIs after tab | Existing workflow | Yes | Existing workflow |
 | Envoyer notification | Local test yes | Modal if case; drawer alert if no case | Yes when case exists | Existing workflow | Yes | Existing workflow |
 
-Preview manual QA still required with a real super-admin account.
+Preview manual QA still required with a real super-admin account and Vercel preview access.
 
 ## 17. Build / Lint / Typecheck / Test Results
 
@@ -188,7 +188,17 @@ Preview manual QA still required with a real super-admin account.
 
 ## 18. Vercel Preview URL
 
-Pending. Preview deployment must be created after commit/push.
+Preview detected after branch push through Vercel project integration:
+
+`https://avi-certify-re7cbv7fp-avi-certify-platform.vercel.app`
+
+Preview smoke performed through the Vercel connector:
+
+- `/admin/login`: HTTP 200, admin login page rendered, `X-Robots-Tag: noindex, nofollow, noarchive`, and no public `Mon espace` CTA found in fetched HTML.
+- `/admin`: blocked by Vercel preview SSO before app middleware, HTTP 302 to Vercel SSO, `x-robots-tag: noindex`.
+- `/verifier/test-token`: also blocked by Vercel preview SSO in this connector fetch, so app-level verification route behavior still needs manual browser testing with preview access.
+
+The local `vercel deploy --yes` command could not be used because the shell did not have Vercel CLI credentials and opened a device login prompt. No production deploy command was run.
 
 ## 19. Known Limitations
 
@@ -208,7 +218,8 @@ Pending. Preview deployment must be created after commit/push.
 
 ## 21. Commits Created
 
-Pending.
+- `2f241ca fix(admin): restore client 360 action workflows`
+- This report was updated after preview detection; see Git history for the report-only follow-up commit.
 
 ## 22. Production Deployment Confirmation
 
