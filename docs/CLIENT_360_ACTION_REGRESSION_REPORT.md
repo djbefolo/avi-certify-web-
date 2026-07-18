@@ -188,13 +188,19 @@ Preview manual QA still required with a real super-admin account and Vercel prev
 
 ## 18. Vercel Preview URL
 
-Preview detected after branch push through Vercel project integration:
+Preview detected after branch push through Vercel project integration.
 
-`https://avi-certify-re7cbv7fp-avi-certify-platform.vercel.app`
+Stable branch preview alias:
+
+`https://avi-certify-web-git-fix-client-360-13dad1-avi-certify-platform.vercel.app`
+
+Latest deployment observed before this report update:
+
+`https://avi-certify-erq3octjz-avi-certify-platform.vercel.app`
 
 Preview smoke performed through the Vercel connector:
 
-- `/admin/login`: HTTP 200, admin login page rendered, `X-Robots-Tag: noindex, nofollow, noarchive`, and no public `Mon espace` CTA found in fetched HTML.
+- `/admin/login`: HTTP 200 on the stable branch alias, admin login page rendered, `X-Robots-Tag: noindex, nofollow, noarchive`, and no public `Mon espace` CTA found in fetched HTML.
 - `/admin`: blocked by Vercel preview SSO before app middleware, HTTP 302 to Vercel SSO, `x-robots-tag: noindex`.
 - `/verifier/test-token`: also blocked by Vercel preview SSO in this connector fetch, so app-level verification route behavior still needs manual browser testing with preview access.
 
