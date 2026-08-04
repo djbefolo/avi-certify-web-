@@ -186,6 +186,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (
+      error instanceof Error &&
+      ["HOUSING_REQUEST_NOT_FOUND", "HOUSING_REQUEST_NOT_PAYABLE"].includes(
+        error.message,
+      )
+    ) {
+      return jsonResponse(
+        {
+          error: error.message,
+          message:
+            error.message === "HOUSING_REQUEST_NOT_FOUND"
+              ? "La demande logement est introuvable ou n'appartient pas a ce compte."
+              : "Cette demande logement ne peut plus etre payee dans son etat actuel.",
+        },
+        { status: error.message === "HOUSING_REQUEST_NOT_FOUND" ? 404 : 409 },
+      );
+    }
+
     console.error("[api/stripe/create-checkout-session] Failed", error);
 
     return jsonResponse(

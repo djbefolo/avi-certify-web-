@@ -149,6 +149,104 @@ function seedProfile(overrides: Record<string, unknown> = {}) {
   });
 }
 
+function seedHousingRequest(overrides: Record<string, unknown> = {}) {
+  const request = {
+    id: "housing-1",
+    ownerId: "client-1",
+    caseId: "case-1",
+    clientEmail: "student@example.com",
+    clientName: "Awa Student",
+    serviceType: "conditional_housing_certificate",
+    status: "conditionally_reserved",
+    studentFirstName: "Awa",
+    studentLastName: "Student",
+    studentFullName: "Awa Student",
+    studentPhone: "+237600000000",
+    studentDateOfBirth: "2001-02-03",
+    studentPlaceOfBirth: "Douala",
+    nationality: "Camerounaise",
+    originCountry: "Cameroun",
+    currentResidenceCountry: "Cameroun",
+    destinationCountry: "France",
+    housingInventoryId: "SAFE-001",
+    preferredCityCode: "paris_banlieue",
+    preferredCity: "Paris banlieue",
+    schoolName: "Universite test",
+    schoolCity: "Paris",
+    academicYear: "2026-2027",
+    expectedArrivalDate: "2026-09-01",
+    expectedStayDurationMonths: 12,
+    accommodationType: "studio",
+    indicativeMonthlyRent: 500,
+    currency: "EUR",
+    paymentId: "payment-1",
+    generationJobId: "housing_payment-1",
+    allocation: {
+      inventoryReference: "SAFE-001",
+      partnerName: "Partner test",
+      residenceName: "Residence test",
+      addressLine: "1 rue Test",
+      postalCode: "75000",
+      city: "Paris",
+      accommodationType: "studio",
+      monthlyRent: 500,
+      currency: "EUR",
+      confirmedAt: "2026-06-15",
+      confirmationReference: "EMAIL-001",
+      validUntil: "2026-09-30",
+      allocationReason: "Confirmation partenaire.",
+      allocationVersion: 1,
+      approvedBy: "admin-1",
+      approvedAt: "2026-06-15T10:00:00.000Z",
+    },
+    createdAt: "2026-06-01T08:00:00.000Z",
+    updatedAt: "2026-06-16T08:00:00.000Z",
+    ...overrides,
+  };
+  const allocation = request.allocation as Record<string, unknown> | null;
+  const certificateSnapshot = allocation
+    ? {
+        createdAt: "2026-06-15T10:00:00.000Z",
+        source: "admin_approval",
+        requestId: "housing-1",
+        ownerId: "client-1",
+        caseId: "case-1",
+        paymentId: "payment-1",
+        student: {
+          fullName: request.studentFullName,
+          email: request.clientEmail,
+          dateOfBirth: request.studentDateOfBirth,
+          placeOfBirth: request.studentPlaceOfBirth,
+          nationality: request.nationality,
+          originCountry: request.originCountry,
+          expectedArrivalDate: request.expectedArrivalDate,
+          expectedStayDurationMonths: request.expectedStayDurationMonths,
+          academicYear: request.academicYear,
+          schoolName: request.schoolName,
+        },
+        housing: allocation,
+        inventoryVersion: 1,
+      }
+    : null;
+  firebaseMocks.collectionMap("housing_requests").set("housing-1", {
+    ...request,
+    certificateSnapshot,
+  });
+}
+
+function seedPaidHousingPayment(overrides: Record<string, unknown> = {}) {
+  firebaseMocks.collectionMap("payments").set("payment-1", {
+    ownerId: "client-1",
+    housingRequestId: "housing-1",
+    serviceType: "accommodation_certificate",
+    status: "paid",
+    amountTotal: 7900,
+    currency: "eur",
+    lastStripeEventId: "evt_checkout_paid",
+    ...overrides,
+  });
+}
+
 describe("certificate workflow service", () => {
   beforeEach(() => {
     firebaseMocks.collections.clear();
@@ -170,6 +268,8 @@ describe("certificate workflow service", () => {
     });
     pdfMock.mockResolvedValue(Buffer.from("%PDF-certificate"));
     seedProfile();
+    seedHousingRequest();
+    seedPaidHousingPayment();
   });
 
   it("generates a housing certificate, client document, timeline event, and email log", async () => {
@@ -232,8 +332,33 @@ describe("certificate workflow service", () => {
     );
   });
 
+  it("blocks a linked conditional housing request until partner allocation is confirmed", async () => {
+    seedHousingRequest({
+      status: "allocation_pending",
+      allocation: null,
+    });
+
+    const result = await generateHousingCertificateForCase({
+      caseId: "case-1",
+      actor,
+      housingRequestId: "housing-1",
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        generated: false,
+        reason: "allocation_not_confirmed",
+      }),
+    );
+    expect(pdfMock).not.toHaveBeenCalled();
+    expect(firebaseMocks.save).not.toHaveBeenCalled();
+  });
+
   it("blocks generation when required profile fields are missing", async () => {
-    seedProfile({ dateOfBirth: null, preferredHousingCity: null });
+    seedHousingRequest({
+      studentDateOfBirth: null,
+      preferredCity: null,
+    });
 
     const result = await generateHousingCertificateForCase({
       caseId: "case-1",
@@ -319,6 +444,73 @@ describe("certificate workflow service", () => {
     );
   });
 
+  it("keeps the generated document valid when the delivery email fails", async () => {
+    emailMock.mockResolvedValue({
+      sent: false,
+      messageId: null,
+      status: "SEND_FAILED",
+      provider: "resend",
+    });
+
+    const result = await generateHousingCertificateForCase({
+      caseId: "case-1",
+      actor,
+    });
+
+    expect(result.generated).toBe(true);
+    expect(result.email.status).toBe("SEND_FAILED");
+    expect(
+      firebaseMocks.collectionMap("certificates").get("case-1-housing-certificate"),
+    ).toEqual(expect.objectContaining({ status: "ACTIVE" }));
+    expect(firebaseMocks.collectionMap("housing_requests").get("housing-1")).toEqual(
+      expect.objectContaining({ status: "certificate_generated" }),
+    );
+    expect(opsMocks.createCommunicationLog).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "FAILED" }),
+    );
+  });
+
+  it("reuses the deterministic document on generation retry", async () => {
+    const first = await generateHousingCertificateForCase({
+      caseId: "case-1",
+      actor,
+    });
+    const second = await generateHousingCertificateForCase({
+      caseId: "case-1",
+      actor,
+    });
+
+    expect(first.generated).toBe(true);
+    expect(second).toEqual(
+      expect.objectContaining({
+        generated: false,
+        reason: "certificate_already_exists",
+        certificateId: first.certificateId,
+      }),
+    );
+    expect(pdfMock).toHaveBeenCalledTimes(1);
+    expect(firebaseMocks.save).toHaveBeenCalledTimes(1);
+    expect(emailMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("blocks direct admin generation when the persisted Stripe payment is not paid", async () => {
+    seedPaidHousingPayment({ status: "pending" });
+
+    const result = await generateHousingCertificateForCase({
+      caseId: "case-1",
+      actor,
+    });
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        generated: false,
+        reason: "payment_not_confirmed",
+      }),
+    );
+    expect(pdfMock).not.toHaveBeenCalled();
+    expect(firebaseMocks.save).not.toHaveBeenCalled();
+  });
+
   it("returns only public verification metadata for active certificates", async () => {
     firebaseMocks.collectionMap("certificates").set("cert-1", {
       verificationToken: "a".repeat(64),
@@ -344,6 +536,8 @@ describe("certificate workflow service", () => {
       certificateType: "housing_accommodation",
       studentFullName: "Awa Student",
       issueDate: "2026-06-16T10:00:00.000Z",
+      validUntil: null,
+      city: null,
       issuer: "AVI CERTIFY",
     });
     expect(certificate).not.toHaveProperty("storagePath");
@@ -368,6 +562,31 @@ describe("certificate workflow service", () => {
         status: "REVOKED",
         valid: false,
         studentFullName: null,
+      }),
+    );
+  });
+
+  it("treats an active certificate past its validity date as expired", async () => {
+    firebaseMocks.collectionMap("certificates").set("cert-3", {
+      verificationToken: "c".repeat(64),
+      status: "ACTIVE",
+      certificateNumber: "AVI-HBG-2026-CASE3",
+      studentFullName: "Awa Student",
+      city: "Paris",
+      validUntil: "2020-01-01T00:00:00.000Z",
+      createdAt: "2019-12-01T10:00:00.000Z",
+    });
+
+    const certificate = await getPublicCertificateVerificationByToken(
+      "c".repeat(64),
+    );
+
+    expect(certificate).toEqual(
+      expect.objectContaining({
+        status: "EXPIRED",
+        valid: false,
+        studentFullName: null,
+        city: null,
       }),
     );
   });

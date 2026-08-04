@@ -1,52 +1,36 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { generateHousingCertificatePdf } from "@/lib/certificates/certificate-generator";
 
-const readFileMock = vi.hoisted(() => vi.fn());
+describe("conditional housing certificate PDF", () => {
+  it("builds a readable PDF with the repository AVI CERTIFY logo and QR code", async () => {
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => undefined);
 
-vi.mock("node:fs/promises", () => ({
-  default: {
-    readFile: readFileMock,
-  },
-  readFile: readFileMock,
-}));
-
-describe("certificate PDF generator", () => {
-  beforeEach(() => {
-    readFileMock.mockReset();
-    readFileMock.mockRejectedValue(new Error("asset missing"));
-  });
-
-  it("does not read private signature or stamp assets", async () => {
-    const pdf = await generateHousingCertificatePdf({
-      certificateNumber: "AVI-HBG-2026-TEST",
+    const buffer = await generateHousingCertificatePdf({
+      certificateNumber: "AVI-HBG-2026-CASE0001",
       studentFullName: "Awa Student",
       dateOfBirth: "3 fevrier 2001",
       birthPlace: "Douala",
       nationality: "Camerounaise",
       targetSchoolName: "Universite test",
       housing: {
-        region: "ile_de_france",
         city: "Paris",
-        fullAddress: "12 Rue de la Chapelle, 75018 Paris",
-        rent: 790,
-        available: true,
+        fullAddress: "1 rue Test, 75000 Paris",
+        rent: 500,
       },
       entryDate: "1 septembre 2026",
       durationMonths: 12,
-      issueDate: "16 juin 2026",
-      verificationUrl: "https://www.avicertify.fr/verifier/test-token",
+      issueDate: "3 aout 2026",
+      validUntil: "30 septembre 2026",
+      verificationUrl: "https://www.avicertify.fr/verifier/test-token-1234567890",
+      templateVersion: "housing-conditional-v1",
     });
-
-    expect(pdf.byteLength).toBeGreaterThan(0);
-    expect(
-      readFileMock.mock.calls.some(([candidate]) =>
-        String(candidate).toLowerCase().includes("signature"),
-      ),
-    ).toBe(false);
-    expect(
-      readFileMock.mock.calls.some(([candidate]) =>
-        String(candidate).toLowerCase().includes("stamp"),
-      ),
-    ).toBe(false);
+    expect(buffer.subarray(0, 4).toString()).toBe("%PDF");
+    expect(buffer.byteLength).toBeGreaterThan(2_000);
+    expect(buffer.toString("latin1")).toContain("%%EOF");
+    expect(warning).not.toHaveBeenCalledWith(
+      expect.stringContaining("AVI CERTIFY logo asset could not be loaded"),
+      expect.anything(),
+    );
+    warning.mockRestore();
   });
 });

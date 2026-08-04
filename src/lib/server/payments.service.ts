@@ -2,8 +2,12 @@ import { FieldValue } from "firebase-admin/firestore";
 import type { DecodedIdToken } from "firebase-admin/auth";
 import type Stripe from "stripe";
 import { paymentServiceConfigs, type PaymentServiceConfig } from "@/constants/payments";
-import { generateHousingCertificateForPaidPayment } from "@/lib/certificates/certificate.service";
 import { getAdminAuth, getAdminFirestore } from "@/lib/firebase/admin";
+import {
+  attachPaymentToHousingRequest,
+  evaluateHousingCertificateAfterPayment,
+  requireHousingRequestForCheckout,
+} from "@/lib/housing/housing-request.service";
 import { getStripeServerClient } from "@/lib/stripe/server";
 import type {
   CreateCheckoutSessionInput,
@@ -16,7 +20,9 @@ type CreatePaymentRecordParams = {
   paymentId: string;
   ownerId: string;
   serviceConfig: PaymentServiceConfig;
-  housingRegion?: string;
+  housingRequestId?: string;
+  caseId?: string;
+  cityCode?: string;
 };
 
 type UpdatePaymentSessionParams = {
@@ -74,6 +80,14 @@ function getMetadataValue(
   const value = metadata?.[key]?.trim();
 
   return value ? value : null;
+}
+
+function getDocumentString(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function isPaymentServiceType(value: string): value is PaymentServiceType {
+  return Object.prototype.hasOwnProperty.call(paymentServiceConfigs, value);
 }
 
 function getExpandableId(value: string | { id?: string } | null): string | null {
@@ -146,7 +160,9 @@ export async function createPaymentRecord({
   paymentId,
   ownerId,
   serviceConfig,
-  housingRegion,
+  housingRequestId,
+  caseId,
+  cityCode,
 }: CreatePaymentRecordParams): Promise<void> {
   const db = getAdminFirestore();
   const paymentRef = db.collection(PAYMENTS_COLLECTION).doc(paymentId);
@@ -158,7 +174,9 @@ export async function createPaymentRecord({
     amount: serviceConfig.amount,
     currency: serviceConfig.currency,
     status: "pending",
-    ...(housingRegion ? { housingRegion } : {}),
+    ...(housingRequestId ? { housingRequestId } : {}),
+    ...(caseId ? { caseId } : {}),
+    ...(cityCode ? { cityCode } : {}),
     stripeCheckoutSessionId: null,
     stripePaymentIntentId: null,
     checkoutUrl: null,
@@ -186,20 +204,35 @@ export async function createCheckoutSession(
   idToken: string,
   input: CreateCheckoutSessionInput,
 ): Promise<{ checkoutUrl: string }> {
-  const decodedToken = await getAdminAuth().verifyIdToken(idToken);
+  const decodedToken = await getAdminAuth().verifyIdToken(idToken, true);
   await assertEmailVerified(decodedToken);
   const ownerId = decodedToken.uid;
   const serviceConfig = getPaymentServiceConfig(input.serviceType);
   const db = getAdminFirestore();
   const paymentRef = db.collection(PAYMENTS_COLLECTION).doc();
   const appUrl = getAppUrl();
+  const housingRequest =
+    input.serviceType === "accommodation_certificate" && input.housingRequestId
+      ? await requireHousingRequestForCheckout(input.housingRequestId, ownerId)
+      : null;
 
   await createPaymentRecord({
     paymentId: paymentRef.id,
     ownerId,
     serviceConfig,
-    housingRegion: input.housingRegion,
+    housingRequestId: housingRequest?.id,
+    caseId: housingRequest?.caseId,
+    cityCode: housingRequest?.preferredCityCode,
   });
+
+  if (housingRequest) {
+    await attachPaymentToHousingRequest({
+      requestId: housingRequest.id,
+      paymentId: paymentRef.id,
+      amount: serviceConfig.amount,
+      currency: serviceConfig.currency,
+    });
+  }
 
   const stripe = getStripeServerClient();
   const session = await stripe.checkout.sessions.create({
@@ -224,14 +257,32 @@ export async function createCheckoutSession(
       paymentId: paymentRef.id,
       serviceType: serviceConfig.type,
       productFamily: serviceConfig.metadata.productFamily,
-      ...(input.housingRegion ? { housingRegion: input.housingRegion } : {}),
+      workflowType:
+        serviceConfig.type === "accommodation_certificate"
+          ? "conditional_housing_certificate"
+          : "standard_payment",
+      schemaVersion: "1",
+      environment: process.env.VERCEL_ENV ?? process.env.NODE_ENV ?? "unknown",
+      ...(housingRequest
+        ? {
+            housingRequestId: housingRequest.id,
+            caseId: housingRequest.caseId,
+            cityCode: housingRequest.preferredCityCode,
+          }
+        : {}),
     },
     payment_intent_data: {
       metadata: {
         ownerId,
         paymentId: paymentRef.id,
         serviceType: serviceConfig.type,
-        ...(input.housingRegion ? { housingRegion: input.housingRegion } : {}),
+        ...(housingRequest
+          ? {
+              housingRequestId: housingRequest.id,
+              caseId: housingRequest.caseId,
+              cityCode: housingRequest.preferredCityCode,
+            }
+          : {}),
       },
     },
     success_url: `${appUrl}/dossier/paiement?payment=success&session_id={CHECKOUT_SESSION_ID}`,
@@ -290,6 +341,15 @@ export async function markCheckoutSessionCompleted(
   const db = getAdminFirestore();
   const paymentRef = db.collection(PAYMENTS_COLLECTION).doc(paymentId);
   const existingPayment = await paymentRef.get();
+
+  if (!existingPayment.exists) {
+    console.error("[stripe/webhook] Payment record not found", {
+      paymentId,
+      sessionId: session.id,
+      eventId: context.eventId,
+    });
+    return { updated: false, paymentId, reason: "payment_not_found" };
+  }
   const metadataOwnerId = getMetadataValue(session.metadata, "ownerId");
   const existingOwnerId = existingPayment.exists
     ? String(existingPayment.get("ownerId") ?? "")
@@ -330,12 +390,45 @@ export async function markCheckoutSessionCompleted(
   const serviceType =
     getMetadataValue(session.metadata, "serviceType") ??
     (existingPayment.exists ? String(existingPayment.get("serviceType") ?? "") : null);
-  const housingRegion =
-    getMetadataValue(session.metadata, "housingRegion") ??
-    (existingPayment.exists
-      ? String(existingPayment.get("housingRegion") ?? "")
-      : null);
+  const existingServiceType = String(existingPayment.get("serviceType") ?? "");
+  const housingRequestId =
+    getMetadataValue(session.metadata, "housingRequestId") ??
+    getDocumentString(existingPayment.get("housingRequestId"));
   const productFamily = getMetadataValue(session.metadata, "productFamily");
+
+  if (!serviceType || serviceType !== existingServiceType) {
+    console.error("[stripe/webhook] Service type mismatch", {
+      paymentId,
+      eventId: context.eventId,
+      metadataServiceType: serviceType,
+      storedServiceType: existingServiceType,
+    });
+    return { updated: false, paymentId, reason: "service_type_mismatch" };
+  }
+
+  if (!isPaymentServiceType(serviceType)) {
+    return { updated: false, paymentId, reason: "service_type_invalid" };
+  }
+  const serviceConfig = getPaymentServiceConfig(serviceType);
+  const expectedCurrency = serviceConfig.currency.toLowerCase();
+  if (
+    session.amount_total !== serviceConfig.amount ||
+    session.currency?.toLowerCase() !== expectedCurrency
+  ) {
+    console.error("[stripe/webhook] Checkout amount mismatch", {
+      paymentId,
+      eventId: context.eventId,
+      expectedAmount: serviceConfig.amount,
+      receivedAmount: session.amount_total,
+      expectedCurrency,
+      receivedCurrency: session.currency,
+    });
+    return { updated: false, paymentId, reason: "payment_amount_mismatch" };
+  }
+
+  if (serviceType === "accommodation_certificate" && !housingRequestId) {
+    return { updated: false, paymentId, reason: "housing_request_missing" };
+  }
 
   await paymentRef.set(
     {
@@ -343,7 +436,7 @@ export async function markCheckoutSessionCompleted(
       ownerId,
       serviceType,
       productFamily,
-      ...(housingRegion ? { housingRegion } : {}),
+      ...(housingRequestId ? { housingRequestId } : {}),
       stripeCheckoutSessionId: session.id,
       stripeSessionId: session.id,
       stripePaymentIntentId: paymentIntentId,
@@ -358,26 +451,21 @@ export async function markCheckoutSessionCompleted(
     { merge: true },
   );
 
-  let certificateResult: Awaited<
-    ReturnType<typeof generateHousingCertificateForPaidPayment>
-  > = { generated: false, reason: "not_attempted" };
-
-  try {
-    certificateResult = await generateHousingCertificateForPaidPayment({
-      ownerId,
+  let generationJobId: string | null = null;
+  if (serviceType === "accommodation_certificate" && housingRequestId) {
+    const fulfillment = await evaluateHousingCertificateAfterPayment({
+      requestId: housingRequestId,
       paymentId,
-      serviceType,
-      housingRegion,
+      stripeEventId: context.eventId,
+      paidAt: getEventDate(context).toISOString(),
     });
-  } catch (error) {
-    console.error("[stripe/webhook] Certificate generation failed after payment sync", {
-      paymentId,
-      ownerId,
-      serviceType,
-      eventId: context.eventId,
-      error,
-    });
-    certificateResult = { generated: false, reason: "generation_failed" };
+    generationJobId = fulfillment.job?.id ?? null;
+    if (fulfillment.automaticGenerationQueued) {
+      const { processHousingCertificateJob } = await import(
+        "@/lib/certificates/certificate-workflow.service"
+      );
+      await processHousingCertificateJob({ housingRequestId });
+    }
   }
 
   console.info("[stripe/webhook] Payment marked paid", {
@@ -386,7 +474,7 @@ export async function markCheckoutSessionCompleted(
     sessionId: session.id,
     paymentIntentId,
     eventId: context.eventId,
-    certificate: certificateResult,
+    generationJobId,
   });
 
   return {

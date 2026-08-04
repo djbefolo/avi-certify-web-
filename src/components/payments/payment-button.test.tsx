@@ -6,9 +6,7 @@ import { PaymentButton } from "@/components/payments/payment-button";
 vi.mock("@/hooks/use-auth", () => ({
   useAuth: () => ({
     isEmailVerified: true,
-    user: {
-      getIdToken: vi.fn().mockResolvedValue("firebase-id-token"),
-    },
+    user: { getIdToken: vi.fn().mockResolvedValue("firebase-id-token") },
   }),
 }));
 
@@ -23,18 +21,30 @@ describe("PaymentButton", () => {
   it("disables the checkout button while the request is in flight", async () => {
     vi.stubGlobal("fetch", vi.fn(() => new Promise(() => undefined)));
     const user = userEvent.setup();
-
     render(<PaymentButton />);
 
-    const button = screen.getByRole("button", {
-      name: /procéder au paiement/i,
-    });
-
+    const button = screen.getByRole("button", { name: /proceder au paiement/i });
     await user.click(button);
 
     await waitFor(() => {
       expect(button).toBeDisabled();
       expect(button).toHaveAttribute("aria-busy", "true");
     });
+  });
+
+  it("requires the dedicated housing request before certificate checkout", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+    render(<PaymentButton />);
+
+    await user.selectOptions(
+      screen.getByLabelText("Service"),
+      "accommodation_certificate",
+    );
+    expect(
+      screen.getByRole("button", { name: /completer la demande logement/i }),
+    ).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });

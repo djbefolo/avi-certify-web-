@@ -62,6 +62,7 @@ function mapDocumentSnapshot(id: string, data: DocumentData): UserDocument {
       typeof data.rejectionReason === "string" ? data.rejectionReason : null,
     certificateId:
       typeof data.certificateId === "string" ? data.certificateId : null,
+    paymentId: typeof data.paymentId === "string" ? data.paymentId : null,
     certificateNumber:
       typeof data.certificateNumber === "string" ? data.certificateNumber : null,
     verificationUrl:
@@ -218,7 +219,7 @@ export async function getGeneratedCertificateDocument(
   return (
     documents.find(
       (document) =>
-        document.id === paymentId &&
+        (document.id === paymentId || document.paymentId === paymentId) &&
         document.ownerId === uid &&
         document.documentType === "accommodation_certificate" &&
         document.status === "generated",

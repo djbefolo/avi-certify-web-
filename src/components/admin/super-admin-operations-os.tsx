@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Bell,
+  Building2,
   BriefcaseBusiness,
   CheckCircle2,
   ClipboardCheck,
@@ -22,6 +23,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { FintechCommandCenter } from "@/components/admin/fintech-command-center";
 import type { AdminRole } from "@/lib/admin/admin-auth";
@@ -47,6 +49,7 @@ import type {
   AdminLeadStats,
   AdminLeadUpdateInput,
 } from "@/types/admin-crm";
+import type { HousingInventoryItem, HousingRequest } from "@/types/housing";
 
 type Props = {
   adminRole: AdminRole;
@@ -62,6 +65,8 @@ type OperationsData = {
   documents: ClientDocument[];
   notifications: AdminNotification[];
   events: AdminCaseEvent[];
+  housingInventory: HousingInventoryItem[];
+  housingAutoIssuanceGloballyEnabled: boolean;
 };
 
 type CertificateGenerationResult = {
@@ -73,7 +78,9 @@ type CertificateGenerationResult = {
     | "certificate_already_exists"
     | "missing_profile_data"
     | "payment_not_confirmed"
-    | "housing_address_unavailable";
+    | "housing_address_unavailable"
+    | "housing_request_missing"
+    | "allocation_not_confirmed";
   message?: string;
   missingProfileFields?: string[];
   missingFieldLabels?: string[];
@@ -83,6 +90,22 @@ type ClientAction =
   | "request-document"
   | "add-note"
   | "send-notification";
+
+type HousingAllocationForm = {
+  inventoryReference: string;
+  partnerName: string;
+  residenceName: string;
+  addressLine: string;
+  postalCode: string;
+  city: string;
+  accommodationType: "studio" | "t1_bis" | "t2" | "shared" | "other";
+  monthlyRent: number;
+  currency: "EUR";
+  confirmedAt: string;
+  confirmationReference: string;
+  validUntil: string;
+  allocationReason: string;
+};
 
 type FinanceSection = "simulateur" | "simulations" | "devis" | "rapports";
 
@@ -112,6 +135,7 @@ const tabs = [
   ["Paiements", "payments", CreditCard],
   ["Finance / Préfinancement", "finance", ClipboardCheck],
   ["Attestations / AVI", "certificates", FileText],
+  ["Logements", "housing", Building2],
   ["Notifications", "notifications", Bell],
   ["Audit", "audit", ShieldCheck],
   ["Paramètres admin", "settings", Settings],
@@ -177,13 +201,20 @@ function apiHeaders() {
   return { "content-type": "application/json" };
 }
 
+async function getApiError(response: Response) {
+  const payload = (await response.json().catch(() => null)) as
+    | { error?: string; message?: string }
+    | null;
+  return `${response.status} ${payload?.message ?? payload?.error ?? response.statusText ?? "Admin API error"}`;
+}
+
 async function readApi<T>(path: string): Promise<T> {
   const response = await fetch(path, {
     cache: "no-store",
     credentials: "same-origin",
     headers: apiHeaders(),
   });
-  if (!response.ok) throw new Error(`${response.status} ${response.statusText || "Admin API error"}`);
+  if (!response.ok) throw new Error(await getApiError(response));
   return (await response.json()) as T;
 }
 
@@ -195,7 +226,7 @@ async function writeApi<T>(path: string, body?: unknown, method = "POST") {
     headers: apiHeaders(),
     body: body ? JSON.stringify(body) : undefined,
   });
-  if (!response.ok) throw new Error(`${response.status} ${response.statusText || "Admin API error"}`);
+  if (!response.ok) throw new Error(await getApiError(response));
   return (await response.json()) as T;
 }
 
@@ -311,6 +342,14 @@ function certificateGenerationMessage(result: CertificateGenerationResult) {
     return "Generation bloquee : aucune adresse d'hebergement disponible pour ce dossier.";
   }
 
+  if (result.reason === "housing_request_missing") {
+    return "Generation bloquee : la demande logement est introuvable.";
+  }
+
+  if (result.reason === "allocation_not_confirmed") {
+    return "Generation bloquee : confirmez d'abord la disponibilite partenaire dans la fiche logement.";
+  }
+
   if (result.reason === "missing_profile_data") {
     const labels = result.missingFieldLabels?.length
       ? result.missingFieldLabels
@@ -361,6 +400,8 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
   const [query, setQuery] = useState("");
   const [selectedUid, setSelectedUid] = useState<string | null>(null);
   const [selectedClient, setSelectedClient] = useState<AdminClient360 | null>(null);
+  const [selectedHousingRequest, setSelectedHousingRequest] =
+    useState<HousingRequest | null>(null);
   const [data, setData] = useState<OperationsData>({
     overview: null,
     leads: [],
@@ -370,6 +411,8 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
     documents: [],
     notifications: [],
     events: [],
+    housingInventory: [],
+    housingAutoIssuanceGloballyEnabled: false,
   });
   const [action, setAction] = useState<ClientAction | null>(null);
   const [actionCase, setActionCase] = useState<ClientCase | null>(null);
@@ -390,7 +433,7 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
     setIsLoading(true);
     setError(null);
     try {
-      const [clients, leadsResponse, casesResponse, documents, notifications, audit] =
+      const [clients, leadsResponse, casesResponse, documents, notifications, audit, housing] =
         await Promise.all([
           readApi<{ clients: AdminClientProfile[]; overview: AdminOperationsOverview }>("/api/admin/clients"),
           readApi<{ leads: AdminLead[]; stats: AdminLeadStats }>("/api/admin/leads"),
@@ -398,6 +441,10 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
           readApi<{ documents: ClientDocument[] }>("/api/admin/documents"),
           readApi<{ notifications: AdminNotification[] }>("/api/admin/notifications"),
           readApi<{ events: AdminCaseEvent[] }>("/api/admin/audit"),
+          readApi<{
+            inventory: HousingInventoryItem[];
+            autoIssuanceGloballyEnabled: boolean;
+          }>("/api/admin/housing/inventory"),
         ]);
       setData({
         overview: clients.overview,
@@ -408,6 +455,8 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
         documents: documents.documents,
         notifications: notifications.notifications,
         events: audit.events,
+        housingInventory: housing.inventory,
+        housingAutoIssuanceGloballyEnabled: housing.autoIssuanceGloballyEnabled,
       });
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : "Impossible de charger le cockpit opérations.");
@@ -416,16 +465,103 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
     }
   }
 
+  async function updateHousingPolicy(
+    inventoryId: string,
+    input: Record<string, unknown>,
+  ) {
+    setIsBusy(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const response = await writeApi<{ inventory: HousingInventoryItem }>(
+        `/api/admin/housing/inventory/${encodeURIComponent(inventoryId)}`,
+        input,
+        "PATCH",
+      );
+      setData((current) => ({
+        ...current,
+        housingInventory: current.housingInventory.map((item) =>
+          item.id === response.inventory.id ? response.inventory : item,
+        ),
+      }));
+      setNotice("Règles de résidence mises à jour et journalisées.");
+    } catch (updateError) {
+      setError(
+        updateError instanceof Error
+          ? updateError.message
+          : "Mise à jour de la résidence impossible.",
+      );
+      throw updateError;
+    } finally {
+      setIsBusy(false);
+    }
+  }
+
   async function loadClient(uid: string) {
     setSelectedUid(uid);
     setSelectedClient(null);
+    setSelectedHousingRequest(null);
     setClientActionMessage(null);
     setError(null);
     try {
-      const response = await readApi<{ client: AdminClient360 }>(`/api/admin/clients/${encodeURIComponent(uid)}`);
+      const [response, housing] = await Promise.all([
+        readApi<{ client: AdminClient360 }>(
+          `/api/admin/clients/${encodeURIComponent(uid)}`,
+        ),
+        readApi<{ requests: HousingRequest[] }>(
+          `/api/admin/housing/requests?ownerId=${encodeURIComponent(uid)}`,
+        ),
+      ]);
       setSelectedClient(response.client);
+      setSelectedHousingRequest(housing.requests[0] ?? null);
     } catch (clientError) {
       setError(clientError instanceof Error ? clientError.message : "Impossible de charger la fiche client.");
+    }
+  }
+
+  async function approveHousing(
+    requestId: string,
+    input: HousingAllocationForm,
+  ) {
+    setIsBusy(true);
+    setError(null);
+    try {
+      await writeApi(
+        `/api/admin/housing/requests/${encodeURIComponent(requestId)}/approve-allocation`,
+        input,
+      );
+      await refreshAfterAction(
+        "Attribution partenaire confirmee et attestation generee.",
+      );
+    } catch (approvalError) {
+      setError(
+        approvalError instanceof Error
+          ? approvalError.message
+          : "Confirmation logement impossible.",
+      );
+      throw approvalError;
+    } finally {
+      setIsBusy(false);
+    }
+  }
+
+  async function retryHousing(requestId: string) {
+    setIsBusy(true);
+    setError(null);
+    try {
+      await writeApi(
+        `/api/admin/housing/requests/${encodeURIComponent(requestId)}/retry`,
+      );
+      await refreshAfterAction("Generation logement relancee.");
+    } catch (retryError) {
+      setError(
+        retryError instanceof Error
+          ? retryError.message
+          : "Relance de generation impossible.",
+      );
+      throw retryError;
+    } finally {
+      setIsBusy(false);
     }
   }
 
@@ -793,15 +929,20 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
                   financialFiles={selectedFinancialFiles}
                   events={selectedTimeline}
                   communications={selectedCommunications}
+                  housingRequest={selectedHousingRequest}
+                  isBusy={isBusy}
                   actionMessage={clientActionMessage}
                   onCreateCase={reconcileCases}
                   onMarkUnderReview={markUnderReview}
                   onGenerateCertificate={generateCertificate}
                   onOpenAction={openAction}
                   onOpenFinance={openFinance}
+                  onApproveHousing={approveHousing}
+                  onRetryHousing={retryHousing}
                   onClose={() => {
                     setSelectedUid(null);
                     setSelectedClient(null);
+                    setSelectedHousingRequest(null);
                     setClientActionMessage(null);
                   }}
                 />
@@ -824,6 +965,16 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
               <CertificatesPanel
                 documents={data.documents}
                 clientByUid={clientByUid}
+              />
+            ) : null}
+            {!isLoading && active === "housing" ? (
+              <HousingInventoryPanel
+                inventory={data.housingInventory}
+                globalAutoIssuanceEnabled={
+                  data.housingAutoIssuanceGloballyEnabled
+                }
+                isBusy={isBusy}
+                onUpdate={updateHousingPolicy}
               />
             ) : null}
             {!isLoading && active === "notifications" ? <NotificationsPanel notifications={data.notifications} /> : null}
@@ -1270,12 +1421,16 @@ function Client360Drawer({
   financialFiles,
   events,
   communications,
+  housingRequest,
+  isBusy,
   actionMessage,
   onCreateCase,
   onMarkUnderReview,
   onGenerateCertificate,
   onOpenAction,
   onOpenFinance,
+  onApproveHousing,
+  onRetryHousing,
   onClose,
 }: {
   selectedUid: string | null;
@@ -1285,6 +1440,8 @@ function Client360Drawer({
   financialFiles: ClientFinancialFile[];
   events: AdminCaseEvent[];
   communications: CommunicationLog[];
+  housingRequest: HousingRequest | null;
+  isBusy: boolean;
   actionMessage: string | null;
   onCreateCase: () => void;
   onMarkUnderReview: (clientCase: ClientCase | null) => void;
@@ -1295,6 +1452,11 @@ function Client360Drawer({
     section: FinanceSection,
     clientCase: ClientCase | null,
   ) => void;
+  onApproveHousing: (
+    requestId: string,
+    input: HousingAllocationForm,
+  ) => Promise<void>;
+  onRetryHousing: (requestId: string) => Promise<void>;
   onClose: () => void;
 }) {
   if (!selectedUid) return null;
@@ -1307,7 +1469,9 @@ function Client360Drawer({
   }
 
   const profile = client.profile;
-  const currentCase = cases[0] ?? null;
+  const currentCase = housingRequest
+    ? cases.find((item) => item.id === housingRequest.caseId) ?? cases[0] ?? null
+    : cases[0] ?? null;
   const documentDiagnostics = client.documentDiagnostics;
   return (
     <aside className="fixed inset-y-0 right-0 z-40 w-full max-w-4xl overflow-y-auto border-l border-slate-200 bg-white p-5 shadow-2xl" aria-labelledby="client-360-title">
@@ -1385,6 +1549,13 @@ function Client360Drawer({
         />
         <DocumentsSummary documents={documents} cases={cases} />
         <PaymentsSummary caseItem={currentCase} />
+        <HousingRequestSummary
+          key={housingRequest?.id ?? "no-housing-request"}
+          request={housingRequest}
+          isBusy={isBusy}
+          onApprove={onApproveHousing}
+          onRetry={onRetryHousing}
+        />
         <SectionList
           title="Finance"
           empty="Aucune simulation, aucun devis ou rapport lié"
@@ -1582,6 +1753,221 @@ function DocumentsSummary({
   );
 }
 
+function HousingRequestSummary({
+  request,
+  isBusy,
+  onApprove,
+  onRetry,
+}: {
+  request: HousingRequest | null;
+  isBusy: boolean;
+  onApprove: (requestId: string, input: HousingAllocationForm) => Promise<void>;
+  onRetry: (requestId: string) => Promise<void>;
+}) {
+  const validUntil = new Date();
+  validUntil.setDate(validUntil.getDate() + 30);
+  const [form, setForm] = useState<HousingAllocationForm>(() => ({
+    inventoryReference: request?.selectionSnapshot?.internalReference ?? "",
+    partnerName: request?.selectionSnapshot?.partnerName ?? "",
+    residenceName: request?.selectionSnapshot?.residenceName ?? "",
+    addressLine: request?.selectionSnapshot?.address.line1 ?? "",
+    postalCode: request?.selectionSnapshot?.address.postalCode ?? "",
+    city: request?.selectionSnapshot?.address.city ?? request?.preferredCity ?? "",
+    accommodationType: request?.accommodationType ?? "studio",
+    monthlyRent:
+      request?.selectionSnapshot?.pricing.monthlyRentForCertificate ??
+      request?.indicativeMonthlyRent ??
+      0,
+    currency: "EUR",
+    confirmedAt: todayInputValue(),
+    confirmationReference: "",
+    validUntil: validUntil.toISOString().slice(0, 10),
+    allocationReason: "Disponibilite confirmee par le partenaire pour emission conditionnelle.",
+  }));
+  const canApprove = Boolean(
+    request &&
+      request.paymentId &&
+      [
+        "allocation_pending",
+        "requires_admin_review",
+        "admin_review_in_progress",
+        "failed",
+      ].includes(request.status),
+  );
+
+  if (!request) {
+    return (
+      <SectionList
+        title="Logement conditionnel"
+        empty="Aucune demande logement rattachee"
+        rows={[]}
+      />
+    );
+  }
+
+  if (request.allocation) {
+    return (
+      <SectionList
+        title="Logement conditionnel"
+        empty="Aucune attribution"
+        rows={[
+          `Statut : ${request.status}`,
+          `Ville : ${request.preferredCity}`,
+          `Residence : ${request.selectionSnapshot?.residenceName ?? "selection historique"}`,
+          `Decision : ${request.autoDecisionSnapshot?.eligible ? "automatique" : request.autoDecisionSnapshot?.reasons.join(", ") ?? "administrative"}`,
+          `Adresse confirmee : ${request.allocation.addressLine}, ${request.allocation.postalCode} ${request.allocation.city}`,
+          `Partenaire : ${request.allocation.partnerName}`,
+          `Preuve : ${request.allocation.confirmationReference}`,
+          `Document : ${request.generatedDocumentId ?? "generation en cours"}`,
+        ]}
+        action={
+          request.status !== "certificate_delivered" ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={isBusy}
+              onClick={() => void onRetry(request.id)}
+            >
+              Relancer generation / email
+            </Button>
+          ) : undefined
+        }
+      />
+    );
+  }
+
+  return (
+    <section className="rounded-lg bg-slate-50 p-4 xl:col-span-2">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h4 className="font-semibold">Logement conditionnel</h4>
+          <p className="mt-1 text-sm text-slate-600">
+            {request.preferredCity} - statut {request.status} - demande {request.id}
+          </p>
+        </div>
+        <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900">
+          Revue administrative par exception
+        </span>
+      </div>
+      {!canApprove ? (
+        <p className="mt-4 rounded-md border border-amber-200 bg-white p-3 text-sm text-amber-900">
+          Le paiement Stripe doit etre confirme avant toute attribution et emission.
+        </p>
+      ) : (
+        <form
+          className="mt-4 grid gap-3 md:grid-cols-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void onApprove(request.id, form);
+          }}
+        >
+          {([
+            ["inventoryReference", "Reference inventaire"],
+            ["partnerName", "Partenaire confirme"],
+            ["residenceName", "Residence"],
+            ["addressLine", "Adresse exacte"],
+            ["postalCode", "Code postal"],
+            ["city", "Ville"],
+            ["confirmationReference", "Preuve / reference de confirmation"],
+          ] as const).map(([key, label]) => (
+            <label key={key} className="grid gap-1 text-sm font-medium text-slate-700">
+              {label}
+              <Input
+                required
+                value={String(form[key])}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, [key]: event.target.value }))
+                }
+              />
+            </label>
+          ))}
+          <label className="grid gap-1 text-sm font-medium text-slate-700">
+            Type de logement
+            <select
+              className="h-10 rounded-md border border-slate-300 bg-white px-3"
+              value={form.accommodationType}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  accommodationType: event.target.value as HousingAllocationForm["accommodationType"],
+                }))
+              }
+            >
+              <option value="studio">Studio</option>
+              <option value="t1_bis">T1 bis</option>
+              <option value="t2">T2</option>
+              <option value="shared">Colocation</option>
+              <option value="other">Autre</option>
+            </select>
+          </label>
+          <label className="grid gap-1 text-sm font-medium text-slate-700">
+            Loyer mensuel EUR
+            <Input
+              type="number"
+              min="1"
+              required
+              value={form.monthlyRent}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  monthlyRent: Number(event.target.value),
+                }))
+              }
+            />
+          </label>
+          <label className="grid gap-1 text-sm font-medium text-slate-700">
+            Confirmation partenaire
+            <Input
+              type="date"
+              required
+              value={form.confirmedAt}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, confirmedAt: event.target.value }))
+              }
+            />
+          </label>
+          <label className="grid gap-1 text-sm font-medium text-slate-700">
+            Validite de l'attestation
+            <Input
+              type="date"
+              required
+              value={form.validUntil}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, validUntil: event.target.value }))
+              }
+            />
+          </label>
+          <label className="grid gap-1 text-sm font-medium text-slate-700 md:col-span-2">
+            Motif d'attribution
+            <Textarea
+              required
+              maxLength={500}
+              value={form.allocationReason}
+              onChange={(event) =>
+                setForm((current) => ({
+                  ...current,
+                  allocationReason: event.target.value,
+                }))
+              }
+            />
+          </label>
+          <div className="md:col-span-2">
+            {request.autoDecisionSnapshot ? (
+              <p className="mb-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+                Motifs du moteur : {request.autoDecisionSnapshot.reasons.join(", ")}
+              </p>
+            ) : null}
+            <Button type="submit" disabled={isBusy}>
+              {isBusy ? "Generation en cours..." : "Confirmer l'attribution et generer"}
+            </Button>
+          </div>
+        </form>
+      )}
+    </section>
+  );
+}
+
 function PaymentsSummary({ caseItem }: { caseItem: ClientCase | null }) {
   return <SectionList title="Payments" empty="Aucun paiement rapproché" rows={[`Statut: ${statusLabel(caseItem?.paymentStatus)}`]} />;
 }
@@ -1641,6 +2027,334 @@ function CasesPanel({ cases, clientByUid }: { cases: ClientCase[]; clientByUid: 
         <EmptyState title="Aucun dossier créé" text="Les dossiers clients apparaîtront ici après synchronisation et réconciliation." />
       )}
     </section>
+  );
+}
+
+type HousingPolicyForm = {
+  inventoryStatus: HousingInventoryItem["inventoryStatus"];
+  isVisibleToClients: boolean;
+  publicAddressFormattedAddress: string;
+  publicAddressDisplayToClient: boolean;
+  isEligibleForCertificate: boolean;
+  priceValidationStatus: HousingInventoryItem["pricing"]["priceValidationStatus"];
+  monthlyRentForCertificate: string;
+  autoIssuanceEnabled: boolean;
+  eligibilityStatus: HousingInventoryItem["autoIssuance"]["eligibilityStatus"];
+  validUntil: string;
+  conditionalCapacity: string;
+  remainingConditionalCapacity: string;
+  arrivalDateFrom: string;
+  arrivalDateUntil: string;
+  manualReviewRequired: boolean;
+  stopReason: string;
+  confirmationReference: string;
+};
+
+function toLocalDateTime(value?: string) {
+  return value ? value.slice(0, 16) : "";
+}
+
+function HousingInventoryPanel({
+  inventory,
+  globalAutoIssuanceEnabled,
+  isBusy,
+  onUpdate,
+}: {
+  inventory: HousingInventoryItem[];
+  globalAutoIssuanceEnabled: boolean;
+  isBusy: boolean;
+  onUpdate: (inventoryId: string, input: Record<string, unknown>) => Promise<void>;
+}) {
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selected = inventory.find((item) => item.id === selectedId) ?? null;
+  const eligibleCount = inventory.filter(
+    (item) => item.autoIssuance.enabled && item.autoIssuance.eligibilityStatus === "eligible",
+  ).length;
+  const reviewCount = inventory.filter(
+    (item) =>
+      !item.autoIssuance.enabled || item.autoIssuance.eligibilityStatus !== "eligible",
+  ).length;
+
+  return (
+    <section className="space-y-5" aria-labelledby="housing-inventory-title">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h2 id="housing-inventory-title" className="text-xl font-semibold">
+            Logements et règles d&apos;émission
+          </h2>
+          <p className="mt-1 max-w-3xl text-sm text-slate-600">
+            Inventaire Firestore issu d&apos;imports contrôlés. Une résidence importée reste en revue manuelle jusqu&apos;à une prévalidation explicite.
+          </p>
+        </div>
+        <span
+          className={`rounded-md border px-3 py-2 text-sm font-semibold ${
+            globalAutoIssuanceEnabled
+              ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+              : "border-amber-200 bg-amber-50 text-amber-900"
+          }`}
+        >
+          Kill switch serveur : {globalAutoIssuanceEnabled ? "actif" : "désactivé"}
+        </span>
+      </div>
+      <div className="grid gap-3 md:grid-cols-3">
+        <MetricCard label="Résidences" value={inventory.length} detail="Source opérationnelle Firestore" />
+        <MetricCard label="Auto-éligibles" value={eligibleCount} detail="Prévalidées par un admin" />
+        <MetricCard label="Revue manuelle" value={reviewCount} detail="Aucune émission automatique" />
+      </div>
+      {!inventory.length ? (
+        <EmptyState
+          title="Aucune résidence importée"
+          text="Exécutez d'abord l'import contrôlé après validation du projet Firebase. Aucun classeur n'est lu par le navigateur."
+        />
+      ) : (
+        <div className="overflow-x-auto rounded-lg border bg-white shadow-sm">
+          <table className="w-full min-w-[1050px] text-left text-sm">
+            <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+              <tr>
+                {[
+                  "Référence",
+                  "Résidence",
+                  "Ville",
+                  "Loyer certificat",
+                  "Inventaire",
+                  "Automatisation",
+                  "Validité",
+                  "Capacité",
+                  "Action",
+                ].map((header) => (
+                  <th key={header} className="px-4 py-3">{header}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {inventory.map((item) => (
+                <tr key={item.id} className="border-t align-top">
+                  <td className="px-4 py-3 font-mono text-xs">{item.internalReference}</td>
+                  <td className="px-4 py-3">
+                    <p className="font-semibold">{item.residenceName}</p>
+                    <p className="mt-1 text-xs text-slate-500">{item.partner.displayName}</p>
+                  </td>
+                  <td className="px-4 py-3">{item.cityLabel}</td>
+                  <td className="px-4 py-3">
+                    {item.pricing.monthlyRentForCertificate
+                      ? `${item.pricing.monthlyRentForCertificate} EUR`
+                      : "À valider"}
+                  </td>
+                  <td className="px-4 py-3">{item.inventoryStatus}</td>
+                  <td className="px-4 py-3">
+                    {item.autoIssuance.enabled ? "Activée" : "Revue manuelle"}
+                  </td>
+                  <td className="px-4 py-3">{formatDate(item.autoIssuance.validUntil)}</td>
+                  <td className="px-4 py-3">
+                    {item.autoIssuance.conditionalCapacity === undefined
+                      ? "Sans quota"
+                      : `${item.autoIssuance.remainingConditionalCapacity ?? 0}/${item.autoIssuance.conditionalCapacity}`}
+                  </td>
+                  <td className="px-4 py-3">
+                    <Button type="button" size="sm" variant="outline" onClick={() => setSelectedId(item.id)}>
+                      Configurer
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+      {selected ? (
+        <HousingPolicyEditor
+          key={`${selected.id}-${selected.version}`}
+          item={selected}
+          isBusy={isBusy}
+          onClose={() => setSelectedId(null)}
+          onUpdate={onUpdate}
+        />
+      ) : null}
+    </section>
+  );
+}
+
+function HousingPolicyEditor({
+  item,
+  isBusy,
+  onClose,
+  onUpdate,
+}: {
+  item: HousingInventoryItem;
+  isBusy: boolean;
+  onClose: () => void;
+  onUpdate: (inventoryId: string, input: Record<string, unknown>) => Promise<void>;
+}) {
+  const [form, setForm] = useState<HousingPolicyForm>({
+    inventoryStatus: item.inventoryStatus,
+    isVisibleToClients: item.isVisibleToClients,
+    publicAddressFormattedAddress:
+      item.publicAddress?.formattedAddress ?? item.address.formattedAddress,
+    publicAddressDisplayToClient: item.publicAddress?.displayToClient ?? false,
+    isEligibleForCertificate: item.isEligibleForCertificate,
+    priceValidationStatus: item.pricing.priceValidationStatus,
+    monthlyRentForCertificate: String(item.pricing.monthlyRentForCertificate ?? ""),
+    autoIssuanceEnabled: item.autoIssuance.enabled,
+    eligibilityStatus: item.autoIssuance.eligibilityStatus,
+    validUntil: toLocalDateTime(item.autoIssuance.validUntil),
+    conditionalCapacity: String(item.autoIssuance.conditionalCapacity ?? ""),
+    remainingConditionalCapacity: String(
+      item.autoIssuance.remainingConditionalCapacity ?? "",
+    ),
+    arrivalDateFrom: toLocalDateTime(item.autoIssuance.arrivalDateFrom),
+    arrivalDateUntil: toLocalDateTime(item.autoIssuance.arrivalDateUntil),
+    manualReviewRequired: item.autoIssuance.manualReviewRequired ?? true,
+    stopReason: item.autoIssuance.stopReason ?? "",
+    confirmationReference: item.availability.confirmationReference ?? "",
+  });
+  const update = <K extends keyof HousingPolicyForm,>(
+    key: K,
+    value: HousingPolicyForm[K],
+  ) => setForm((current) => ({ ...current, [key]: value }));
+  const isoOrUndefined = (value: string) =>
+    value ? new Date(value).toISOString() : undefined;
+
+  return (
+    <aside className="fixed inset-y-0 right-0 z-50 w-full max-w-3xl overflow-y-auto border-l border-slate-200 bg-white p-5 shadow-2xl" aria-labelledby="housing-policy-title">
+      <div className="sticky top-0 z-10 -mx-5 -mt-5 mb-5 flex items-start justify-between gap-4 border-b bg-white px-5 py-4">
+        <div>
+          <h3 id="housing-policy-title" className="text-lg font-semibold">Prévalidation - {item.residenceName}</h3>
+          <p className="mt-1 text-sm text-slate-600">{item.internalReference} · {item.address.formattedAddress}</p>
+        </div>
+        <Button type="button" variant="outline" onClick={onClose}>Fermer</Button>
+      </div>
+      <form
+        className="grid gap-4 md:grid-cols-2"
+        onSubmit={(event) => {
+          event.preventDefault();
+          void onUpdate(item.id, {
+            inventoryStatus: form.inventoryStatus,
+            isVisibleToClients: form.isVisibleToClients,
+            publicAddressFormattedAddress: form.publicAddressFormattedAddress,
+            publicAddressDisplayToClient: form.publicAddressDisplayToClient,
+            isEligibleForCertificate: form.isEligibleForCertificate,
+            priceValidationStatus: form.priceValidationStatus,
+            ...(form.monthlyRentForCertificate
+              ? { monthlyRentForCertificate: Number(form.monthlyRentForCertificate) }
+              : {}),
+            autoIssuanceEnabled: form.autoIssuanceEnabled,
+            eligibilityStatus: form.eligibilityStatus,
+            ...(form.validUntil ? { validUntil: isoOrUndefined(form.validUntil) } : {}),
+            ...(form.conditionalCapacity
+              ? { conditionalCapacity: Number(form.conditionalCapacity) }
+              : {}),
+            ...(form.remainingConditionalCapacity
+              ? {
+                  remainingConditionalCapacity: Number(
+                    form.remainingConditionalCapacity,
+                  ),
+                }
+              : {}),
+            ...(form.arrivalDateFrom
+              ? { arrivalDateFrom: isoOrUndefined(form.arrivalDateFrom) }
+              : {}),
+            ...(form.arrivalDateUntil
+              ? { arrivalDateUntil: isoOrUndefined(form.arrivalDateUntil) }
+              : {}),
+            manualReviewRequired: form.manualReviewRequired,
+            stopReason: form.stopReason,
+            confirmationReference: form.confirmationReference,
+          });
+        }}
+      >
+        <label className="grid gap-1 text-sm font-medium">Statut inventaire
+          <Select value={form.inventoryStatus} onChange={(event) => update("inventoryStatus", event.target.value as HousingPolicyForm["inventoryStatus"])}>
+            {[
+              "draft",
+              "available",
+              "conditionally_available",
+              "confirmation_required",
+              "unavailable",
+              "suspended",
+              "archived",
+            ].map((value) => <option key={value} value={value}>{value}</option>)}
+          </Select>
+        </label>
+        <label className="grid gap-1 text-sm font-medium">Éligibilité
+          <Select value={form.eligibilityStatus} onChange={(event) => update("eligibilityStatus", event.target.value as HousingPolicyForm["eligibilityStatus"])}>
+            {[
+              "eligible",
+              "manual_review_only",
+              "suspended",
+              "expired",
+            ].map((value) => <option key={value} value={value}>{value}</option>)}
+          </Select>
+        </label>
+        <label className="grid gap-1 text-sm font-medium">Validation du loyer
+          <Select value={form.priceValidationStatus} onChange={(event) => update("priceValidationStatus", event.target.value as HousingPolicyForm["priceValidationStatus"])}>
+            <option value="unverified">Non vérifié</option>
+            <option value="requires_admin_review">À revoir</option>
+            <option value="verified">Vérifié</option>
+          </Select>
+        </label>
+        <label className="grid gap-1 text-sm font-medium">Loyer certificat EUR
+          <Input type="number" min="1" value={form.monthlyRentForCertificate} onChange={(event) => update("monthlyRentForCertificate", event.target.value)} />
+        </label>
+        <label className="grid gap-1 text-sm font-medium">Validité automatique
+          <Input type="datetime-local" value={form.validUntil} onChange={(event) => update("validUntil", event.target.value)} />
+        </label>
+        <label className="grid gap-1 text-sm font-medium">Référence de confirmation
+          <Input value={form.confirmationReference} onChange={(event) => update("confirmationReference", event.target.value)} />
+        </label>
+        <label className="grid gap-1 text-sm font-medium md:col-span-2">Adresse publique validée
+          <Input value={form.publicAddressFormattedAddress} onChange={(event) => update("publicAddressFormattedAddress", event.target.value)} />
+        </label>
+        <label className="grid gap-1 text-sm font-medium">Quota conditionnel
+          <Input type="number" min="1" value={form.conditionalCapacity} onChange={(event) => update("conditionalCapacity", event.target.value)} />
+        </label>
+        <label className="grid gap-1 text-sm font-medium">Capacité restante
+          <Input type="number" min="0" value={form.remainingConditionalCapacity} onChange={(event) => update("remainingConditionalCapacity", event.target.value)} />
+        </label>
+        <label className="grid gap-1 text-sm font-medium">Arrivées autorisées à partir de
+          <Input type="datetime-local" value={form.arrivalDateFrom} onChange={(event) => update("arrivalDateFrom", event.target.value)} />
+        </label>
+        <label className="grid gap-1 text-sm font-medium">Arrivées autorisées jusqu&apos;au
+          <Input type="datetime-local" value={form.arrivalDateUntil} onChange={(event) => update("arrivalDateUntil", event.target.value)} />
+        </label>
+        <label className="flex items-center gap-2 text-sm font-medium">
+          <input type="checkbox" checked={form.isVisibleToClients} onChange={(event) => update("isVisibleToClients", event.target.checked)} /> Visible aux clients
+        </label>
+        <label className="flex items-center gap-2 text-sm font-medium">
+          <input type="checkbox" checked={form.publicAddressDisplayToClient} onChange={(event) => update("publicAddressDisplayToClient", event.target.checked)} /> Afficher l&apos;adresse publique validée
+        </label>
+        <label className="flex items-center gap-2 text-sm font-medium">
+          <input type="checkbox" checked={form.isEligibleForCertificate} onChange={(event) => update("isEligibleForCertificate", event.target.checked)} /> Éligible au certificat
+        </label>
+        <label className="flex items-center gap-2 text-sm font-medium">
+          <input type="checkbox" checked={form.autoIssuanceEnabled} onChange={(event) => update("autoIssuanceEnabled", event.target.checked)} /> Émission automatique
+        </label>
+        <label className="flex items-center gap-2 text-sm font-medium">
+          <input type="checkbox" checked={form.manualReviewRequired} onChange={(event) => update("manualReviewRequired", event.target.checked)} /> Revue manuelle imposée
+        </label>
+        <label className="grid gap-1 text-sm font-medium md:col-span-2">Motif d&apos;arrêt / note
+          <Textarea value={form.stopReason} maxLength={500} onChange={(event) => update("stopReason", event.target.value)} />
+        </label>
+        <div className="flex flex-wrap gap-2 md:col-span-2">
+          <Button type="submit" disabled={isBusy}>Enregistrer la prévalidation</Button>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={isBusy}
+            onClick={() =>
+              void onUpdate(item.id, {
+                inventoryStatus: "suspended",
+                autoIssuanceEnabled: false,
+                eligibilityStatus: "suspended",
+                manualReviewRequired: true,
+                stopReason: "Suspension immédiate décidée par l'administrateur.",
+              })
+            }
+          >
+            Suspendre immédiatement
+          </Button>
+        </div>
+      </form>
+    </aside>
   );
 }
 

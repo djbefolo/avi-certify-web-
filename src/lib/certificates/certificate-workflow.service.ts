@@ -5,7 +5,11 @@ import {
   getDefaultCertificateDates,
 } from "@/lib/certificates/certificate-generator";
 import { getAdminAuth, getAdminFirestore, getAdminStorage } from "@/lib/firebase/admin";
-import { selectHousingAddress } from "@/lib/housing/housing-regions";
+import {
+  getHousingRequestById,
+  getHousingRequestForCase,
+  routeHousingGenerationFailureToAdminReview,
+} from "@/lib/housing/housing-request.service";
 import type { AdminActor } from "@/lib/admin/admin-auth";
 import { getAdminOperationsStore } from "@/lib/admin/admin-ops-store";
 import {
@@ -13,6 +17,7 @@ import {
   type SendEmailResult,
 } from "@/lib/server/email.service";
 import type { ClientCase } from "@/types/admin-ops";
+import { paymentServiceConfigs } from "@/constants/payments";
 
 const CERTIFICATES_COLLECTION = "certificates";
 const DOCUMENTS_COLLECTION = "documents";
@@ -21,11 +26,16 @@ const CASES_COLLECTION = "client_cases";
 const CERTIFICATE_DOCUMENT_TYPE = "accommodation_certificate";
 const CERTIFICATE_TYPE = "housing_accommodation";
 const FALLBACK_STUDENT_NAME = "Etudiant AVI CERTIFY";
+const JOBS_COLLECTION = "document_generation_jobs";
+const HOUSING_REQUESTS_COLLECTION = "housing_requests";
+const DOCUMENT_VERSIONS_COLLECTION = "document_versions";
+const TEMPLATE_VERSION = "housing-conditional-v1";
 
 export type CertificateStatus =
   | "ACTIVE"
   | "REVOKED"
   | "EXPIRED"
+  | "REPLACED"
   | "DRAFT"
   | "PENDING_PROFILE";
 
@@ -39,6 +49,8 @@ export type PublicCertificateVerification = {
   certificateType: "housing_accommodation";
   studentFullName: string | null;
   issueDate: string | null;
+  validUntil: string | null;
+  city: string | null;
   issuer: "AVI CERTIFY";
 };
 
@@ -51,7 +63,9 @@ export type GenerateCaseCertificateResult = {
     | "certificate_already_exists"
     | "missing_profile_data"
     | "payment_not_confirmed"
-    | "housing_address_unavailable";
+    | "housing_address_unavailable"
+    | "housing_request_missing"
+    | "allocation_not_confirmed";
   message: string;
   missingProfileFields?: string[];
   missingFieldLabels?: string[];
@@ -77,6 +91,8 @@ type CertificateEmailParams = {
   studentFullName: string;
   recipientEmail: string | null;
   verificationUrl: string | null;
+  certificateReference?: string | null;
+  city?: string | null;
 };
 
 function getAppUrl() {
@@ -186,6 +202,14 @@ function buildBlockedMessage({
     return "Generation bloquee : aucune adresse d'hebergement disponible pour ce dossier.";
   }
 
+  if (reason === "housing_request_missing") {
+    return "Generation bloquee : la demande logement est introuvable ou incoherente.";
+  }
+
+  if (reason === "allocation_not_confirmed") {
+    return "Generation bloquee : une confirmation partenaire datee est obligatoire avant emission.";
+  }
+
   if (reason === "missing_profile_data") {
     const labels = getMissingFieldLabels(missingProfileFields);
 
@@ -208,10 +232,41 @@ function isPaymentConfirmed(clientCase: ClientCase) {
   );
 }
 
+async function hasVerifiedHousingPayment({
+  paymentId,
+  ownerId,
+  housingRequestId,
+}: {
+  paymentId: string | null;
+  ownerId: string;
+  housingRequestId: string;
+}) {
+  if (!paymentId) return false;
+
+  const payment = await getAdminFirestore()
+    .collection("payments")
+    .doc(paymentId)
+    .get();
+  const serviceConfig = paymentServiceConfigs.accommodation_certificate;
+
+  return Boolean(
+    payment.exists &&
+      payment.get("status") === "paid" &&
+      payment.get("ownerId") === ownerId &&
+      payment.get("housingRequestId") === housingRequestId &&
+      payment.get("serviceType") === "accommodation_certificate" &&
+      Number(payment.get("amountTotal") ?? payment.get("amount")) ===
+        serviceConfig.amount &&
+      String(payment.get("currency") ?? "").toLowerCase() ===
+        serviceConfig.currency.toLowerCase(),
+  );
+}
+
 function normalizeCertificateStatus(value: unknown): CertificateStatus {
   if (value === "ACTIVE" || value === "generated") return "ACTIVE";
   if (value === "REVOKED" || value === "revoked") return "REVOKED";
   if (value === "EXPIRED" || value === "expired") return "EXPIRED";
+  if (value === "REPLACED" || value === "replaced") return "REPLACED";
   if (value === "DRAFT" || value === "draft") return "DRAFT";
   return "PENDING_PROFILE";
 }
@@ -313,6 +368,8 @@ async function sendCertificateEmailIfNeeded({
   studentFullName,
   recipientEmail,
   verificationUrl,
+  certificateReference,
+  city,
 }: CertificateEmailParams): Promise<SendEmailResult> {
   if (!recipientEmail) {
     return emptyEmailResult("RECIPIENT_MISSING");
@@ -334,6 +391,8 @@ async function sendCertificateEmailIfNeeded({
     studentFullName,
     clientSpaceUrl: getClientDocumentsUrl(),
     verificationUrl,
+    certificateReference,
+    city,
   });
 
   if (!result.sent) {
@@ -466,11 +525,14 @@ async function writeBlockedAudit({
 export async function generateHousingCertificateForCase({
   caseId,
   actor,
-  housingRegion,
+  housingRequestId,
+  generationJobId,
 }: {
   caseId: string;
   actor: AdminActor;
   housingRegion?: string | null;
+  housingRequestId?: string | null;
+  generationJobId?: string | null;
 }): Promise<GenerateCaseCertificateResult> {
   const store = getAdminOperationsStore();
   const clientCase = await store.getCase(caseId);
@@ -487,7 +549,61 @@ export async function generateHousingCertificateForCase({
   const existingStatus = normalizeCertificateStatus(
     existingCertificate.get("status"),
   );
-  const profile = await getUserProfile(ownerId, clientCase);
+  let profile = await getUserProfile(ownerId, clientCase);
+  const caseHousingRequestId = getStringField(
+    (clientCase as ClientCase & { housingRequestId?: string | null })
+      .housingRequestId,
+  );
+  const linkedHousingRequestId = housingRequestId ?? caseHousingRequestId;
+  const housingRequest = linkedHousingRequestId
+    ? await getHousingRequestById(linkedHousingRequestId)
+    : await getHousingRequestForCase(caseId);
+
+  if (linkedHousingRequestId && !housingRequest) {
+    const reason = "housing_request_missing" as const;
+    const message = buildBlockedMessage({ reason });
+    await writeBlockedAudit({
+      caseId,
+      clientCase,
+      actor,
+      certificateId,
+      reason,
+      message,
+    });
+    return {
+      generated: false,
+      reason,
+      certificateId,
+      certificateNumber: null,
+      verificationUrl: null,
+      message,
+      email: emptyEmailResult("RECIPIENT_MISSING"),
+    };
+  }
+
+  if (
+    housingRequest &&
+    (housingRequest.ownerId !== ownerId || housingRequest.caseId !== caseId)
+  ) {
+    throw new Error("HOUSING_REQUEST_CASE_MISMATCH");
+  }
+
+  if (housingRequest?.certificateSnapshot) {
+    const snapshot = housingRequest.certificateSnapshot;
+    profile = {
+      fullName: snapshot.student.fullName,
+      email: snapshot.student.email,
+      dateOfBirth: snapshot.student.dateOfBirth,
+      birthPlace: snapshot.student.placeOfBirth,
+      nationality: snapshot.student.nationality,
+      intendedArrivalDate: snapshot.student.expectedArrivalDate,
+      expectedStayDuration: String(snapshot.student.expectedStayDurationMonths),
+      preferredHousingCity: housingRequest.preferredCity,
+      destinationCity: housingRequest.preferredCity,
+      targetSchoolName: snapshot.student.schoolName,
+      selectedService: housingRequest.serviceType,
+    };
+  }
 
   if (
     existingCertificate.exists &&
@@ -501,6 +617,10 @@ export async function generateHousingCertificateForCase({
         profile.fullName,
       recipientEmail: profile.email,
       verificationUrl: getStringField(existingCertificate.get("verificationUrl")),
+      certificateReference: getStringField(
+        existingCertificate.get("certificateNumber"),
+      ),
+      city: getStringField(existingCertificate.get("city")),
     });
 
     return {
@@ -523,6 +643,145 @@ export async function generateHousingCertificateForCase({
         ownerId,
         uid: ownerId,
         caseId,
+        certificateType: CERTIFICATE_TYPE,
+        documentType: CERTIFICATE_DOCUMENT_TYPE,
+        status: "DRAFT",
+        blockedReason: reason,
+        generationBlockedReason: message,
+        createdAt: existingCertificate.exists
+          ? existingCertificate.get("createdAt") ?? FieldValue.serverTimestamp()
+          : FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+    await writeBlockedAudit({
+      caseId,
+      clientCase,
+      actor,
+      certificateId,
+      reason,
+      message,
+    });
+
+    return {
+      generated: false,
+      reason,
+      certificateId,
+      certificateNumber: null,
+      verificationUrl: null,
+      message,
+      email: emptyEmailResult("RECIPIENT_MISSING"),
+    };
+  }
+
+  if (!housingRequest) {
+    const reason = "housing_request_missing" as const;
+    const message = buildBlockedMessage({ reason });
+    await certificateRef.set(
+      {
+        ownerId,
+        uid: ownerId,
+        caseId,
+        certificateType: CERTIFICATE_TYPE,
+        documentType: CERTIFICATE_DOCUMENT_TYPE,
+        status: "DRAFT",
+        blockedReason: reason,
+        generationBlockedReason: message,
+        createdAt: existingCertificate.exists
+          ? existingCertificate.get("createdAt") ?? FieldValue.serverTimestamp()
+          : FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+    await writeBlockedAudit({
+      caseId,
+      clientCase,
+      actor,
+      certificateId,
+      reason,
+      message,
+    });
+    return {
+      generated: false,
+      reason,
+      certificateId,
+      certificateNumber: null,
+      verificationUrl: null,
+      message,
+      email: emptyEmailResult("RECIPIENT_MISSING"),
+    };
+  }
+
+  if (
+    !(await hasVerifiedHousingPayment({
+      paymentId: housingRequest.paymentId,
+      ownerId,
+      housingRequestId: housingRequest.id,
+    }))
+  ) {
+    const reason = "payment_not_confirmed" as const;
+    const message = buildBlockedMessage({ reason });
+    await certificateRef.set(
+      {
+        ownerId,
+        uid: ownerId,
+        caseId,
+        housingRequestId: housingRequest.id,
+        certificateType: CERTIFICATE_TYPE,
+        documentType: CERTIFICATE_DOCUMENT_TYPE,
+        status: "DRAFT",
+        blockedReason: reason,
+        generationBlockedReason: message,
+        createdAt: existingCertificate.exists
+          ? existingCertificate.get("createdAt") ?? FieldValue.serverTimestamp()
+          : FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+    await writeBlockedAudit({
+      caseId,
+      clientCase,
+      actor,
+      certificateId,
+      reason,
+      message,
+    });
+    return {
+      generated: false,
+      reason,
+      certificateId,
+      certificateNumber: null,
+      verificationUrl: null,
+      message,
+      email: emptyEmailResult("RECIPIENT_MISSING"),
+    };
+  }
+
+  if (
+    !housingRequest.certificateSnapshot ||
+      !housingRequest.allocation ||
+      ![
+        "auto_approved_generation_queued",
+        "admin_approved_generation_queued",
+        "generation_processing",
+        "conditionally_reserved",
+        "certificate_generation_pending",
+        "certificate_generated",
+        "certificate_delivered",
+      ].includes(housingRequest.status)
+  ) {
+    const reason = "allocation_not_confirmed" as const;
+    const message = buildBlockedMessage({ reason });
+
+    await certificateRef.set(
+      {
+        ownerId,
+        uid: ownerId,
+        caseId,
+        housingRequestId: housingRequest.id,
         certificateType: CERTIFICATE_TYPE,
         documentType: CERTIFICATE_DOCUMENT_TYPE,
         status: "DRAFT",
@@ -603,54 +862,13 @@ export async function generateHousingCertificateForCase({
     };
   }
 
-  let housing: ReturnType<typeof selectHousingAddress>;
-
-  try {
-    housing = selectHousingAddress({
-      region: housingRegion,
-      city: profile.preferredHousingCity ?? profile.destinationCity,
-      seed: `${ownerId}:${caseId}`,
-    });
-  } catch {
-    const reason = "housing_address_unavailable" as const;
-    const message = buildBlockedMessage({ reason });
-
-    await certificateRef.set(
-      {
-        ownerId,
-        uid: ownerId,
-        caseId,
-        certificateType: CERTIFICATE_TYPE,
-        documentType: CERTIFICATE_DOCUMENT_TYPE,
-        status: "DRAFT",
-        blockedReason: reason,
-        generationBlockedReason: message,
-        createdAt: existingCertificate.exists
-          ? existingCertificate.get("createdAt") ?? FieldValue.serverTimestamp()
-          : FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
-      },
-      { merge: true },
-    );
-    await writeBlockedAudit({
-      caseId,
-      clientCase,
-      actor,
-      certificateId,
-      reason,
-      message,
-    });
-
-    return {
-      generated: false,
-      reason,
-      certificateId,
-      certificateNumber: null,
-      verificationUrl: null,
-      message,
-      email: emptyEmailResult("RECIPIENT_MISSING"),
-    };
-  }
+  const certificateSnapshot = housingRequest.certificateSnapshot;
+  const housing = {
+    region: housingRequest.preferredCityCode,
+    city: certificateSnapshot.housing.city,
+    fullAddress: `${certificateSnapshot.housing.addressLine}, ${certificateSnapshot.housing.postalCode} ${certificateSnapshot.housing.city}`,
+    rent: certificateSnapshot.housing.monthlyRent,
+  };
   const certificateNumber =
     getStringField(existingCertificate.get("certificateNumber")) ??
     buildCertificateNumber(caseId);
@@ -673,8 +891,11 @@ export async function generateHousingCertificateForCase({
     entryDate,
     durationMonths,
     issueDate,
+    validUntil: formatProfileDate(certificateSnapshot.housing.validUntil),
     verificationUrl,
+    templateVersion: TEMPLATE_VERSION,
   });
+  const checksumSha256 = crypto.createHash("sha256").update(pdfBuffer).digest("hex");
 
   await getAdminStorage().bucket().file(storagePath).save(pdfBuffer, {
     contentType: "application/pdf",
@@ -688,6 +909,10 @@ export async function generateHousingCertificateForCase({
         certificateNumber,
         documentType: CERTIFICATE_DOCUMENT_TYPE,
         certificateType: CERTIFICATE_TYPE,
+        templateVersion: TEMPLATE_VERSION,
+        checksumSha256,
+        ...(housingRequest ? { housingRequestId: housingRequest.id } : {}),
+        ...(housingRequest?.paymentId ? { paymentId: housingRequest.paymentId } : {}),
       },
     },
   });
@@ -716,6 +941,19 @@ export async function generateHousingCertificateForCase({
     storagePath,
     verificationToken,
     verificationUrl,
+    validUntil: certificateSnapshot.housing.validUntil,
+    conditionalStatus: "CONDITIONAL",
+    templateVersion: TEMPLATE_VERSION,
+    checksumSha256,
+    version: certificateSnapshot.housing.allocationVersion,
+    ...(housingRequest
+      ? {
+          housingRequestId: housingRequest.id,
+          paymentId: housingRequest.paymentId,
+          generationJobId: generationJobId ?? housingRequest.generationJobId,
+          certificateSnapshot,
+        }
+      : {}),
     status: "ACTIVE",
     issuedAt: firestoreNow,
     createdAt: existingCertificate.exists
@@ -744,6 +982,11 @@ export async function generateHousingCertificateForCase({
       certificateId,
       certificateNumber,
       verificationUrl,
+      paymentId: housingRequest?.paymentId ?? null,
+      housingRequestId: housingRequest?.id ?? null,
+      checksumSha256,
+      templateVersion: TEMPLATE_VERSION,
+      version: housingRequest?.allocation?.allocationVersion ?? 1,
       createdAt: firestoreNow,
       updatedAt: firestoreNow,
     },
@@ -774,9 +1017,33 @@ export async function generateHousingCertificateForCase({
       verifiedBy: actor.uid,
       isRequired: false,
       deliveryStatus: null,
+      paymentId: housingRequest?.paymentId ?? null,
+      housingRequestId: housingRequest?.id ?? null,
+      checksumSha256,
+      templateVersion: TEMPLATE_VERSION,
+      version: housingRequest?.allocation?.allocationVersion ?? 1,
     },
     { merge: true },
   );
+
+  await db
+    .collection(DOCUMENT_VERSIONS_COLLECTION)
+    .doc(`${certificateId}_v${housingRequest?.allocation?.allocationVersion ?? 1}`)
+    .set({
+      certificateId,
+      documentId: certificateId,
+      ownerId,
+      caseId,
+      housingRequestId: housingRequest?.id ?? null,
+      paymentId: housingRequest?.paymentId ?? null,
+      version: housingRequest?.allocation?.allocationVersion ?? 1,
+      templateVersion: TEMPLATE_VERSION,
+      checksumSha256,
+      storagePath,
+      status: "ACTIVE",
+      createdAt: firestoreNow,
+      createdBy: actor.uid,
+    });
 
   await db.collection(CASES_COLLECTION).doc(caseId).set(
     {
@@ -792,11 +1059,38 @@ export async function generateHousingCertificateForCase({
     { merge: true },
   );
 
+  if (housingRequest) {
+    await db.collection(HOUSING_REQUESTS_COLLECTION).doc(housingRequest.id).set(
+      {
+        status: "certificate_generated",
+        generatedDocumentId: certificateId,
+        generationJobId: generationJobId ?? housingRequest.generationJobId,
+        updatedAt: isoNow,
+      },
+      { merge: true },
+    );
+  }
+
+  if (generationJobId) {
+    await db.collection(JOBS_COLLECTION).doc(generationJobId).set(
+      {
+        status: "succeeded",
+        completedAt: isoNow,
+        generatedDocumentId: certificateId,
+        lastErrorCode: null,
+        lastErrorMessageSanitized: null,
+      },
+      { merge: true },
+    );
+  }
+
   const email = await sendCertificateEmailIfNeeded({
     certificateRef,
     studentFullName: profile.fullName,
     recipientEmail: profile.email,
     verificationUrl,
+    certificateReference: certificateNumber,
+    city: housing.city,
   });
   await writeCertificateAudit({
     caseId,
@@ -806,6 +1100,17 @@ export async function generateHousingCertificateForCase({
     certificateNumber,
     email,
   });
+
+  if (housingRequest && email.sent) {
+    await db.collection(HOUSING_REQUESTS_COLLECTION).doc(housingRequest.id).set(
+      {
+        status: "certificate_delivered",
+        deliveredAt: isoNow,
+        updatedAt: isoNow,
+      },
+      { merge: true },
+    );
+  }
 
   return {
     generated: true,
@@ -817,11 +1122,130 @@ export async function generateHousingCertificateForCase({
   };
 }
 
+export async function processHousingCertificateJob({
+  housingRequestId,
+  actor,
+}: {
+  housingRequestId: string;
+  actor?: AdminActor;
+}) {
+  const request = await getHousingRequestById(housingRequestId);
+  if (!request) throw new Error("HOUSING_REQUEST_NOT_FOUND");
+  if (!request.generationJobId) throw new Error("HOUSING_GENERATION_JOB_NOT_FOUND");
+  if (!request.paymentId) throw new Error("HOUSING_PAYMENT_NOT_FOUND");
+
+  const db = getAdminFirestore();
+  const jobRef = db.collection(JOBS_COLLECTION).doc(request.generationJobId);
+  const [job, payment] = await Promise.all([
+    jobRef.get(),
+    db.collection("payments").doc(request.paymentId).get(),
+  ]);
+  if (!job.exists) throw new Error("HOUSING_GENERATION_JOB_NOT_FOUND");
+
+  const serviceConfig = paymentServiceConfigs.accommodation_certificate;
+  if (
+    !payment.exists ||
+    payment.get("status") !== "paid" ||
+    payment.get("ownerId") !== request.ownerId ||
+    payment.get("housingRequestId") !== request.id ||
+    payment.get("serviceType") !== "accommodation_certificate" ||
+    Number(payment.get("amountTotal") ?? payment.get("amount")) !==
+      serviceConfig.amount ||
+    String(payment.get("currency") ?? "").toLowerCase() !==
+      serviceConfig.currency.toLowerCase()
+  ) {
+    throw new Error("HOUSING_PAYMENT_NOT_CONFIRMED");
+  }
+
+  if (!request.allocation || !request.certificateSnapshot) {
+    throw new Error("HOUSING_ALLOCATION_NOT_CONFIRMED");
+  }
+
+  const generationActor: AdminActor = actor ?? {
+    uid: "system:housing-policy-engine",
+    role: "admin",
+    authProvider: "firebase",
+  };
+
+  const startedAt = new Date().toISOString();
+  await Promise.all([
+    jobRef.set(
+      {
+        status: "processing",
+        attemptCount: FieldValue.increment(1),
+        startedAt,
+        failedAt: null,
+        lastErrorCode: null,
+        lastErrorMessageSanitized: null,
+      },
+      { merge: true },
+    ),
+    db.collection(HOUSING_REQUESTS_COLLECTION).doc(request.id).set(
+      { status: "generation_processing", updatedAt: startedAt },
+      { merge: true },
+    ),
+  ]);
+
+  try {
+    const result = await generateHousingCertificateForCase({
+      caseId: request.caseId,
+      actor: generationActor,
+      housingRequestId: request.id,
+      generationJobId: request.generationJobId,
+    });
+
+    if (!result.generated && result.reason !== "certificate_already_exists") {
+      await jobRef.set(
+        {
+          status: "retryable",
+          failedAt: new Date().toISOString(),
+          lastErrorCode: result.reason ?? "CERTIFICATE_GENERATION_BLOCKED",
+          lastErrorMessageSanitized: result.message.slice(0, 500),
+        },
+        { merge: true },
+      );
+    } else if (!result.generated) {
+      await jobRef.set(
+        {
+          status: "succeeded",
+          completedAt: new Date().toISOString(),
+          generatedDocumentId: result.certificateId,
+        },
+        { merge: true },
+      );
+    }
+
+    return result;
+  } catch (error) {
+    const errorCode =
+      error instanceof Error ? error.message : "CERTIFICATE_GENERATION_FAILED";
+    await Promise.all([
+      jobRef.set(
+        {
+          status: "retryable",
+          failedAt: new Date().toISOString(),
+          lastErrorCode: errorCode.slice(0, 120),
+          lastErrorMessageSanitized: "Certificate generation requires admin retry.",
+        },
+        { merge: true },
+      ),
+      routeHousingGenerationFailureToAdminReview({ request, errorCode }),
+    ]);
+    throw error;
+  }
+}
+
 export function toPublicCertificateVerification(
   id: string,
   data: Record<string, unknown>,
 ): PublicCertificateVerification {
-  const status = normalizeCertificateStatus(data.status);
+  const storedStatus = normalizeCertificateStatus(data.status);
+  const validUntil = dateToIso(data.validUntil);
+  const expiredByDate = Boolean(
+    validUntil && new Date(validUntil).getTime() < Date.now(),
+  );
+  const status =
+    storedStatus === "ACTIVE" && expiredByDate ? "EXPIRED" : storedStatus;
   const valid = status === "ACTIVE";
 
   return {
@@ -837,6 +1261,8 @@ export function toPublicCertificateVerification(
     certificateType: CERTIFICATE_TYPE,
     studentFullName: valid ? getStringField(data.studentFullName) : null,
     issueDate: dateToIso(data.issuedAt ?? data.createdAt),
+    validUntil,
+    city: valid ? getStringField(data.city) : null,
     issuer: "AVI CERTIFY",
   };
 }

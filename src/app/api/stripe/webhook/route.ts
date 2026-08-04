@@ -9,6 +9,11 @@ import {
   getStripeServerClient,
   getStripeWebhookSecret,
 } from "@/lib/stripe/server";
+import {
+  claimStripeEvent,
+  markStripeEventFailed,
+  markStripeEventProcessed,
+} from "@/lib/server/stripe-event.service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -101,10 +106,25 @@ export async function POST(request: NextRequest) {
   };
 
   try {
+    const claim = await claimStripeEvent(context);
+    if (!claim.claimed) {
+      return jsonResponse(
+        {
+          received: true,
+          handled: false,
+          eventType: event.type,
+          reason: "duplicate_event",
+          message: `Stripe event already ${claim.duplicateStatus}.`,
+        },
+        { status: 200 },
+      );
+    }
+
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         const result = await markCheckoutSessionCompleted(session, context);
+        await markStripeEventProcessed(event.id);
 
         return jsonResponse(
           {
@@ -124,6 +144,7 @@ export async function POST(request: NextRequest) {
       case "payment_intent.payment_failed": {
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
         const result = await markPaymentIntentFailed(paymentIntent, context);
+        await markStripeEventProcessed(event.id);
 
         return jsonResponse(
           {
@@ -143,6 +164,7 @@ export async function POST(request: NextRequest) {
       case "charge.refunded": {
         const charge = event.data.object as Stripe.Charge;
         const result = await markChargeRefunded(charge, context);
+        await markStripeEventProcessed(event.id);
 
         return jsonResponse(
           {
@@ -165,6 +187,7 @@ export async function POST(request: NextRequest) {
           eventType: event.type,
         });
 
+        await markStripeEventProcessed(event.id);
         return jsonResponse(
           {
             received: true,
@@ -180,6 +203,16 @@ export async function POST(request: NextRequest) {
       eventId: event.id,
       eventType: event.type,
       error,
+    });
+
+    await markStripeEventFailed(
+      event.id,
+      error instanceof Error ? error.message : "STRIPE_EVENT_PROCESSING_FAILED",
+    ).catch((auditError) => {
+      console.error("[stripe/webhook] Unable to persist failed event status", {
+        eventId: event.id,
+        auditError,
+      });
     });
 
     return jsonResponse(

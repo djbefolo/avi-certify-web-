@@ -41,6 +41,7 @@ export type UserDocument = {
   verificationStatus?: string | null;
   rejectionReason?: string | null;
   certificateId?: string | null;
+  paymentId?: string | null;
   certificateNumber?: string | null;
   verificationUrl?: string | null;
   createdAt: Date | null;

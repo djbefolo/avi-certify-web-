@@ -40,3 +40,7 @@ AVI_CERTIFY_Modele_Prefinancement_*.xlsx
 
 # Local sprint scratchpad
 .sprint-*-summary.md
+
+# Sources opérationnelles d’import logement
+data/imports/housing/*.xlsx
+data/imports/housing/*.xls

@@ -39,5 +39,5 @@ export type PaymentRecord = {
 
 export type CreateCheckoutSessionInput = {
   serviceType: PaymentServiceType;
-  housingRegion?: string;
+  housingRequestId?: string;
 };
