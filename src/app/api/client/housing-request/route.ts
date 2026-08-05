@@ -2,10 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { getAdminAuth } from "@/lib/firebase/admin";
 import {
+  franceCountryReference,
+  resolveCountryReference,
+  resolveNationalityReference,
+} from "@/lib/profile/country-reference";
+import {
   createOrUpdateHousingRequest,
   getLatestHousingRequestForOwner,
 } from "@/lib/housing/housing-request.service";
 import { housingRequestInputSchema } from "@/lib/validations/housing";
+import type { HousingRequest } from "@/types/housing";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -34,6 +40,65 @@ function response(body: unknown, status = 200) {
   });
 }
 
+function clientHousingRequest(request: HousingRequest | null) {
+  if (!request) return null;
+  const documentAvailable = Boolean(request.generatedDocumentId);
+  const nextAction = documentAvailable
+    ? "Télécharger votre attestation"
+    : ["draft", "awaiting_payment"].includes(request.status)
+      ? "Finaliser le paiement"
+      : ["payment_pending", "payment_confirmed", "auto_validation_pending"].includes(
+            request.status,
+          )
+        ? "Attendre la confirmation du paiement"
+        : ["requires_admin_review", "admin_review_in_progress", "allocation_pending"].includes(
+              request.status,
+            )
+          ? "Suivre la vérification AVI CERTIFY"
+          : "Suivre la préparation du document";
+  return {
+    id: request.id,
+    status: request.status,
+    studentFirstName: request.studentFirstName,
+    studentLastName: request.studentLastName,
+    studentPhone: request.studentPhone,
+    studentDateOfBirth: request.studentDateOfBirth,
+    studentPlaceOfBirth: request.studentPlaceOfBirth,
+    nationality:
+      resolveNationalityReference(request.nationalityReference) ??
+      resolveNationalityReference(request.nationality),
+    originCountry:
+      resolveCountryReference(request.originCountryReference) ??
+      resolveCountryReference(request.originCountry),
+    currentResidenceCountry:
+      resolveCountryReference(request.currentResidenceCountryReference) ??
+      resolveCountryReference(request.currentResidenceCountry),
+    destinationCountry:
+      resolveCountryReference(request.destinationCountryReference) ??
+      franceCountryReference,
+    preferredCityCode: request.preferredCityCode,
+    preferredCity: request.preferredCity,
+    housingInventoryId: request.housingInventoryId,
+    schoolName: request.schoolName,
+    schoolCity: request.schoolCity,
+    academicYear: request.academicYear,
+    expectedArrivalDate: request.expectedArrivalDate,
+    expectedStayDurationMonths: request.expectedStayDurationMonths,
+    accommodationType: request.accommodationType,
+    indicativeMonthlyRent: request.indicativeMonthlyRent,
+    currency: request.currency,
+    specialNeeds: request.specialNeeds,
+    notes: request.notes,
+    residenceName: request.selectionSnapshot?.residenceName ?? null,
+    documentAvailable,
+    documentId: request.generatedDocumentId,
+    nextAction,
+    createdAt: request.createdAt,
+    updatedAt: request.updatedAt,
+    paidAt: request.paidAt,
+  };
+}
+
 function isFirebaseAuthError(error: unknown) {
   return Boolean(
     error &&
@@ -47,7 +112,11 @@ function isFirebaseAuthError(error: unknown) {
 export async function GET(request: NextRequest) {
   try {
     const client = await requireVerifiedClient(request);
-    return response({ request: await getLatestHousingRequestForOwner(client.uid) });
+    return response({
+      request: clientHousingRequest(
+        await getLatestHousingRequestForOwner(client.uid),
+      ),
+    });
   } catch (error) {
     const code = error instanceof Error ? error.message : "UNAUTHORIZED";
     return response({ error: code }, code === "EMAIL_NOT_VERIFIED" ? 403 : 401);
@@ -81,7 +150,7 @@ export async function POST(request: NextRequest) {
       accountEmail: client.email,
       input,
     });
-    return response({ request: housingRequest }, 201);
+    return response({ request: clientHousingRequest(housingRequest) }, 201);
   } catch (error) {
     if (error instanceof ZodError) {
       return response(
@@ -97,11 +166,15 @@ export async function POST(request: NextRequest) {
     if (
       [
         "HOUSING_INVENTORY_NOT_SELECTABLE",
+        "HOUSING_INVENTORY_UNAVAILABLE",
         "HOUSING_INVENTORY_CITY_MISMATCH",
         "HOUSING_ACCOMMODATION_TYPE_NOT_AVAILABLE",
       ].includes(code)
     ) {
-      return response({ error: code }, 400);
+      return response(
+        { error: code },
+        code === "HOUSING_INVENTORY_UNAVAILABLE" ? 503 : 400,
+      );
     }
     console.error("[client/housing-request] Request failed", { code });
     return response({ error: code }, 500);

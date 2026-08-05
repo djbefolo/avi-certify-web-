@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => {
   type Stored = Record<string, unknown>;
   const collections = new Map<string, Map<string, Stored>>();
   const email = vi.fn();
+  let generatedId = 0;
 
   function collectionMap(name: string) {
     if (!collections.has(name)) collections.set(name, new Map());
@@ -33,7 +34,15 @@ const mocks = vi.hoisted(() => {
 
   const db = {
     collection: (name: string) => ({
-      doc: (id: string) => document(name, id),
+      doc: (id?: string) =>
+        document(name, id ?? `${name}-generated-${++generatedId}`),
+      limit: (count: number) => ({
+        get: async () => ({
+          docs: [...collectionMap(name).entries()]
+            .slice(0, count)
+            .map(([id, value]) => snapshot(id, value)),
+        }),
+      }),
       where: (field: string, _operator: string, expected: unknown) => ({
         limit: () => ({
           get: async () => ({
@@ -44,6 +53,25 @@ const mocks = vi.hoisted(() => {
         }),
       }),
     }),
+    batch: () => {
+      const writes: Array<{
+        ref: ReturnType<typeof document>;
+        value: Stored;
+        options?: { merge?: boolean };
+      }> = [];
+      return {
+        set: (
+          ref: ReturnType<typeof document>,
+          value: Stored,
+          options?: { merge?: boolean },
+        ) => writes.push({ ref, value, options }),
+        commit: async () => {
+          for (const write of writes) {
+            await write.ref.set(write.value, write.options);
+          }
+        },
+      };
+    },
     runTransaction: async (
       handler: (transaction: {
         get: (ref: ReturnType<typeof document>) => Promise<ReturnType<typeof snapshot>>;
@@ -70,7 +98,15 @@ const mocks = vi.hoisted(() => {
     },
   };
 
-  return { collections, collectionMap, db, email };
+  return {
+    collections,
+    collectionMap,
+    db,
+    email,
+    resetIds() {
+      generatedId = 0;
+    },
+  };
 });
 
 vi.mock("@/lib/firebase/admin", () => ({
@@ -81,7 +117,10 @@ vi.mock("@/lib/server/email.service", () => ({
   sendHousingReviewRequiredEmail: mocks.email,
 }));
 
-import { evaluateHousingCertificateAfterPayment } from "@/lib/housing/housing-request.service";
+import {
+  createOrUpdateHousingRequest,
+  evaluateHousingCertificateAfterPayment,
+} from "@/lib/housing/housing-request.service";
 
 function seedRequest() {
   mocks.collectionMap("housing_requests").set("request-1", {
@@ -193,6 +232,7 @@ function seedRequest() {
 describe("housing payment decision", () => {
   beforeEach(() => {
     mocks.collections.clear();
+    mocks.resetIds();
     mocks.email.mockReset();
     mocks.email.mockResolvedValue({
       sent: true,
@@ -254,5 +294,117 @@ describe("housing payment decision", () => {
     expect(mocks.email).toHaveBeenCalledTimes(1);
     expect(mocks.collectionMap("communication_logs").get("housing_review_payment-1"))
       .toEqual(expect.objectContaining({ status: "SENT" }));
+  });
+
+  it("creates a bootstrap request from server data and always routes it to admin review", async () => {
+    mocks.collections.clear();
+    const request = await createOrUpdateHousingRequest({
+      ownerId: "client-bootstrap",
+      accountEmail: "student@example.com",
+      input: {
+        studentFirstName: "Awa",
+        studentLastName: "Student",
+        studentPhone: "+33123456789",
+        studentDateOfBirth: "2002-01-01",
+        studentPlaceOfBirth: "Dakar",
+        nationality: {
+          countryCodeAlpha2: "SN",
+          countryCodeAlpha3: "SEN",
+          label: "Sénégalaise",
+        },
+        originCountry: {
+          codeAlpha2: "SN",
+          codeAlpha3: "SEN",
+          label: "Sénégal",
+        },
+        currentResidenceCountry: {
+          codeAlpha2: "SN",
+          codeAlpha3: "SEN",
+          label: "Sénégal",
+        },
+        destinationCountry: {
+          codeAlpha2: "FR",
+          codeAlpha3: "FRA",
+          label: "France",
+        },
+        preferredCityCode: "AIX_EN_PROVENCE",
+        housingInventoryId: "AVI-LOG-FR-0001",
+        schoolName: "Université",
+        schoolCity: "Aix-en-Provence",
+        academicYear: "2026-2027",
+        expectedArrivalDate: "2026-09-01",
+        expectedStayDurationMonths: 12,
+        accommodationType: "studio",
+        specialNeeds: "",
+        notes: "",
+        consentAccuracy: true,
+        consentConditionalNature: true,
+        consentTerms: true,
+        consentDataProcessing: true,
+        consentAddressAdjustment: true,
+      },
+    });
+
+    expect(request.indicativeMonthlyRent).toBe(627);
+    expect(request).toMatchObject({
+      nationality: "Sénégalaise",
+      nationalityReference: {
+        countryCodeAlpha2: "SN",
+        countryCodeAlpha3: "SEN",
+      },
+      originCountry: "Sénégal",
+      originCountryReference: { codeAlpha2: "SN", codeAlpha3: "SEN" },
+      currentResidenceCountry: "Sénégal",
+      destinationCountry: "France",
+    });
+    expect(mocks.collectionMap("users").get("client-bootstrap")).toMatchObject({
+      originCountry: "Sénégal",
+      originCountryReference: {
+        codeAlpha2: "SN",
+        codeAlpha3: "SEN",
+        label: "Sénégal",
+      },
+      nationality: "Sénégalaise",
+      countryOfResidence: "Sénégal",
+      destinationCountryReference: {
+        codeAlpha2: "FR",
+        codeAlpha3: "FRA",
+        label: "France",
+      },
+    });
+    expect(request.selectionSnapshot).toMatchObject({
+      inventorySource: "bootstrap",
+      manualReviewRequired: true,
+      housingInventoryId: "AVI-LOG-FR-0001",
+      pricing: { residenceDisplayedRent: 627 },
+    });
+
+    mocks.collectionMap("housing_requests").set(request.id, {
+      ...(mocks.collectionMap("housing_requests").get(request.id) ?? {}),
+      paymentId: "payment-bootstrap",
+      status: "payment_pending",
+    });
+    mocks.collectionMap("payments").set("payment-bootstrap", {
+      status: "paid",
+      ownerId: "client-bootstrap",
+      housingRequestId: request.id,
+      serviceType: "accommodation_certificate",
+    });
+    process.env.HOUSING_AUTO_ISSUANCE_ENABLED = "true";
+
+    const result = await evaluateHousingCertificateAfterPayment({
+      requestId: request.id,
+      paymentId: "payment-bootstrap",
+      stripeEventId: "evt-bootstrap",
+      paidAt: "2026-08-04T10:00:00.000Z",
+    });
+
+    expect(result.automaticGenerationQueued).toBe(false);
+    expect(result.decision.reasons).toContain("MANUAL_REVIEW_FORCED");
+    expect(result.job).toBeNull();
+    expect(mocks.collectionMap("document_generation_jobs").size).toBe(0);
+    expect(mocks.collectionMap("housing_requests").get(request.id)?.status).toBe(
+      "requires_admin_review",
+    );
   });
 });

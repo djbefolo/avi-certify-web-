@@ -7,6 +7,10 @@ import {
   type DocumentData,
 } from "firebase/firestore";
 import { getFirebaseDb } from "@/lib/firebase/client";
+import {
+  resolveCountryReference,
+  resolveNationalityReference,
+} from "@/lib/profile/country-reference";
 import type {
   AdmissionDocumentStatus,
   AdmissionStatus,
@@ -185,16 +189,32 @@ export function mapStudentProfile(uid: string, data: DocumentData): StudentProfi
     fullName: getFullName(data),
     birthDate,
     birthCountry: getStringField(data, "birthCountry"),
+    originCountry: getStringField(data, "originCountry"),
+    originCountryReference:
+      resolveCountryReference(data.originCountryReference) ??
+      resolveCountryReference(getStringField(data, "originCountry")),
     phoneWhatsApp:
       getStringField(data, "phoneWhatsApp") ?? getStringField(data, "phone"),
     dateOfBirth,
     placeOfBirth:
       getStringField(data, "placeOfBirth") ?? getStringField(data, "birthPlace"),
     nationality: getStringField(data, "nationality"),
+    nationalityReference:
+      resolveNationalityReference(data.nationalityReference) ??
+      resolveNationalityReference(getStringField(data, "nationality")),
     countryOfResidence:
       getStringField(data, "countryOfResidence") ??
       getStringField(data, "residenceCountry"),
+    countryOfResidenceReference:
+      resolveCountryReference(data.countryOfResidenceReference) ??
+      resolveCountryReference(
+        getStringField(data, "countryOfResidence") ??
+          getStringField(data, "residenceCountry"),
+      ),
     destinationCountry: getStringField(data, "destinationCountry"),
+    destinationCountryReference:
+      resolveCountryReference(data.destinationCountryReference) ??
+      resolveCountryReference(getStringField(data, "destinationCountry")),
     destinationCity: getStringField(data, "destinationCity"),
     targetSchoolName: getStringField(data, "targetSchoolName"),
     admissionStatus: getOptionValue(

@@ -1,16 +1,40 @@
 import "server-only";
 
+import {
+  HOUSING_INVENTORY,
+  canAutoIssueFromBootstrap,
+  getBootstrapHousingCities,
+  getBootstrapHousingResidenceById,
+  getBootstrapHousingResidencesByCity,
+  type HousingBootstrapResidence,
+} from "@/data/housing-inventory.bootstrap";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import type { AdminActor } from "@/lib/admin/admin-auth";
 import type { HousingInventoryGovernanceInput } from "@/lib/validations/housing";
 import type {
   HousingAccommodationType,
   HousingInventoryItem,
+  HousingInventorySource,
   HousingSelectionSnapshot,
 } from "@/types/housing";
 
 const INVENTORY_COLLECTION = "housing_inventory";
 const AUDIT_COLLECTION = "admin_financial_audit_events";
+
+export type PublicHousingCity = {
+  code: string;
+  label: string;
+  country: "France";
+  residenceCount: number;
+  minimumDisplayedRent: number | null;
+  currency: "EUR";
+  availabilityLabel: string;
+};
+
+export type HousingInventoryResult<T> = {
+  source: HousingInventorySource;
+  data: T;
+};
 
 function now() {
   return new Date().toISOString();
@@ -49,6 +73,97 @@ function cleanAccommodationTypes(value: unknown): HousingAccommodationType[] {
         allowed.includes(item as HousingAccommodationType),
       )
     : [];
+}
+
+function normalizeBootstrapAccommodationTypes(
+  value: readonly string[],
+): HousingAccommodationType[] {
+  const labels: Record<string, HousingAccommodationType> = {
+    studio: "studio",
+    "t1 bis": "t1_bis",
+    t2: "t2",
+    colocation: "shared",
+    partage: "shared",
+    autre: "other",
+  };
+  return value
+    .map((item) => labels[item.trim().toLocaleLowerCase("fr-FR")])
+    .filter((item): item is HousingAccommodationType => Boolean(item));
+}
+
+function assertBootstrapPolicy() {
+  if (canAutoIssueFromBootstrap() !== false) {
+    throw new Error("HOUSING_BOOTSTRAP_POLICY_INVALID");
+  }
+
+  const invalidResidence = HOUSING_INVENTORY.cities
+    .flatMap((city) => city.residences)
+    .find(
+      (residence) =>
+        residence.autoIssuance.enabled !== false ||
+        residence.autoIssuance.eligibilityStatus !== "manual_review_only" ||
+        residence.autoIssuance.manualReviewRequired !== true ||
+        residence.manualReviewRequired !== true,
+    );
+  if (invalidResidence) {
+    throw new Error("HOUSING_BOOTSTRAP_POLICY_INVALID");
+  }
+}
+
+function mapBootstrapHousingInventoryItem(
+  residence: HousingBootstrapResidence,
+): HousingInventoryItem {
+  assertBootstrapPolicy();
+  const accommodationTypes = normalizeBootstrapAccommodationTypes(
+    residence.accommodationTypes,
+  );
+  const partnerName =
+    residence.partner.commercialName || residence.partner.operatorName;
+
+  return mapHousingInventoryItem(residence.id, {
+    ...residence,
+    partner: {
+      displayName: partnerName,
+      operatorName: residence.partner.operatorName,
+    },
+    accommodationTypes,
+    pricing: {
+      ...residence.pricing,
+      cityIndicativePrice: residence.pricing.cityStartingPrice,
+    },
+    inventoryStatus: residence.availability.status,
+    availabilityGuaranteed: false,
+    availability: {
+      lastConfirmedAt: residence.availability.lastCheckedAt,
+    },
+    isVisibleToClients:
+      residence.isVisibleToClients && residence.isSelectableForConditionalRequest,
+    autoIssuance: {
+      enabled: false,
+      eligibilityStatus: "manual_review_only",
+      manualReviewRequired: true,
+      stopReason: "Inventaire bootstrap soumis à validation administrative",
+    },
+    publicDescription: residence.availability.operationalLabel,
+    version: 1,
+    createdAt: HOUSING_INVENTORY.generatedAt,
+    updatedAt: HOUSING_INVENTORY.generatedAt,
+  });
+}
+
+function listBootstrapHousingInventory(cityCode?: string | null) {
+  assertBootstrapPolicy();
+  const residences = cityCode
+    ? getBootstrapHousingResidencesByCity(cityCode)
+    : getBootstrapHousingCities().flatMap((city) => city.residences);
+  return residences.map(mapBootstrapHousingInventoryItem);
+}
+
+function isPubliclySelectable(item: HousingInventoryItem) {
+  return (
+    item.isVisibleToClients &&
+    !["unavailable", "suspended", "archived"].includes(item.inventoryStatus)
+  );
 }
 
 export function mapHousingInventoryItem(
@@ -218,45 +333,168 @@ export async function listHousingInventoryForAdmin() {
     );
 }
 
-export async function listPublicHousingInventory(cityCode?: string | null) {
-  const items = await listHousingInventoryForAdmin();
-  return items.filter(
-    (item) =>
-      item.isVisibleToClients &&
-      !["unavailable", "suspended", "archived"].includes(item.inventoryStatus) &&
-      (!cityCode || item.cityCode === cityCode),
-  );
+async function resolveHousingInventory(
+  cityCode?: string | null,
+): Promise<HousingInventoryResult<HousingInventoryItem[]>> {
+  try {
+    const firestoreItems = await listHousingInventoryForAdmin();
+    if (firestoreItems.length > 0) {
+      return {
+        source: "firestore",
+        data: firestoreItems.filter(
+          (item) => !cityCode || item.cityCode === cityCode,
+        ),
+      };
+    }
+  } catch (error) {
+    console.warn("[housing-inventory] Firestore inventory unavailable", {
+      code: error instanceof Error ? error.message : "UNKNOWN",
+    });
+  }
+
+  try {
+    return {
+      source: "bootstrap",
+      data: listBootstrapHousingInventory(cityCode),
+    };
+  } catch (error) {
+    console.error("[housing-inventory] Bootstrap inventory unavailable", {
+      code: error instanceof Error ? error.message : "UNKNOWN",
+    });
+    return { source: "unavailable", data: [] };
+  }
 }
 
-export async function listPublicHousingCities() {
-  const items = await listPublicHousingInventory();
+export async function getHousingInventorySource(): Promise<HousingInventorySource> {
+  return (await resolveHousingInventory()).source;
+}
+
+export async function listAvailableHousingResidences(
+  cityCode: string,
+): Promise<HousingInventoryResult<HousingInventoryItem[]>> {
+  const result = await resolveHousingInventory(cityCode);
+  return {
+    source: result.source,
+    data: result.data.filter(isPubliclySelectable),
+  };
+}
+
+export async function getHousingResidenceById(
+  housingInventoryId: string,
+  options?: {
+    source?: Exclude<HousingInventorySource, "unavailable">;
+  },
+): Promise<HousingInventoryResult<HousingInventoryItem | null>> {
+  if (options?.source !== "bootstrap") {
+    try {
+      const db = getAdminFirestore();
+      const snapshot = await db
+        .collection(INVENTORY_COLLECTION)
+        .doc(housingInventoryId)
+        .get();
+      if (snapshot.exists) {
+        return {
+          source: "firestore",
+          data: mapHousingInventoryItem(
+            snapshot.id,
+            snapshot.data() as Record<string, unknown>,
+          ),
+        };
+      }
+
+      const probe = await db.collection(INVENTORY_COLLECTION).limit(1).get();
+      if (probe.docs.length > 0 || options?.source === "firestore") {
+        return { source: "firestore", data: null };
+      }
+    } catch (error) {
+      console.warn("[housing-inventory] Firestore residence lookup unavailable", {
+        code: error instanceof Error ? error.message : "UNKNOWN",
+      });
+      if (options?.source === "firestore") {
+        return { source: "unavailable", data: null };
+      }
+    }
+  }
+
+  try {
+    const bootstrapResidence =
+      getBootstrapHousingResidenceById(housingInventoryId);
+    return {
+      source: "bootstrap",
+      data: bootstrapResidence
+        ? mapBootstrapHousingInventoryItem(bootstrapResidence)
+        : null,
+    };
+  } catch (error) {
+    console.error("[housing-inventory] Bootstrap residence lookup unavailable", {
+      code: error instanceof Error ? error.message : "UNKNOWN",
+    });
+    return { source: "unavailable", data: null };
+  }
+}
+
+export async function listAvailableHousingCities(): Promise<
+  HousingInventoryResult<PublicHousingCity[]>
+> {
+  const result = await resolveHousingInventory();
   const cities = new Map<
     string,
-    { code: string; label: string; country: "France"; residenceCount: number }
+    PublicHousingCity
   >();
-  for (const item of items) {
+  for (const item of result.data.filter(isPubliclySelectable)) {
     const current = cities.get(item.cityCode);
+    const displayedRent =
+      item.pricing.residenceDisplayedRent ?? item.pricing.cityIndicativePrice;
+    const minimumRent =
+      displayedRent === undefined
+        ? current?.minimumDisplayedRent ?? null
+        : current?.minimumDisplayedRent === null ||
+            current?.minimumDisplayedRent === undefined
+          ? displayedRent
+          : Math.min(current.minimumDisplayedRent, displayedRent);
     cities.set(item.cityCode, {
       code: item.cityCode,
       label: item.cityLabel,
       country: "France",
       residenceCount: (current?.residenceCount ?? 0) + 1,
+      minimumDisplayedRent: minimumRent,
+      currency: "EUR",
+      availabilityLabel: "Pré-réservation conditionnelle",
     });
   }
-  return [...cities.values()].sort((a, b) => a.label.localeCompare(b.label, "fr"));
+  return {
+    source: result.source,
+    data: [...cities.values()].sort((a, b) => a.label.localeCompare(b.label, "fr")),
+  };
+}
+
+export async function listPublicHousingInventory(cityCode?: string | null) {
+  if (cityCode) return (await listAvailableHousingResidences(cityCode)).data;
+  const result = await resolveHousingInventory();
+  return result.data.filter(isPubliclySelectable);
+}
+
+export async function listPublicHousingCities() {
+  return (await listAvailableHousingCities()).data;
 }
 
 export function createHousingSelectionSnapshot({
   inventory,
+  inventorySource,
   accommodationType,
   selectedAt,
 }: {
   inventory: HousingInventoryItem;
+  inventorySource: Exclude<HousingInventorySource, "unavailable">;
   accommodationType: HousingAccommodationType;
   selectedAt: string;
 }): HousingSelectionSnapshot {
   return {
     selectedAt,
+    inventorySource,
+    manualReviewRequired:
+      inventorySource === "bootstrap" ||
+      inventory.autoIssuance.manualReviewRequired === true,
     housingInventoryId: inventory.id,
     inventoryVersion: inventory.version,
     internalReference: inventory.internalReference,

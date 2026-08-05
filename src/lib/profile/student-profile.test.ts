@@ -107,6 +107,29 @@ describe("student profile mapping", () => {
     });
   });
 
+  it("maps legacy country strings to controlled references", () => {
+    const profile = mapStudentProfile("client-legacy", {
+      birthCountry: "Cameroun",
+      originCountry: "Senegal",
+      nationality: "Senegalaise",
+      countryOfResidence: "France",
+      destinationCountry: "France",
+    });
+
+    expect(profile.originCountryReference).toEqual({
+      codeAlpha2: "SN",
+      codeAlpha3: "SEN",
+      label: "Sénégal",
+    });
+    expect(profile.nationalityReference).toEqual({
+      countryCodeAlpha2: "SN",
+      countryCodeAlpha3: "SEN",
+      label: "Sénégalaise",
+    });
+    expect(profile.countryOfResidenceReference?.codeAlpha2).toBe("FR");
+    expect(profile.destinationCountryReference?.codeAlpha3).toBe("FRA");
+  });
+
   it("reports incomplete and partial profile completion explicitly", () => {
     expect(getProfileCompletion(null)).toMatchObject({
       percent: 0,

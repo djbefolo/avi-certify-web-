@@ -3,7 +3,7 @@ import "server-only";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import {
   createHousingSelectionSnapshot,
-  getHousingInventoryItemById,
+  getHousingResidenceById,
   mapHousingInventoryItem,
 } from "@/lib/housing/housing-inventory.service";
 import { evaluateHousingAutoIssuance } from "@/lib/housing/housing-auto-issuance-policy.service";
@@ -22,6 +22,7 @@ import type {
 } from "@/types/housing";
 
 const REQUESTS_COLLECTION = "housing_requests";
+const USERS_COLLECTION = "users";
 const CASES_COLLECTION = "client_cases";
 const EVENTS_COLLECTION = "admin_case_events";
 const NOTIFICATIONS_COLLECTION = "admin_notifications";
@@ -184,7 +185,12 @@ export async function createOrUpdateHousingRequest({
   input: HousingRequestInput;
 }) {
   const db = getAdminFirestore();
-  const inventory = await getHousingInventoryItemById(input.housingInventoryId);
+  const inventoryResult = await getHousingResidenceById(input.housingInventoryId);
+  if (inventoryResult.source === "unavailable") {
+    throw new Error("HOUSING_INVENTORY_UNAVAILABLE");
+  }
+  const inventorySource = inventoryResult.source;
+  const inventory = inventoryResult.data;
 
   if (
     !inventory ||
@@ -217,6 +223,7 @@ export async function createOrUpdateHousingRequest({
   const caseNumber = existingCase?.get("caseNumber") ?? buildCaseNumber(requestRef.id);
   const selectionSnapshot = createHousingSelectionSnapshot({
     inventory,
+    inventorySource,
     accommodationType: input.accommodationType,
     selectedAt: timestamp,
   });
@@ -234,10 +241,14 @@ export async function createOrUpdateHousingRequest({
     studentPhone: input.studentPhone,
     studentDateOfBirth: input.studentDateOfBirth,
     studentPlaceOfBirth: input.studentPlaceOfBirth,
-    nationality: input.nationality,
-    originCountry: input.originCountry,
-    currentResidenceCountry: input.currentResidenceCountry,
+    nationality: input.nationality.label,
+    nationalityReference: input.nationality,
+    originCountry: input.originCountry.label,
+    originCountryReference: input.originCountry,
+    currentResidenceCountry: input.currentResidenceCountry.label,
+    currentResidenceCountryReference: input.currentResidenceCountry,
     destinationCountry: "France",
+    destinationCountryReference: input.destinationCountry,
     housingInventoryId: inventory.id,
     preferredCityCode: inventory.cityCode,
     preferredCity: inventory.cityLabel,
@@ -278,6 +289,22 @@ export async function createOrUpdateHousingRequest({
 
   batch.set(requestRef, request, { merge: true });
   batch.set(
+    db.collection(USERS_COLLECTION).doc(ownerId),
+    {
+      originCountry: input.originCountry.label,
+      originCountryReference: input.originCountry,
+      nationality: input.nationality.label,
+      nationalityReference: input.nationality,
+      countryOfResidence: input.currentResidenceCountry.label,
+      countryOfResidenceReference: input.currentResidenceCountry,
+      destinationCountry: input.destinationCountry.label,
+      destinationCountryReference: input.destinationCountry,
+      updatedAt: timestamp,
+      profileUpdatedAt: timestamp,
+    },
+    { merge: true },
+  );
+  batch.set(
     caseRef,
     {
       id: caseRef.id,
@@ -292,6 +319,7 @@ export async function createOrUpdateHousingRequest({
       requestedCurrency: "EUR",
       region: "eu",
       destinationCountry: "France",
+      destinationCountryReference: input.destinationCountry,
       destinationSchool: input.schoolName,
       schoolName: input.schoolName,
       intakeDate: input.expectedArrivalDate,
@@ -327,6 +355,7 @@ export async function createOrUpdateHousingRequest({
         housingRequestId: requestRef.id,
         preferredCityCode: inventory.cityCode,
         housingInventoryId: inventory.id,
+        inventorySource,
         inventoryVersion: inventory.version,
         inventoryStatus: inventory.inventoryStatus,
       },
@@ -683,6 +712,18 @@ export async function evaluateHousingCertificateAfterPayment({
     throw new Error("HOUSING_INVENTORY_NOT_SELECTED");
   }
 
+  const selectedInventorySource = initialRequest.selectionSnapshot?.inventorySource;
+  const inventoryResult = await getHousingResidenceById(
+    initialRequest.housingInventoryId,
+    selectedInventorySource === "firestore" || selectedInventorySource === "bootstrap"
+      ? { source: selectedInventorySource }
+      : undefined,
+  );
+  if (!inventoryResult.data || inventoryResult.source === "unavailable") {
+    throw new Error("HOUSING_INVENTORY_NOT_FOUND");
+  }
+  const resolvedInventory = inventoryResult.data;
+
   const ownerRequests = await listOwnerRequests(initialRequest.ownerId);
   const duplicateOrFraudRisk =
     initialRequest.duplicateOrFraudRisk ||
@@ -705,23 +746,29 @@ export async function evaluateHousingCertificateAfterPayment({
     const inventoryRef = db
       .collection(INVENTORY_COLLECTION)
       .doc(initialRequest.housingInventoryId as string);
-    const [requestSnapshot, paymentSnapshot, inventorySnapshot, existingJob] =
-      await Promise.all([
-        transaction.get(requestRef),
-        transaction.get(paymentRef),
-        transaction.get(inventoryRef),
-        transaction.get(jobRef),
-      ]);
+    const [requestSnapshot, paymentSnapshot, existingJob] = await Promise.all([
+      transaction.get(requestRef),
+      transaction.get(paymentRef),
+      transaction.get(jobRef),
+    ]);
+    const inventorySnapshot =
+      inventoryResult.source === "firestore"
+        ? await transaction.get(inventoryRef)
+        : null;
     if (!requestSnapshot.exists) throw new Error("HOUSING_REQUEST_NOT_FOUND");
-    if (!inventorySnapshot.exists) throw new Error("HOUSING_INVENTORY_NOT_FOUND");
+    if (inventorySnapshot && !inventorySnapshot.exists) {
+      throw new Error("HOUSING_INVENTORY_NOT_FOUND");
+    }
     const request = mapHousingRequest(
       requestSnapshot.id,
       requestSnapshot.data() as Record<string, unknown>,
     );
-    const inventory = mapHousingInventoryItem(
-      inventorySnapshot.id,
-      inventorySnapshot.data() as Record<string, unknown>,
-    );
+    const inventory = inventorySnapshot
+      ? mapHousingInventoryItem(
+          inventorySnapshot.id,
+          inventorySnapshot.data() as Record<string, unknown>,
+        )
+      : resolvedInventory;
     if (
       request.autoDecisionSnapshot?.eligible &&
       request.generationJobId === jobId &&
@@ -819,7 +866,10 @@ export async function evaluateHousingCertificateAfterPayment({
         { merge: true },
       );
       transaction.set(jobRef, job, { merge: true });
-      if (inventory.autoIssuance.conditionalCapacity !== undefined) {
+      if (
+        inventoryResult.source === "firestore" &&
+        inventory.autoIssuance.conditionalCapacity !== undefined
+      ) {
         transaction.set(
           inventoryRef,
           {

@@ -1,3 +1,8 @@
+import type {
+  CountryReference,
+  NationalityReference,
+} from "@/lib/profile/country-reference";
+
 export type HousingAvailabilityStatus =
   | "conditionally_available"
   | "limited"
@@ -50,6 +55,8 @@ export type HousingInventoryStatus =
   | "unavailable"
   | "suspended"
   | "archived";
+
+export type HousingInventorySource = "firestore" | "bootstrap" | "unavailable";
 
 export type HousingInventoryItem = {
   id: string;
@@ -142,6 +149,8 @@ export type HousingAutoIssuanceReason =
 
 export type HousingSelectionSnapshot = {
   selectedAt: string;
+  inventorySource: Exclude<HousingInventorySource, "unavailable">;
+  manualReviewRequired: boolean;
   housingInventoryId: string;
   inventoryVersion: number;
   internalReference: string;
@@ -245,9 +254,13 @@ export type HousingRequest = {
   studentDateOfBirth: string;
   studentPlaceOfBirth: string;
   nationality: string;
+  nationalityReference?: NationalityReference;
   originCountry: string;
+  originCountryReference?: CountryReference;
   currentResidenceCountry: string;
+  currentResidenceCountryReference?: CountryReference;
   destinationCountry: "France";
+  destinationCountryReference?: CountryReference;
   housingInventoryId: string | null;
   preferredCityCode: string;
   preferredCity: string;

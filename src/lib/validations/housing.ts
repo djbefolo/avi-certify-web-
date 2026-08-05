@@ -1,4 +1,9 @@
 import { z } from "zod";
+import {
+  franceCountryReference,
+  resolveCountryReference,
+  resolveNationalityReference,
+} from "@/lib/profile/country-reference";
 
 const cleanText = (label: string, max: number) =>
   z
@@ -41,6 +46,36 @@ function isFutureOrToday(value: string) {
   return date.getTime() >= today.getTime();
 }
 
+const countryReferenceSchema = z
+  .object({
+    codeAlpha2: z.string().trim().length(2),
+    codeAlpha3: z.string().trim().length(3),
+    label: z.string().trim().min(1).max(100),
+  })
+  .strict()
+  .refine((value) => Boolean(resolveCountryReference(value)), {
+    message: "Sélectionnez un pays reconnu.",
+  });
+
+const nationalityReferenceSchema = z
+  .object({
+    countryCodeAlpha2: z.string().trim().length(2),
+    countryCodeAlpha3: z.string().trim().length(3),
+    label: z.string().trim().min(1).max(100),
+  })
+  .strict()
+  .refine((value) => Boolean(resolveNationalityReference(value)), {
+    message: "Sélectionnez une nationalité reconnue.",
+  });
+
+const franceDestinationSchema = countryReferenceSchema.refine(
+  (value) =>
+    value.codeAlpha2 === franceCountryReference.codeAlpha2 &&
+    value.codeAlpha3 === franceCountryReference.codeAlpha3 &&
+    value.label === franceCountryReference.label,
+  { message: "La destination autorisée pour ce service est la France." },
+);
+
 export const housingRequestInputSchema = z
   .object({
     studentFirstName: cleanText("Le prenom", 80),
@@ -54,10 +89,10 @@ export const housingRequestInputSchema = z
         "La date de naissance doit etre anterieure a aujourd'hui.",
       ),
     studentPlaceOfBirth: cleanText("Le lieu de naissance", 120),
-    nationality: cleanText("La nationalite", 80),
-    originCountry: cleanText("Le pays d'origine", 80),
-    currentResidenceCountry: cleanText("Le pays de residence", 80),
-    destinationCountry: z.literal("France"),
+    nationality: nationalityReferenceSchema,
+    originCountry: countryReferenceSchema,
+    currentResidenceCountry: countryReferenceSchema,
+    destinationCountry: franceDestinationSchema,
     preferredCityCode: z.string().trim().min(1).max(100),
     housingInventoryId: z.string().trim().min(1).max(160),
     schoolName: cleanText("L'etablissement", 180),
