@@ -4,9 +4,12 @@ import chromium from "@sparticuz/chromium";
 import puppeteer from "puppeteer-core";
 import QRCode from "qrcode";
 import type { HousingCertificateTemplateData } from "@/lib/certificates/housing-certificate-template";
+import { getAdminStorage } from "@/lib/firebase/admin";
 
 const templateFileName = "housing-certificate-france.html";
 const templateVersion = "housing-conditional-v4";
+const signatureStampStoragePath = "internal-assets/certificates/president-signature-stamp.png";
+const pngSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 const logoAssetCandidates = [
   "public/assets/photos/avi-certify-logo.png",
   "public/assets/photos/logo_avi_certify.png",
@@ -78,14 +81,46 @@ function renderTemplate(template: string, values: Record<string, string>) {
   });
 }
 
-function getSignatureStampMarkup() {
-  const signatureDataUrl = cleanString(process.env.HOUSING_CERTIFICATE_SIGNATURE_STAMP_DATA_URL);
+function buildSignatureStampMarkup(signatureDataUrl: string) {
   if (!signatureDataUrl) return "";
   if (!isSafeImageDataUrl(signatureDataUrl)) {
     throw new Error("HOUSING_CERTIFICATE_SIGNATURE_STAMP_INVALID");
   }
 
   return `<img class="signature-stamp" src="${escapeAttribute(signatureDataUrl)}" alt="Signature electronique AVI CERTIFY" />`;
+}
+
+function isPng(buffer: Buffer) {
+  return buffer.byteLength >= pngSignature.byteLength && buffer.subarray(0, 8).equals(pngSignature);
+}
+
+async function loadPrivateSignatureStampDataUrl() {
+  try {
+    const [buffer] = await getAdminStorage()
+      .bucket()
+      .file(signatureStampStoragePath)
+      .download();
+    if (!isPng(buffer)) {
+      throw new Error("HOUSING_CERTIFICATE_SIGNATURE_STAMP_NOT_PNG");
+    }
+    return `data:image/png;base64,${buffer.toString("base64")}`;
+  } catch (error) {
+    console.warn("[housing-certificate-pdf] Private signature stamp unavailable", {
+      code: error instanceof Error ? error.message : "unknown_error",
+    });
+    return "";
+  }
+}
+
+async function getSignatureStampMarkup() {
+  const privateSignatureDataUrl = await loadPrivateSignatureStampDataUrl();
+  if (privateSignatureDataUrl) {
+    return buildSignatureStampMarkup(privateSignatureDataUrl);
+  }
+
+  return buildSignatureStampMarkup(
+    cleanString(process.env.HOUSING_CERTIFICATE_SIGNATURE_STAMP_DATA_URL),
+  );
 }
 
 function getSchoolStatement(targetSchoolName: string | null) {
@@ -102,7 +137,7 @@ export async function renderHousingCertificateHtml(data: HousingCertificateTempl
     throw new Error("HOUSING_CERTIFICATE_RENT_INVALID");
   }
 
-  const [template, logoDataUrl, qrCodeDataUrl] = await Promise.all([
+  const [template, logoDataUrl, qrCodeDataUrl, signatureStampMarkup] = await Promise.all([
     loadTemplate(),
     loadDataUrl(logoAssetCandidates),
     QRCode.toDataURL(data.verificationUrl, {
@@ -110,6 +145,7 @@ export async function renderHousingCertificateHtml(data: HousingCertificateTempl
       margin: 1,
       width: 220,
     }),
+    getSignatureStampMarkup(),
   ]);
   const validUntil = cleanString(data.validUntil) || "date a confirmer";
   const html = renderTemplate(template, {
@@ -126,7 +162,7 @@ export async function renderHousingCertificateHtml(data: HousingCertificateTempl
     nationality: data.nationality,
     qrCodeDataUrl,
     schoolStatement: getSchoolStatement(data.targetSchoolName),
-    signatureStampMarkup: getSignatureStampMarkup(),
+    signatureStampMarkup,
     studentFullName: data.studentFullName,
     templateVersion: data.templateVersion ?? templateVersion,
     validUntil,

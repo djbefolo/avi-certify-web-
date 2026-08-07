@@ -19,12 +19,25 @@ const pdfMocks = vi.hoisted(() => {
   };
 });
 
+const signatureStorageMocks = vi.hoisted(() => {
+  const download = vi.fn().mockResolvedValue([
+    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00]),
+  ]);
+  const file = vi.fn(() => ({ download }));
+  const bucket = vi.fn(() => ({ file }));
+  return { bucket, download, file };
+});
+
 vi.mock("@sparticuz/chromium", () => ({
   default: { args: ["--single-process"], executablePath: pdfMocks.executablePath },
 }));
 
 vi.mock("puppeteer-core", () => ({
   default: { defaultArgs: pdfMocks.defaultArgs, launch: pdfMocks.launch },
+}));
+
+vi.mock("@/lib/firebase/admin", () => ({
+  getAdminStorage: () => ({ bucket: signatureStorageMocks.bucket }),
 }));
 
 import {
@@ -88,10 +101,15 @@ describe("conditional housing certificate PDF", () => {
     expect(html).toContain("Awa Student");
     expect(html).toContain("1 rue Test, 75000 Paris");
     expect(html).toContain("data:image/png;base64,");
+    expect(html).toContain('class="signature-stamp"');
     expect(html).toContain(".header { position: relative;");
     expect(html).toContain("margin: 0 auto; object-fit: contain; object-position: center;");
     expect(html).toContain(".reference { position: absolute; top: 0; right: 0; width: 52mm;");
     expect(html).not.toContain("BEFOLO NKOA Gabriel");
     expect(html).not.toMatch(/\{\{[a-zA-Z0-9_]+\}\}/);
+    expect(signatureStorageMocks.file).toHaveBeenCalledWith(
+      "internal-assets/certificates/president-signature-stamp.png",
+    );
+    expect(signatureStorageMocks.download).toHaveBeenCalled();
   });
 });
