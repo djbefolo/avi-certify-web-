@@ -88,6 +88,9 @@ describe("conditional housing certificate PDF", () => {
     expect(html).toContain("Awa Student");
     expect(html).toContain("1 rue Test, 75000 Paris");
     expect(html).toContain("data:image/png;base64,");
+    expect(html).toContain(".header { position: relative;");
+    expect(html).toContain("margin: 0 auto; object-fit: contain; object-position: center;");
+    expect(html).toContain(".reference { position: absolute; top: 0; right: 0; width: 52mm;");
     expect(html).not.toContain("BEFOLO NKOA Gabriel");
     expect(html).not.toMatch(/\{\{[a-zA-Z0-9_]+\}\}/);
   });
