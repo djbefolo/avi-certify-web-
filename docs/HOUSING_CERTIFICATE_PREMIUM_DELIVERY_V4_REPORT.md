@@ -65,10 +65,27 @@ Executed locally:
 
 Pending after local validation:
 
-- Vercel Preview deployment;
 - visual inspection of a generated PDF in Preview;
 - manual Stripe test webhook and Resend inbox proof. No live Stripe, Firestore,
 or email action was executed locally.
+
+## Preview Deployment
+
+- Preview URL: `https://avi-certify-5tpr6dwwn-avi-certify-platform.vercel.app`
+- Deployment: `dpl_fVs9Nos3n8nYRcuYZMqUDNr2McKS`
+- Target: Preview only; no production deployment was requested or executed.
+- Vercel build: passed on the Linux serverless runtime.
+
+Read-only browser smoke checks passed:
+
+- `/prix` renders `Tarifs AVI CERTIFY` and the housing offer at `99 EUR`.
+- `/dossier/logement` redirects an anonymous visitor to `/connexion`.
+- `/verifier/test-token` remains a public verification route and is not
+  redirected to `/admin`.
+
+The Preview cannot itself prove PDF generation until a controlled test payment
+and admin allocation exist. That manual operation has intentionally not been
+performed in this delivery.
 
 ## Local Rendering Limitation
 
