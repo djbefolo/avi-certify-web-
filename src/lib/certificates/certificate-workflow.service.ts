@@ -29,7 +29,7 @@ const FALLBACK_STUDENT_NAME = "Etudiant AVI CERTIFY";
 const JOBS_COLLECTION = "document_generation_jobs";
 const HOUSING_REQUESTS_COLLECTION = "housing_requests";
 const DOCUMENT_VERSIONS_COLLECTION = "document_versions";
-const TEMPLATE_VERSION = "housing-conditional-v1";
+const TEMPLATE_VERSION = "housing-conditional-v4";
 
 export type CertificateStatus =
   | "ACTIVE"

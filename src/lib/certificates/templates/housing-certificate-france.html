@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      @page { size: A4; margin: 0; }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; background: #ffffff; color: #172033; font-family: Arial, Helvetica, sans-serif; }
+      body { width: 210mm; min-height: 297mm; }
+      .page { min-height: 297mm; padding: 15mm 16mm 13mm; display: flex; flex-direction: column; }
+      .header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12mm; padding-bottom: 5mm; border-bottom: 0.7pt solid #bdc8d3; }
+      .logo { display: block; width: 43mm; height: auto; max-height: 17mm; object-fit: contain; object-position: left center; }
+      .reference { max-width: 74mm; text-align: right; font-size: 8.8pt; line-height: 1.45; color: #536174; }
+      .reference strong { color: #172033; font-size: 9.3pt; }
+      .title-box { margin: 10mm auto 6mm; min-width: 128mm; max-width: 155mm; border: 1.15pt solid #172033; padding: 4.2mm 7mm; text-align: center; }
+      .title { margin: 0; color: #172033; font-size: 15.5pt; line-height: 1.15; font-weight: 700; letter-spacing: 0.2pt; }
+      .subtitle { margin: 1.8mm 0 0; color: #0d6a50; font-size: 8.8pt; font-weight: 700; letter-spacing: 0.55pt; text-transform: uppercase; }
+      .intro { margin: 0 0 4mm; font-size: 10.1pt; line-height: 1.55; text-align: justify; }
+      .identity { border: 0.7pt solid #bdc8d3; border-left: 3pt solid #0d6a50; padding: 4.2mm 5mm; margin: 2.5mm 0 4.5mm; background: #f7f9fa; }
+      .identity-label { margin: 0 0 1.6mm; color: #536174; font-size: 8.2pt; font-weight: 700; letter-spacing: 0.45pt; text-transform: uppercase; }
+      .identity p { margin: 0; font-size: 10.2pt; line-height: 1.52; }
+      .section { margin: 0 0 3.2mm; font-size: 9.75pt; line-height: 1.52; text-align: justify; }
+      .section strong { color: #172033; }
+      .housing { margin: 3mm 0 4.3mm; border: 0.7pt solid #bdc8d3; }
+      .housing-head { padding: 2.4mm 4mm; color: #ffffff; background: #172033; font-size: 8.5pt; font-weight: 700; letter-spacing: 0.55pt; text-transform: uppercase; }
+      .housing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0; }
+      .housing-item { min-height: 14mm; padding: 3mm 4mm; border-right: 0.5pt solid #d6dde4; border-top: 0.5pt solid #d6dde4; }
+      .housing-item:nth-child(2n) { border-right: 0; }
+      .housing-item.full { grid-column: 1 / -1; border-right: 0; }
+      .housing-label { display: block; margin-bottom: 1mm; color: #536174; font-size: 7.8pt; font-weight: 700; letter-spacing: 0.4pt; text-transform: uppercase; }
+      .housing-value { color: #172033; font-size: 9.6pt; font-weight: 700; line-height: 1.35; }
+      .notice { margin: 1mm 0 0; padding: 3.2mm 4mm; border-left: 2.6pt solid #d6a700; background: #fffdf4; color: #29364a; font-size: 8.8pt; line-height: 1.45; text-align: justify; }
+      .bottom { margin-top: auto; padding-top: 5mm; }
+      .verification { display: grid; grid-template-columns: 31mm 1fr 55mm; gap: 4.5mm; align-items: center; padding-top: 4.2mm; border-top: 0.7pt solid #bdc8d3; }
+      .qr { display: block; width: 27mm; height: 27mm; border: 0.5pt solid #d6dde4; padding: 1mm; background: #ffffff; }
+      .verification-copy { color: #536174; font-size: 8.4pt; line-height: 1.45; }
+      .verification-copy strong { display: block; margin-bottom: 1mm; color: #172033; font-size: 9.1pt; }
+      .signature { min-height: 31mm; padding-left: 3.5mm; border-left: 0.7pt solid #bdc8d3; color: #536174; font-size: 8.2pt; line-height: 1.45; }
+      .signature-stamp { display: block; max-width: 43mm; max-height: 15mm; margin: 1.5mm 0; object-fit: contain; object-position: left center; }
+      .signature-label { color: #172033; font-size: 9pt; font-weight: 700; }
+      .footer { display: flex; justify-content: space-between; gap: 8mm; margin-top: 4.5mm; color: #6c7888; font-size: 7.1pt; line-height: 1.35; }
+      .footer p { margin: 0; }
+      .footer .version { white-space: nowrap; text-align: right; }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <header class="header">
+        <img class="logo" src="{{logoDataUrl}}" alt="AVI CERTIFY" />
+        <div class="reference"><strong>R&eacute;f&eacute;rence : {{certificateNumber}}</strong><br />Document conditionnel de logement<br />&Eacute;mis le {{issueDate}}</div>
+      </header>
+
+      <section class="title-box">
+        <h1 class="title">ATTESTATION CONDITIONNELLE DE LOGEMENT</h1>
+        <p class="subtitle">Dossier &eacute;tudiant international</p>
+      </section>
+
+      <p class="intro">AVI CERTIFY atteste qu'une solution de logement conditionnelle est pr&eacute;vue dans le cadre du projet d'&eacute;tudes du b&eacute;n&eacute;ficiaire identifi&eacute; ci-dessous, sous r&eacute;serve des conditions et validations applicables.</p>
+
+      <section class="identity">
+        <p class="identity-label">B&eacute;n&eacute;ficiaire</p>
+        <p><strong>{{studentFullName}}</strong>, n&eacute;(e) le {{dateOfBirth}} &agrave; {{birthPlace}}, de nationalit&eacute; {{nationality}}.</p>
+      </section>
+
+      <p class="section">Cette attestation accompagne le dossier administratif ou de mobilit&eacute; de l'&eacute;tudiant. {{schoolStatement}}</p>
+
+      <section class="housing">
+        <div class="housing-head">Solution de logement conditionnelle</div>
+        <div class="housing-grid">
+          <div class="housing-item full"><span class="housing-label">Adresse de la solution propos&eacute;e</span><span class="housing-value">{{housingAddress}}</span></div>
+          <div class="housing-item"><span class="housing-label">Ville</span><span class="housing-value">{{housingCity}}</span></div>
+          <div class="housing-item"><span class="housing-label">Loyer mensuel indicatif</span><span class="housing-value">{{housingRent}}</span></div>
+          <div class="housing-item"><span class="housing-label">Entr&eacute;e envisag&eacute;e</span><span class="housing-value">{{entryDate}}</span></div>
+          <div class="housing-item"><span class="housing-label">Dur&eacute;e estim&eacute;e</span><span class="housing-value">{{durationMonths}} mois</span></div>
+          <div class="housing-item full"><span class="housing-label">Validit&eacute; conditionnelle</span><span class="housing-value">Jusqu'au {{validUntil}}</span></div>
+        </div>
+      </section>
+
+      <p class="section">L'entr&eacute;e effective dans les lieux demeure subordonn&eacute;e &agrave; la disponibilit&eacute; r&eacute;elle, aux conditions contractuelles, aux v&eacute;rifications requises et aux formalit&eacute;s applicables.</p>
+      <p class="notice"><strong>Port&eacute;e du document.</strong> La pr&eacute;sente attestation ne vaut ni bail d&eacute;finitif, ni attribution irr&eacute;vocable, ni garantie de visa ou d'acceptation par une autorit&eacute;. En cas d'indisponibilit&eacute;, une solution &eacute;quivalente peut &ecirc;tre propos&eacute;e.</p>
+
+      <section class="bottom">
+        <div class="verification">
+          <img class="qr" src="{{qrCodeDataUrl}}" alt="QR de v&eacute;rification" />
+          <div class="verification-copy"><strong>V&eacute;rification du document</strong>Scannez le QR code pour v&eacute;rifier l'authenticit&eacute; et le statut de cette attestation sur la plateforme AVI CERTIFY.</div>
+          <div class="signature"><span class="signature-label">AVI CERTIFY</span><br />&Eacute;mission &eacute;lectronique s&eacute;curis&eacute;e{{signatureStampMarkup}}</div>
+        </div>
+        <footer class="footer"><p>Document destin&eacute; au seul accompagnement du dossier de mobilit&eacute; de son b&eacute;n&eacute;ficiaire. Toute utilisation est soumise aux conditions de la plateforme.</p><p class="version">Version {{templateVersion}}</p></footer>
+      </section>
+    </main>
+  </body>
+</html>

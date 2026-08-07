@@ -127,7 +127,7 @@ type HousingResidenceOption = {
 type Step = 1 | 2 | 3 | 4;
 type FieldErrors = Partial<Record<keyof HousingForm | "inventory", string>>;
 
-const SERVICE_FEE_EUR = 79;
+const SERVICE_FEE_EUR = 99;
 const today = new Date().toISOString().slice(0, 10);
 const countryComboboxOptions = countryOptions.map((country) => ({
   value: country.codeAlpha2,
@@ -1220,7 +1220,7 @@ export default function HousingRequestPage() {
                     ))}
                   </div>
                   <p className="rounded-md border bg-muted/20 p-4 text-sm leading-6">
-                    Les 79 € correspondent aux frais de traitement et d'émission de l'attestation conditionnelle. Ils ne constituent ni le paiement du loyer, ni un dépôt de garantie, ni une caution.
+                    Les 99 € correspondent aux frais de traitement et d'émission de l'attestation conditionnelle. Ils ne constituent ni le paiement du loyer, ni un dépôt de garantie, ni une caution.
                   </p>
                 </div>
               ) : null}
@@ -1260,7 +1260,7 @@ export default function HousingRequestPage() {
 
         <p className="flex items-start gap-2 text-xs leading-5 text-muted-foreground">
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" aria-hidden="true" />
-          Le montant de 79 EUR est fixé côté serveur. Aucune donnée bancaire n'est conservée par AVI CERTIFY. Une adresse exacte n'est affichée que lorsqu'elle a été validée pour le client.
+          Le montant de 99 EUR est fixé côté serveur. Aucune donnée bancaire n'est conservée par AVI CERTIFY. Une adresse exacte n'est affichée que lorsqu'elle a été validée pour le client.
         </p>
       </div>
     </DashboardLayout>

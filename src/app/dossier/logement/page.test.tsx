@@ -206,7 +206,7 @@ describe("housing client journey", () => {
     expect(screen.getByText(/Destination : France/)).toBeInTheDocument();
     expect(screen.getByText("Montant réglé maintenant")).toBeInTheDocument();
     expect(screen.getByTestId("housing-payment-button")).toHaveTextContent(
-      "Payer 79 € et transmettre ma demande",
+      "Payer 99 € et transmettre ma demande",
     );
     expect(document.body.textContent).not.toMatch(/Ã|Â/);
   });

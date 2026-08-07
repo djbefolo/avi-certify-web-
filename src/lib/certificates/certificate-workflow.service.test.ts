@@ -240,7 +240,7 @@ function seedPaidHousingPayment(overrides: Record<string, unknown> = {}) {
     housingRequestId: "housing-1",
     serviceType: "accommodation_certificate",
     status: "paid",
-    amountTotal: 7900,
+    amountTotal: 9900,
     currency: "eur",
     lastStripeEventId: "evt_checkout_paid",
     ...overrides,

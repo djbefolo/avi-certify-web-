@@ -48,7 +48,7 @@ export const metadata = createPageMetadata({
 const offers = [
   {
     title: "Attestation d’hébergement",
-    price: "79 €",
+    price: "99 €",
     description:
       "Attestation d’hébergement ou de domiciliation destinée à compléter le dossier étudiant, avec document PDF, QR code de vérification, lien public sécurisé et espace client.",
     includes: [
@@ -126,7 +126,7 @@ const offers = [
 const comparisonRows = [
   {
     service: "Attestation d’hébergement",
-    formula: "79 €",
+    formula: "99 €",
     ideal: "Compléter un dossier étudiant avec une preuve d’hébergement vérifiable.",
     action: "Obtenir mon attestation",
   },

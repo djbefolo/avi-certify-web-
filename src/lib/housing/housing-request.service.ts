@@ -7,7 +7,10 @@ import {
   mapHousingInventoryItem,
 } from "@/lib/housing/housing-inventory.service";
 import { evaluateHousingAutoIssuance } from "@/lib/housing/housing-auto-issuance-policy.service";
-import { sendHousingReviewRequiredEmail } from "@/lib/server/email.service";
+import {
+  sendHousingAdminReviewRequiredEmail,
+  sendHousingReviewRequiredEmail,
+} from "@/lib/server/email.service";
 import type {
   HousingAllocationInput,
   HousingRequestInput,
@@ -315,7 +318,7 @@ export async function createOrUpdateHousingRequest({
       productType: "ATTESTATION_HEBERGEMENT",
       status: "PAYMENT_PENDING",
       priority: existingCase?.get("priority") ?? "NORMAL",
-      requestedAmount: 79,
+      requestedAmount: 99,
       requestedCurrency: "EUR",
       region: "eu",
       destinationCountry: "France",
@@ -571,7 +574,7 @@ function createHousingGenerationJob({
     status: "queued",
     attemptCount: 0,
     maxAttempts: 3,
-    templateVersion: "housing-conditional-v1",
+    templateVersion: "housing-conditional-v4",
     requestedAt: timestamp,
     startedAt: null,
     completedAt: null,
@@ -591,26 +594,26 @@ async function notifyHousingReviewRequired({
   request: HousingRequest;
   paymentId: string;
 }) {
-  const communicationRef = getAdminFirestore()
+  const db = getAdminFirestore();
+  const communicationRef = db
     .collection(COMMUNICATIONS_COLLECTION)
     .doc(`housing_review_${paymentId}`);
   const existingCommunication = await communicationRef.get();
-  if (existingCommunication.exists && existingCommunication.get("status") === "SENT") {
-    return {
-      sent: true,
-      messageId: safeString(existingCommunication.get("messageId")),
-      status: "SENT" as const,
-      provider: "resend" as const,
-    };
-  }
-  const result = await sendHousingReviewRequiredEmail({
-    recipientEmail: request.clientEmail,
-    studentFullName: request.studentFullName,
-    clientSpaceUrl: `${(
-      process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
-    ).replace(/\/$/, "")}/dossier/logement`,
-  });
   const timestamp = now();
+  const clientResult = existingCommunication.exists && existingCommunication.get("status") === "SENT"
+    ? {
+        sent: true,
+        messageId: safeString(existingCommunication.get("messageId")),
+        status: "SENT" as const,
+        provider: "resend" as const,
+      }
+    : await sendHousingReviewRequiredEmail({
+        recipientEmail: request.clientEmail,
+        studentFullName: request.studentFullName,
+        clientSpaceUrl: `${(
+          process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
+        ).replace(/\/$/, "")}/dossier/logement`,
+      });
   await communicationRef.set(
       {
         id: `housing_review_${paymentId}`,
@@ -619,15 +622,48 @@ async function notifyHousingReviewRequired({
         type: "email",
         template: "housing_review_required",
         recipient: request.clientEmail,
-        status: result.status,
-        provider: result.provider,
-        messageId: result.messageId,
+        status: clientResult.status,
+        provider: clientResult.provider,
+        messageId: clientResult.messageId,
+        createdAt: timestamp,
+        metadata: { housingRequestId: request.id, paymentId },
+      },
+      { merge: true },
+  );
+  const adminCommunicationRef = db
+    .collection(COMMUNICATIONS_COLLECTION)
+    .doc(`housing_review_admin_${paymentId}`);
+  const existingAdminCommunication = await adminCommunicationRef.get();
+  if (!existingAdminCommunication.exists || existingAdminCommunication.get("status") !== "SENT") {
+    const residenceName = safeString(
+      request.selectionSnapshot?.residenceName ?? request.selectionSnapshot?.partnerName,
+    );
+    const adminResult = await sendHousingAdminReviewRequiredEmail({
+      clientName: request.clientName,
+      clientEmail: request.clientEmail,
+      caseId: request.caseId,
+      city: request.preferredCity,
+      residenceName,
+      paymentId,
+    });
+    await adminCommunicationRef.set(
+      {
+        id: adminCommunicationRef.id,
+        caseId: request.caseId,
+        uid: request.ownerId,
+        type: "email",
+        template: "housing_admin_review_required",
+        recipient: "admin_notification_email",
+        status: adminResult.status,
+        provider: adminResult.provider,
+        messageId: adminResult.messageId,
         createdAt: timestamp,
         metadata: { housingRequestId: request.id, paymentId },
       },
       { merge: true },
     );
-  return result;
+  }
+  return clientResult;
 }
 
 export async function routeHousingGenerationFailureToAdminReview({
@@ -961,13 +997,19 @@ export async function evaluateHousingCertificateAfterPayment({
         id: notificationRef.id,
         type: "admin_action_required",
         severity: "warning",
-        title: "Demande logement a verifier",
-        body: `${request.clientName} : paiement confirme, revue administrative requise.`,
+        title: "Nouvelle demande logement payee - validation requise",
+        body: `${request.clientName} : paiement confirme, verification administrative requise avant emission.`,
         relatedUid: request.ownerId,
         relatedCaseId: request.caseId,
         read: false,
         createdAt: timestamp,
-        metadata: { housingRequestId: request.id, reasons: decision.reasons },
+        metadata: {
+          housingRequestId: request.id,
+          paymentId,
+          city: request.preferredCity,
+          residenceName: request.selectionSnapshot?.residenceName ?? null,
+          reasons: decision.reasons,
+        },
       },
       { merge: true },
     );

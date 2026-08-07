@@ -93,7 +93,7 @@ describe("housing checkout", () => {
       },
       payment_status: "paid",
       payment_intent: "pi_test_1",
-      amount_total: 7900,
+      amount_total: 9900,
       currency: "eur",
       customer_details: { email: "student@example.com" },
     } as unknown as Stripe.Checkout.Session;
@@ -160,7 +160,7 @@ describe("housing checkout", () => {
     expect(mocks.attachPayment).toHaveBeenCalledWith({
       requestId: "housing-request-1",
       paymentId: "payment-1",
-      amount: 7900,
+      amount: 9900,
       currency: "eur",
     });
     expect(mocks.stripeCreate).toHaveBeenCalledWith(
@@ -168,7 +168,7 @@ describe("housing checkout", () => {
         line_items: [
           expect.objectContaining({
             price_data: expect.objectContaining({
-              unit_amount: 7900,
+              unit_amount: 9900,
               currency: "eur",
             }),
           }),

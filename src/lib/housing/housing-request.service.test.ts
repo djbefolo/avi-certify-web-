@@ -115,6 +115,7 @@ vi.mock("@/lib/firebase/admin", () => ({
 
 vi.mock("@/lib/server/email.service", () => ({
   sendHousingReviewRequiredEmail: mocks.email,
+  sendHousingAdminReviewRequiredEmail: mocks.email,
 }));
 
 import {
@@ -166,7 +167,7 @@ function seedRequest() {
     },
     paymentSnapshot: {
       paymentId: "payment-1",
-      amount: 7900,
+      amount: 9900,
       currency: "eur",
     },
     duplicateOrFraudRisk: false,
@@ -291,9 +292,14 @@ describe("housing payment decision", () => {
     expect(mocks.collectionMap("housing_requests").get("request-1")?.status).toBe(
       "requires_admin_review",
     );
-    expect(mocks.email).toHaveBeenCalledTimes(1);
+    expect(mocks.email).toHaveBeenCalledTimes(2);
     expect(mocks.collectionMap("communication_logs").get("housing_review_payment-1"))
       .toEqual(expect.objectContaining({ status: "SENT" }));
+    expect(mocks.collectionMap("communication_logs").get("housing_review_admin_payment-1"))
+      .toEqual(expect.objectContaining({
+        status: "SENT",
+        template: "housing_admin_review_required",
+      }));
   });
 
   it("creates a bootstrap request from server data and always routes it to admin review", async () => {
