@@ -65,6 +65,23 @@ describe("Stripe webhook route", () => {
     expect(mocks.processed).toHaveBeenCalledWith("evt-1");
   });
 
+  it("keeps an amount mismatch retryable instead of finalizing the event", async () => {
+    mocks.checkoutCompleted.mockResolvedValue({
+      updated: false,
+      paymentId: "payment-1",
+      reason: "payment_amount_mismatch",
+    });
+
+    const response = await POST(request());
+
+    expect(response.status).toBe(500);
+    await expect(response.json()).resolves.toEqual(
+      expect.objectContaining({ code: "payment_amount_mismatch", paymentId: "payment-1" }),
+    );
+    expect(mocks.processed).not.toHaveBeenCalled();
+    expect(mocks.failed).toHaveBeenCalledWith("evt-1", "payment_amount_mismatch");
+  });
+
   it("acknowledges a duplicate without running payment fulfillment", async () => {
     mocks.claim.mockResolvedValue({
       claimed: false,

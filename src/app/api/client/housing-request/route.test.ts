@@ -98,6 +98,7 @@ describe("client housing request API", () => {
     expect(response.status).toBe(200);
     expect(payload.request).toMatchObject({
       id: "request-1",
+      caseId: "case-1",
       preferredCity: "Aix-en-Provence",
       indicativeMonthlyRent: 627,
       nationality: {

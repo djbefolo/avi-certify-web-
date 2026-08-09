@@ -36,6 +36,7 @@ export type UserDocument = {
   size: number;
   storagePath: string;
   caseId?: string | null;
+  housingRequestId?: string | null;
   adminComment?: string | null;
   requestedAt?: Date | null;
   verificationStatus?: string | null;

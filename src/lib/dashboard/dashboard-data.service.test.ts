@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  emptyCertificateSummary,
   getCertificateSummaryFromDocuments,
+  getLatestPaymentForDashboardDossier,
   getRequiredDocumentSummaryFromDocuments,
 } from "@/lib/dashboard/dashboard-data.service";
 import type { UserDocument } from "@/types/document";
+import type { PaymentRecord } from "@/types/payment";
 
 function documentFixture(
   overrides: Partial<UserDocument> & Pick<UserDocument, "id" | "documentType" | "status">,
@@ -20,6 +23,24 @@ function documentFixture(
     verificationUrl: null,
     createdAt: new Date("2026-06-01T08:00:00.000Z"),
     updatedAt: new Date("2026-06-01T08:00:00.000Z"),
+    ...overrides,
+  };
+}
+
+function paymentFixture(overrides: Partial<PaymentRecord>): PaymentRecord {
+  return {
+    id: "payment-1",
+    ownerId: "client-1",
+    serviceType: "accommodation_certificate",
+    serviceLabel: "Attestation d'hébergement",
+    amount: 9900,
+    currency: "eur",
+    status: "pending",
+    stripeCheckoutSessionId: null,
+    stripePaymentIntentId: null,
+    checkoutUrl: null,
+    createdAt: new Date("2026-08-01T08:00:00.000Z"),
+    updatedAt: new Date("2026-08-01T08:00:00.000Z"),
     ...overrides,
   };
 }
@@ -143,5 +164,45 @@ describe("dashboard document summaries", () => {
 
     expect(certificate.available).toBe(true);
     expect(certificate.verificationUrl).toBeNull();
+  });
+
+  it("does not surface an older certificate from another housing case", () => {
+    const certificate = getCertificateSummaryFromDocuments(
+      [
+        documentFixture({
+          id: "certificate-old",
+          documentType: "accommodation_certificate",
+          status: "generated",
+          caseId: "case-old",
+          certificateNumber: "AVI-HBG-2026-OLD",
+        }),
+      ],
+      { caseId: "case-current", housingRequestId: "housing-current" },
+    );
+
+    expect(certificate).toEqual(emptyCertificateSummary);
+  });
+
+  it("selects payment only from the current housing dossier", () => {
+    const payment = getLatestPaymentForDashboardDossier(
+      [
+        paymentFixture({
+          id: "payment-old",
+          status: "paid",
+          caseId: "case-old",
+          housingRequestId: "housing-old",
+          updatedAt: new Date("2026-08-09T08:00:00.000Z"),
+        }),
+        paymentFixture({
+          id: "payment-current",
+          status: "pending",
+          caseId: "case-current",
+          housingRequestId: "housing-current",
+        }),
+      ],
+      { caseId: "case-current", housingRequestId: "housing-current" },
+    );
+
+    expect(payment?.id).toBe("payment-current");
   });
 });

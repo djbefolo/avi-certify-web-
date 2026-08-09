@@ -908,11 +908,12 @@ export class AdminOperationsStore {
   }
 
   async getClient360(uid: string): Promise<AdminClient360> {
-    const [clients, cases, documentSources, financialFiles, events, communications] = await Promise.all([
+    const [clients, cases, documentSources, financialFiles, payments, events, communications] = await Promise.all([
       this.listClients(),
       this.listCases({}),
       this.loadDocumentSources(),
       this.listFinancialFiles(),
+      this.listPayments(),
       this.listEvents(),
       this.listCommunications(),
     ]);
@@ -1048,7 +1049,10 @@ export class AdminOperationsStore {
         message: diagnosticMessage,
         error: diagnosticError,
       },
-      payments: [],
+      payments: payments.filter(
+        (payment) =>
+          typeof payment.caseId === "string" && caseIds.has(payment.caseId),
+      ),
       financialFiles: financialFiles.filter(
         (file) => identityUids.has(file.uid) || caseIds.has(file.caseId),
       ),
@@ -1584,7 +1588,10 @@ export class AdminOperationsStore {
       const caseDocuments = documents.filter((document) => document.uid === client.uid);
       const caseFinancialFiles = financialFiles.filter((file) => file.uid === client.uid);
       const documentStatus = computeDocumentStatus(caseDocuments);
-      const paymentStatus = mapPaymentSignalStatus(clientPayments) ?? computePaymentStatus(clientCase);
+      const casePayments = clientPayments.filter(
+        (payment) => payment.caseId === clientCase.id,
+      );
+      const paymentStatus = mapPaymentSignalStatus(casePayments) ?? computePaymentStatus(clientCase);
       const financeStatus = computeFinanceStatus(caseFinancialFiles);
       const certificateStatus = computeCertificateStatus(clientCase, caseDocuments);
       const updatedCase: ClientCase = {

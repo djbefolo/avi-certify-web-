@@ -48,6 +48,7 @@ vi.mock("@/lib/firebase/admin", () => ({
 
 import {
   claimStripeEvent,
+  markStripeEventFailed,
   markStripeEventProcessed,
 } from "@/lib/server/stripe-event.service";
 
@@ -83,5 +84,22 @@ describe("Stripe event idempotency", () => {
       claimed: false,
       duplicateStatus: "processed",
     });
+  });
+
+  it("keeps a failed business event retryable", async () => {
+    const input = {
+      eventId: "evt_housing_retry",
+      eventType: "checkout.session.completed",
+      eventCreated: 1_700_000_000,
+    };
+    await claimStripeEvent(input);
+    await markStripeEventFailed(input.eventId, "payment_amount_mismatch");
+
+    expect(firestore.records.get(input.eventId)).toMatchObject({
+      status: "failed_retryable",
+      retryable: true,
+      lastErrorCode: "payment_amount_mismatch",
+    });
+    await expect(claimStripeEvent(input)).resolves.toEqual({ claimed: true });
   });
 });

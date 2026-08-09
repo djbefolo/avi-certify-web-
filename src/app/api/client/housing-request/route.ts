@@ -58,6 +58,7 @@ function clientHousingRequest(request: HousingRequest | null) {
           : "Suivre la préparation du document";
   return {
     id: request.id,
+    caseId: request.caseId,
     status: request.status,
     studentFirstName: request.studentFirstName,
     studentLastName: request.studentLastName,

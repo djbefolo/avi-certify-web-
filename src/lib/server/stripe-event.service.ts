@@ -95,10 +95,12 @@ export async function markStripeEventProcessed(eventId: string) {
 export async function markStripeEventFailed(eventId: string, code: string) {
   await getAdminFirestore().collection(STRIPE_EVENTS_COLLECTION).doc(eventId).set(
     {
-      status: "failed",
+      status: "failed_retryable",
       failedAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),
       lastErrorCode: code.slice(0, 120),
+      retryable: true,
+      failureCount: FieldValue.increment(1),
     },
     { merge: true },
   );

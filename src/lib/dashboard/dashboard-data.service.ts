@@ -79,6 +79,11 @@ export const emptyCertificateSummary: DashboardCertificateSummary = {
   verificationUrl: null,
 };
 
+export type DashboardDossierContext = {
+  caseId?: string | null;
+  housingRequestId?: string | null;
+};
+
 function toDate(value: unknown): Date | null {
   if (value instanceof Timestamp) {
     return value.toDate();
@@ -102,6 +107,9 @@ function mapDocumentSnapshot(id: string, data: DocumentData): UserDocument {
     contentType: data.contentType as UserDocument["contentType"],
     size: Number(data.size ?? 0),
     storagePath: String(data.storagePath ?? ""),
+    caseId: typeof data.caseId === "string" ? data.caseId : null,
+    housingRequestId:
+      typeof data.housingRequestId === "string" ? data.housingRequestId : null,
     certificateId:
       typeof data.certificateId === "string" ? data.certificateId : null,
     certificateNumber:
@@ -210,6 +218,9 @@ function mapPaymentSnapshot(id: string, data: DocumentData): PaymentRecord {
     amountRefunded: data.amountRefunded ?? null,
     customerEmail: data.customerEmail ?? null,
     productFamily: data.productFamily ?? null,
+    caseId: typeof data.caseId === "string" ? data.caseId : null,
+    housingRequestId:
+      typeof data.housingRequestId === "string" ? data.housingRequestId : null,
     paidAt: toDate(data.paidAt),
     failedAt: toDate(data.failedAt),
     refundedAt: toDate(data.refundedAt),
@@ -262,12 +273,37 @@ export function getRequiredDocumentSummaryFromDocuments(
   });
 }
 
+function belongsToDashboardDossier(
+  item: { caseId?: string | null; housingRequestId?: string | null },
+  context?: DashboardDossierContext | null,
+) {
+  if (!context?.caseId && !context?.housingRequestId) return true;
+  return (
+    (Boolean(context.housingRequestId) &&
+      item.housingRequestId === context.housingRequestId) ||
+    (Boolean(context.caseId) && item.caseId === context.caseId)
+  );
+}
+
+export function getLatestPaymentForDashboardDossier(
+  payments: PaymentRecord[],
+  context?: DashboardDossierContext | null,
+) {
+  return (
+    payments
+      .filter((payment) => belongsToDashboardDossier(payment, context))
+      .sort((a, b) => getPaymentTime(b) - getPaymentTime(a))[0] ?? null
+  );
+}
+
 export function getCertificateSummaryFromDocuments(
   documents: UserDocument[],
+  context?: DashboardDossierContext | null,
 ): DashboardCertificateSummary {
   const certificate = documents
     .filter(
       (document) =>
+        belongsToDashboardDossier(document, context) &&
         (document.documentType === "accommodation_certificate" ||
           Boolean(document.certificateNumber)) &&
         ["approved", "validated", "generated"].includes(document.status),
@@ -288,7 +324,10 @@ export function getCertificateSummaryFromDocuments(
   };
 }
 
-export async function getUserDocumentDashboardSummary(uid: string): Promise<{
+export async function getUserDocumentDashboardSummary(
+  uid: string,
+  context?: DashboardDossierContext | null,
+): Promise<{
   documents: ApplicationDocument[];
   certificate: DashboardCertificateSummary;
 }> {
@@ -304,12 +343,13 @@ export async function getUserDocumentDashboardSummary(uid: string): Promise<{
 
   return {
     documents: getRequiredDocumentSummaryFromDocuments(documents),
-    certificate: getCertificateSummaryFromDocuments(documents),
+    certificate: getCertificateSummaryFromDocuments(documents, context),
   };
 }
 
 export async function getLatestPaymentSummary(
   uid: string,
+  context?: DashboardDossierContext | null,
 ): Promise<ApplicationPayment> {
   const db = getFirebaseDb();
   const paymentsQuery = query(
@@ -317,12 +357,12 @@ export async function getLatestPaymentSummary(
     where("ownerId", "==", uid),
   );
   const snapshot = await getDocs(paymentsQuery);
-  const latestPayment =
-    snapshot.docs
-      .map((paymentSnapshot) =>
-        mapPaymentSnapshot(paymentSnapshot.id, paymentSnapshot.data()),
-      )
-      .sort((a, b) => getPaymentTime(b) - getPaymentTime(a))[0] ?? null;
+  const latestPayment = getLatestPaymentForDashboardDossier(
+    snapshot.docs.map((paymentSnapshot) =>
+      mapPaymentSnapshot(paymentSnapshot.id, paymentSnapshot.data()),
+    ),
+    context,
+  );
   const status = mapPaymentStatus(latestPayment?.status);
 
   return {
