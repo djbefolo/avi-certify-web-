@@ -4,6 +4,7 @@ import crypto from "node:crypto";
 import path from "node:path";
 import { PDFDocument } from "pdf-lib";
 import {
+  formatHousingCertificateRent,
   renderHousingCertificateHtml,
   renderHousingCertificatePdfFromHtml,
 } from "@/lib/certificates/certificate-generator";
@@ -234,7 +235,7 @@ function assertRenderedContent(
     snapshot.student.nationality,
     snapshot.housing.addressLine,
     `${snapshot.housing.postalCode} ${snapshot.housing.city}`,
-    `${snapshot.housing.monthlyRent} EUR`,
+    `${formatHousingCertificateRent(snapshot.housing.monthlyRent)} EUR`,
     formatDate(snapshot.student.expectedArrivalDate),
     `${snapshot.student.expectedStayDurationMonths} mois`,
   ];

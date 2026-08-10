@@ -119,6 +119,7 @@ vi.mock("@/lib/server/email.service", () => ({
 }));
 
 import {
+  approveHousingAllocation,
   createOrUpdateHousingRequest,
   evaluateHousingCertificateAfterPayment,
 } from "@/lib/housing/housing-request.service";
@@ -164,6 +165,7 @@ function seedRequest() {
       selectedAt: "2026-08-01T10:00:00.000Z",
       housingInventoryId: "AVI-LOG-FR-0001",
       inventoryVersion: 1,
+      pricing: { monthlyRentForCertificate: 627 },
     },
     paymentSnapshot: {
       paymentId: "payment-1",
@@ -274,6 +276,101 @@ describe("housing payment decision", () => {
     );
   });
 
+  it("uses the client price captured in the new selection snapshot", async () => {
+    const request = mocks.collectionMap("housing_requests").get("request-1") as Record<
+      string,
+      unknown
+    >;
+    const versionedPricing = {
+      currency: "EUR",
+      residenceDisplayedRent: 610,
+      partnerMonthlyRent: 610,
+      discountBasisPoints: 1_000,
+      clientMonthlyRent: 549,
+      monthlyRentForCertificate: 549,
+      priceValidationStatus: "verified",
+    };
+    mocks.collectionMap("housing_requests").set("request-1", {
+      ...request,
+      indicativeMonthlyRent: 549,
+      selectionSnapshot: {
+        ...(request.selectionSnapshot as Record<string, unknown>),
+        pricing: versionedPricing,
+      },
+    });
+    const inventory = mocks.collectionMap("housing_inventory").get(
+      "AVI-LOG-FR-0001",
+    ) as Record<string, unknown>;
+    mocks.collectionMap("housing_inventory").set("AVI-LOG-FR-0001", {
+      ...inventory,
+      pricing: versionedPricing,
+    });
+
+    await evaluateHousingCertificateAfterPayment({
+      requestId: "request-1",
+      paymentId: "payment-1",
+      stripeEventId: "evt-versioned",
+      paidAt: "2026-08-03T10:00:00.000Z",
+    });
+
+    expect(
+      (
+        mocks.collectionMap("housing_requests").get("request-1")
+          ?.certificateSnapshot as { housing: { monthlyRent: number } }
+      ).housing.monthlyRent,
+    ).toBe(549);
+    expect(
+      (
+        mocks.collectionMap("housing_requests").get("request-1")
+          ?.allocation as { monthlyRent: number }
+      ).monthlyRent,
+    ).toBe(549);
+  });
+
+  it("does not retroactively discount a legacy selection snapshot", async () => {
+    const request = mocks.collectionMap("housing_requests").get("request-1") as Record<
+      string,
+      unknown
+    >;
+    mocks.collectionMap("housing_requests").set("request-1", {
+      ...request,
+      indicativeMonthlyRent: 610,
+      selectionSnapshot: {
+        ...(request.selectionSnapshot as Record<string, unknown>),
+        pricing: { monthlyRentForCertificate: 610 },
+      },
+    });
+    const inventory = mocks.collectionMap("housing_inventory").get(
+      "AVI-LOG-FR-0001",
+    ) as Record<string, unknown>;
+    mocks.collectionMap("housing_inventory").set("AVI-LOG-FR-0001", {
+      ...inventory,
+      pricing: {
+        currency: "EUR",
+        residenceDisplayedRent: 610,
+        partnerMonthlyRent: 610,
+        discountBasisPoints: 1_000,
+        clientMonthlyRent: 549,
+        monthlyRentForCertificate: 549,
+        priceValidationStatus: "verified",
+      },
+    });
+
+    await evaluateHousingCertificateAfterPayment({
+      requestId: "request-1",
+      paymentId: "payment-1",
+      stripeEventId: "evt-legacy",
+      paidAt: "2026-08-03T10:00:00.000Z",
+    });
+
+    expect(
+      (
+        mocks.collectionMap("housing_requests").get("request-1")
+          ?.certificateSnapshot as { housing: { monthlyRent: number } }
+      ).housing.monthlyRent,
+    ).toBe(610);
+  });
+
   it("routes to admin review and sends the review email once when the kill switch is off", async () => {
     process.env.HOUSING_AUTO_ISSUANCE_ENABLED = "false";
     const input = {
@@ -351,7 +448,7 @@ describe("housing payment decision", () => {
       },
     });
 
-    expect(request.indicativeMonthlyRent).toBe(627);
+    expect(request.indicativeMonthlyRent).toBe(564.3);
     expect(request).toMatchObject({
       nationality: "Sénégalaise",
       nationalityReference: {
@@ -382,7 +479,13 @@ describe("housing payment decision", () => {
       inventorySource: "bootstrap",
       manualReviewRequired: true,
       housingInventoryId: "AVI-LOG-FR-0001",
-      pricing: { residenceDisplayedRent: 627 },
+      pricing: {
+        residenceDisplayedRent: 627,
+        partnerMonthlyRent: 627,
+        discountBasisPoints: 1_000,
+        clientMonthlyRent: 564.3,
+        monthlyRentForCertificate: 564.3,
+      },
     });
 
     mocks.collectionMap("housing_requests").set(request.id, {
@@ -412,5 +515,66 @@ describe("housing payment decision", () => {
     expect(mocks.collectionMap("housing_requests").get(request.id)?.status).toBe(
       "requires_admin_review",
     );
+  });
+
+  it("requires and audits a reason when an admin overrides the snapshot price", async () => {
+    const current = mocks.collectionMap("housing_requests").get("request-1") as Record<
+      string,
+      unknown
+    >;
+    mocks.collectionMap("housing_requests").set("request-1", {
+      ...current,
+      status: "requires_admin_review",
+    });
+    const input = {
+      inventoryReference: "AVI-LOG-FR-0001",
+      partnerName: "SafeHouse",
+      residenceName: "Aix Campus 1",
+      addressLine: "6 rue Jean Andreani",
+      postalCode: "13090",
+      city: "Aix-en-Provence",
+      accommodationType: "studio" as const,
+      monthlyRent: 600,
+      currency: "EUR" as const,
+      confirmedAt: "2026-08-01",
+      confirmationReference: "partner-confirmation-override",
+      validUntil: "2026-09-01",
+      allocationReason: "Disponibilite partenaire confirmee.",
+      pricingOverrideReason: "Tarif contractuel special confirme par le partenaire.",
+    };
+
+    await expect(
+      approveHousingAllocation({
+        requestId: "request-1",
+        input: { ...input, pricingOverrideReason: "" },
+        actor: { uid: "admin-1", role: "super_admin", authProvider: "firebase" },
+      }),
+    ).rejects.toThrow("HOUSING_PRICING_OVERRIDE_REASON_REQUIRED");
+
+    const result = await approveHousingAllocation({
+      requestId: "request-1",
+      input,
+      actor: { uid: "admin-1", role: "super_admin", authProvider: "firebase" },
+    });
+
+    expect(result.allocation).toMatchObject({
+      monthlyRent: 600,
+      pricingOverride: {
+        expectedMonthlyRent: 627,
+        actualMonthlyRent: 600,
+        reason: input.pricingOverrideReason,
+      },
+    });
+    expect(
+      [...mocks.collectionMap("admin_case_events").values()][0],
+    ).toMatchObject({
+      eventType: "housing_allocation_confirmed",
+      eventPayload: {
+        pricingOverride: {
+          expectedMonthlyRent: 627,
+          actualMonthlyRent: 600,
+        },
+      },
+    });
   });
 });

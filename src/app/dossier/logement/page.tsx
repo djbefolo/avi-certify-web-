@@ -129,6 +129,13 @@ type FieldErrors = Partial<Record<keyof HousingForm | "inventory", string>>;
 
 const SERVICE_FEE_EUR = 99;
 const today = new Date().toISOString().slice(0, 10);
+function formatMonthlyRent(value: number) {
+  const hasCentimes = Math.round(value * 100) % 100 !== 0;
+  return new Intl.NumberFormat("fr-FR", {
+    minimumFractionDigits: hasCentimes ? 2 : 0,
+    maximumFractionDigits: hasCentimes ? 2 : 0,
+  }).format(value);
+}
 const countryComboboxOptions = countryOptions.map((country) => ({
   value: country.codeAlpha2,
   label: country.label,
@@ -287,6 +294,8 @@ export default function HousingRequestPage() {
     () => residences.find((item) => item.id === form.housingInventoryId) ?? null,
     [form.housingInventoryId, residences],
   );
+  const displayedMonthlyRent =
+    selectedResidence?.indicativeMonthlyRent ?? housingRequest?.indicativeMonthlyRent ?? null;
   const cityComboboxOptions = useMemo(
     () =>
       cities.map((city) => ({
@@ -294,7 +303,7 @@ export default function HousingRequestPage() {
         label: city.label,
         description: `${city.residenceCount} résidence${city.residenceCount > 1 ? "s" : ""}${
           city.minimumDisplayedRent
-            ? ` · à partir de ${city.minimumDisplayedRent} EUR/mois`
+            ? ` · à partir de ${formatMonthlyRent(city.minimumDisplayedRent)} EUR/mois`
             : ""
         }`,
       })),
@@ -1058,7 +1067,9 @@ export default function HousingRequestPage() {
                         {residences.map((residence) => (
                           <option key={residence.id} value={residence.id}>
                             {residence.residenceName} · {residence.municipality}
-                            {residence.monthlyRent ? ` · ${residence.monthlyRent} EUR/mois` : ""}
+                            {residence.monthlyRent
+                              ? ` · ${formatMonthlyRent(residence.monthlyRent)} EUR/mois`
+                              : ""}
                           </option>
                         ))}
                       </Select>
@@ -1101,7 +1112,7 @@ export default function HousingRequestPage() {
                         <p className="text-muted-foreground">Loyer indicatif</p>
                         <p className="mt-1 text-xl font-semibold">
                           {selectedResidence.monthlyRent
-                            ? `${selectedResidence.monthlyRent} EUR/mois`
+                            ? `${formatMonthlyRent(selectedResidence.monthlyRent)} EUR/mois`
                             : "À confirmer"}
                         </p>
                         <p className="mt-2 text-xs leading-5 text-muted-foreground">{selectedResidence.availabilityLabel}</p>
@@ -1172,8 +1183,8 @@ export default function HousingRequestPage() {
                         <p className="mt-1 text-muted-foreground">Information indicative, non encaissée lors de ce paiement.</p>
                       </div>
                       <p className="whitespace-nowrap font-semibold">
-                        {selectedResidence?.indicativeMonthlyRent ?? housingRequest?.indicativeMonthlyRent
-                          ? `${selectedResidence?.indicativeMonthlyRent ?? housingRequest?.indicativeMonthlyRent} EUR/mois`
+                        {displayedMonthlyRent
+                          ? `${formatMonthlyRent(displayedMonthlyRent)} EUR/mois`
                           : "À confirmer"}
                       </p>
                     </div>

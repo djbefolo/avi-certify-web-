@@ -9,6 +9,11 @@ import {
   type HousingBootstrapResidence,
 } from "@/data/housing-inventory.bootstrap";
 import { getAdminFirestore } from "@/lib/firebase/admin";
+import {
+  buildHousingClientPricing,
+  resolveHousingPartnerRent,
+  resolveHousingSnapshotRent,
+} from "@/lib/housing/housing-pricing";
 import type { AdminActor } from "@/lib/admin/admin-auth";
 import type { HousingInventoryGovernanceInput } from "@/lib/validations/housing";
 import type {
@@ -120,7 +125,7 @@ function mapBootstrapHousingInventoryItem(
   const partnerName =
     residence.partner.commercialName || residence.partner.operatorName;
 
-  return mapHousingInventoryItem(residence.id, {
+  return applyConfiguredHousingDiscount(mapHousingInventoryItem(residence.id, {
     ...residence,
     partner: {
       displayName: partnerName,
@@ -148,7 +153,7 @@ function mapBootstrapHousingInventoryItem(
     version: 1,
     createdAt: HOUSING_INVENTORY.generatedAt,
     updatedAt: HOUSING_INVENTORY.generatedAt,
-  });
+  }));
 }
 
 function listBootstrapHousingInventory(cityCode?: string | null) {
@@ -238,6 +243,15 @@ export function mapHousingInventoryItem(
       ...(typeof pricing.monthlyRentForCertificate === "number"
         ? { monthlyRentForCertificate: pricing.monthlyRentForCertificate }
         : {}),
+      ...(typeof pricing.partnerMonthlyRent === "number"
+        ? { partnerMonthlyRent: pricing.partnerMonthlyRent }
+        : {}),
+      ...(typeof pricing.discountBasisPoints === "number"
+        ? { discountBasisPoints: pricing.discountBasisPoints }
+        : {}),
+      ...(typeof pricing.clientMonthlyRent === "number"
+        ? { clientMonthlyRent: pricing.clientMonthlyRent }
+        : {}),
       ...(typeof pricing.serviceFee === "number" ? { serviceFee: pricing.serviceFee } : {}),
       priceValidationStatus:
         pricing.priceValidationStatus === "verified" ||
@@ -312,6 +326,23 @@ export function mapHousingInventoryItem(
   };
 }
 
+function applyConfiguredHousingDiscount(
+  inventory: HousingInventoryItem,
+): HousingInventoryItem {
+  const partnerMonthlyRent = resolveHousingPartnerRent(inventory.pricing);
+  if (partnerMonthlyRent === null) {
+    throw new Error("HOUSING_PARTNER_RENT_MISSING");
+  }
+
+  return {
+    ...inventory,
+    pricing: {
+      ...inventory.pricing,
+      ...buildHousingClientPricing(partnerMonthlyRent),
+    },
+  };
+}
+
 export async function getHousingInventoryItemById(id: string) {
   const snapshot = await getAdminFirestore().collection(INVENTORY_COLLECTION).doc(id).get();
   return snapshot.exists
@@ -341,9 +372,9 @@ async function resolveHousingInventory(
     if (firestoreItems.length > 0) {
       return {
         source: "firestore",
-        data: firestoreItems.filter(
-          (item) => !cityCode || item.cityCode === cityCode,
-        ),
+        data: firestoreItems
+          .filter((item) => !cityCode || item.cityCode === cityCode)
+          .map(applyConfiguredHousingDiscount),
       };
     }
   } catch (error) {
@@ -395,9 +426,11 @@ export async function getHousingResidenceById(
       if (snapshot.exists) {
         return {
           source: "firestore",
-          data: mapHousingInventoryItem(
-            snapshot.id,
-            snapshot.data() as Record<string, unknown>,
+          data: applyConfiguredHousingDiscount(
+            mapHousingInventoryItem(
+              snapshot.id,
+              snapshot.data() as Record<string, unknown>,
+            ),
           ),
         };
       }
@@ -443,10 +476,9 @@ export async function listAvailableHousingCities(): Promise<
   >();
   for (const item of result.data.filter(isPubliclySelectable)) {
     const current = cities.get(item.cityCode);
-    const displayedRent =
-      item.pricing.residenceDisplayedRent ?? item.pricing.cityIndicativePrice;
+    const displayedRent = resolveHousingSnapshotRent(item.pricing);
     const minimumRent =
-      displayedRent === undefined
+      displayedRent === null
         ? current?.minimumDisplayedRent ?? null
         : current?.minimumDisplayedRent === null ||
             current?.minimumDisplayedRent === undefined

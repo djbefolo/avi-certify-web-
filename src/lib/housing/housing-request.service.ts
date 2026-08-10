@@ -8,6 +8,10 @@ import {
 } from "@/lib/housing/housing-inventory.service";
 import { evaluateHousingAutoIssuance } from "@/lib/housing/housing-auto-issuance-policy.service";
 import {
+  resolveHousingSnapshotRent,
+  sameHousingMoneyAmount,
+} from "@/lib/housing/housing-pricing";
+import {
   sendHousingAdminReviewRequiredEmail,
   sendHousingReviewRequiredEmail,
 } from "@/lib/server/email.service";
@@ -230,6 +234,10 @@ export async function createOrUpdateHousingRequest({
     accommodationType: input.accommodationType,
     selectedAt: timestamp,
   });
+  const clientMonthlyRent = resolveHousingSnapshotRent(selectionSnapshot.pricing);
+  if (clientMonthlyRent === null) {
+    throw new Error("HOUSING_CLIENT_RENT_MISSING");
+  }
   const request: HousingRequest = {
     id: requestRef.id,
     ownerId,
@@ -261,10 +269,7 @@ export async function createOrUpdateHousingRequest({
     expectedArrivalDate: input.expectedArrivalDate,
     expectedStayDurationMonths: input.expectedStayDurationMonths,
     accommodationType: input.accommodationType,
-    indicativeMonthlyRent:
-      inventory.pricing.residenceDisplayedRent ??
-      inventory.pricing.cityIndicativePrice ??
-      0,
+    indicativeMonthlyRent: clientMonthlyRent,
     currency: "EUR",
     specialNeeds: input.specialNeeds || null,
     notes: input.notes || null,
@@ -477,7 +482,12 @@ function buildAutomaticAllocation({
   inventory: ReturnType<typeof mapHousingInventoryItem>;
   timestamp: string;
 }): HousingAllocation {
-  const monthlyRent = inventory.pricing.monthlyRentForCertificate;
+  const pricing =
+    request.selectionSnapshot?.housingInventoryId === inventory.id &&
+    request.selectionSnapshot.pricing
+      ? request.selectionSnapshot.pricing
+      : inventory.pricing;
+  const monthlyRent = resolveHousingSnapshotRent(pricing);
   const validUntil = inventory.autoIssuance.validUntil;
   if (!monthlyRent || !validUntil) {
     throw new Error("HOUSING_AUTO_ALLOCATION_DATA_MISSING");
@@ -1114,12 +1124,36 @@ export async function approveHousingAllocation({
     throw new Error("HOUSING_PAYMENT_NOT_CONFIRMED");
   }
 
+  const expectedMonthlyRent =
+    resolveHousingSnapshotRent(
+      request.selectionSnapshot?.pricing ?? {
+        monthlyRentForCertificate: request.indicativeMonthlyRent,
+      },
+    ) ?? request.indicativeMonthlyRent;
+  const pricingOverridden = !sameHousingMoneyAmount(
+    input.monthlyRent,
+    expectedMonthlyRent,
+  );
+  if (pricingOverridden && !input.pricingOverrideReason) {
+    throw new Error("HOUSING_PRICING_OVERRIDE_REASON_REQUIRED");
+  }
+
   const timestamp = now();
+  const { pricingOverrideReason, ...allocationInput } = input;
   const allocation = {
-    ...input,
+    ...allocationInput,
     allocationVersion: (request.allocation?.allocationVersion ?? 0) + 1,
     approvedBy: actor.uid,
     approvedAt: timestamp,
+    ...(pricingOverridden
+      ? {
+          pricingOverride: {
+            expectedMonthlyRent,
+            actualMonthlyRent: input.monthlyRent,
+            reason: pricingOverrideReason as string,
+          },
+        }
+      : {}),
   };
   const adminApprovalSnapshot = {
     approvedAt: timestamp,
@@ -1185,6 +1219,7 @@ export async function approveHousingAllocation({
       confirmationReference: input.confirmationReference,
       allocationVersion: allocation.allocationVersion,
       generationJobId: job.id,
+      pricingOverride: allocation.pricingOverride ?? null,
     },
     createdAt: timestamp,
   });

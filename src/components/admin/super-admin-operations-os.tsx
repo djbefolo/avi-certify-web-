@@ -105,6 +105,7 @@ type HousingAllocationForm = {
   confirmationReference: string;
   validUntil: string;
   allocationReason: string;
+  pricingOverrideReason: string;
 };
 
 type FinanceSection = "simulateur" | "simulations" | "devis" | "rapports";
@@ -1766,6 +1767,11 @@ function HousingRequestSummary({
 }) {
   const validUntil = new Date();
   validUntil.setDate(validUntil.getDate() + 30);
+  const expectedMonthlyRent =
+    request?.selectionSnapshot?.pricing.clientMonthlyRent ??
+    request?.selectionSnapshot?.pricing.monthlyRentForCertificate ??
+    request?.indicativeMonthlyRent ??
+    0;
   const [form, setForm] = useState<HousingAllocationForm>(() => ({
     inventoryReference: request?.selectionSnapshot?.internalReference ?? "",
     partnerName: request?.selectionSnapshot?.partnerName ?? "",
@@ -1774,16 +1780,15 @@ function HousingRequestSummary({
     postalCode: request?.selectionSnapshot?.address.postalCode ?? "",
     city: request?.selectionSnapshot?.address.city ?? request?.preferredCity ?? "",
     accommodationType: request?.accommodationType ?? "studio",
-    monthlyRent:
-      request?.selectionSnapshot?.pricing.monthlyRentForCertificate ??
-      request?.indicativeMonthlyRent ??
-      0,
+    monthlyRent: expectedMonthlyRent,
     currency: "EUR",
     confirmedAt: todayInputValue(),
     confirmationReference: "",
     validUntil: validUntil.toISOString().slice(0, 10),
     allocationReason: "Disponibilite confirmee par le partenaire pour emission conditionnelle.",
+    pricingOverrideReason: "",
   }));
+  const pricingOverridden = form.monthlyRent !== expectedMonthlyRent;
   const canApprove = Boolean(
     request &&
       request.paymentId &&
@@ -1906,6 +1911,7 @@ function HousingRequestSummary({
             <Input
               type="number"
               min="1"
+              step="0.01"
               required
               value={form.monthlyRent}
               onChange={(event) =>
@@ -1916,6 +1922,22 @@ function HousingRequestSummary({
               }
             />
           </label>
+          {pricingOverridden ? (
+            <label className="grid gap-1 text-sm font-medium text-amber-900 md:col-span-2">
+              Motif obligatoire de modification du loyer
+              <Textarea
+                required
+                maxLength={500}
+                value={form.pricingOverrideReason}
+                onChange={(event) =>
+                  setForm((current) => ({
+                    ...current,
+                    pricingOverrideReason: event.target.value,
+                  }))
+                }
+              />
+            </label>
+          ) : null}
           <label className="grid gap-1 text-sm font-medium text-slate-700">
             Confirmation partenaire
             <Input

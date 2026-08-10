@@ -99,6 +99,9 @@ describe("housing inventory source resolution", () => {
 
     expect(cities.source).toBe("bootstrap");
     expect(cities.data).toHaveLength(21);
+    expect(cities.data.find((city) => city.code === "AIX_EN_PROVENCE")).toMatchObject({
+      minimumDisplayedRent: 523.8,
+    });
     expect(residences.source).toBe("bootstrap");
     expect(residences.data).toHaveLength(3);
     expect(residences.data[0].autoIssuance).toMatchObject({
@@ -125,7 +128,38 @@ describe("housing inventory source resolution", () => {
 
     expect(cities.source).toBe("firestore");
     expect(cities.data.map((item) => item.code)).toEqual(["TEST_CITY"]);
+    expect(cities.data[0].minimumDisplayedRent).toBe(630);
     expect(missingBootstrapItem).toEqual({ source: "firestore", data: null });
+  });
+
+  it("derives the client rent from the Firestore partner price in memory", async () => {
+    mocks.documents.set("firestore-1", {
+      ...firestoreInventoryItem(),
+      pricing: {
+        currency: "EUR",
+        monthlyRentForCertificate: 610,
+        priceValidationStatus: "verified",
+      },
+    });
+
+    const result = await getHousingResidenceById("firestore-1");
+
+    expect(result).toMatchObject({
+      source: "firestore",
+      data: {
+        pricing: {
+          partnerMonthlyRent: 610,
+          discountBasisPoints: 1_000,
+          clientMonthlyRent: 549,
+          monthlyRentForCertificate: 549,
+        },
+      },
+    });
+    expect(mocks.documents.get("firestore-1")?.pricing).toEqual({
+      currency: "EUR",
+      monthlyRentForCertificate: 610,
+      priceValidationStatus: "verified",
+    });
   });
 
   it("resolves a bootstrap residence with a forced manual-review policy", async () => {
@@ -134,7 +168,13 @@ describe("housing inventory source resolution", () => {
     expect(result.source).toBe("bootstrap");
     expect(result.data).toMatchObject({
       id: "AVI-LOG-FR-0001",
-      pricing: { residenceDisplayedRent: 627 },
+      pricing: {
+        residenceDisplayedRent: 627,
+        partnerMonthlyRent: 627,
+        discountBasisPoints: 1_000,
+        clientMonthlyRent: 564.3,
+        monthlyRentForCertificate: 564.3,
+      },
       autoIssuance: {
         enabled: false,
         eligibilityStatus: "manual_review_only",

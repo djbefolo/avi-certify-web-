@@ -106,4 +106,17 @@ describe("housing automatic issuance policy", () => {
       ]),
     );
   });
+
+  it("fails closed when the client price is absent", () => {
+    const item = inventory({
+      pricing: {
+        currency: "EUR",
+        priceValidationStatus: "verified",
+      },
+    });
+
+    const decision = evaluateHousingAutoIssuance({ ...baseInput, inventory: item });
+    expect(decision.priceVerified).toBe(false);
+    expect(decision.reasons).toContain("PRICE_NOT_VERIFIED");
+  });
 });

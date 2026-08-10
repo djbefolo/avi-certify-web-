@@ -94,6 +94,9 @@ export type HousingInventoryItem = {
     cityIndicativePrice?: number;
     residenceDisplayedRent?: number;
     monthlyRentForCertificate?: number;
+    partnerMonthlyRent?: number;
+    discountBasisPoints?: number;
+    clientMonthlyRent?: number;
     serviceFee?: number;
     priceValidationStatus: "unverified" | "verified" | "requires_admin_review";
   };
@@ -237,6 +240,11 @@ export type HousingAllocation = {
   allocationVersion: number;
   approvedBy: string;
   approvedAt: string;
+  pricingOverride?: {
+    expectedMonthlyRent: number;
+    actualMonthlyRent: number;
+    reason: string;
+  };
 };
 
 export type HousingRequest = {

@@ -39,6 +39,10 @@ function validDate(value: string) {
   );
 }
 
+function hasCentPrecision(value: number) {
+  return Math.abs(value * 100 - Math.round(value * 100)) <= 1e-7;
+}
+
 function isFutureOrToday(value: string) {
   const date = new Date(`${value}T00:00:00.000Z`);
   const today = new Date();
@@ -123,12 +127,17 @@ export const housingAllocationInputSchema = z
     postalCode: z.string().trim().regex(/^\d{5}$/, "Le code postal est invalide."),
     city: cleanText("La ville", 100),
     accommodationType: z.enum(["studio", "t1_bis", "t2", "shared", "other"]),
-    monthlyRent: z.coerce.number().positive().max(10_000),
+    monthlyRent: z.coerce
+      .number()
+      .positive()
+      .max(10_000)
+      .refine(hasCentPrecision, "Le loyer ne peut pas depasser deux decimales."),
     currency: z.literal("EUR"),
     confirmedAt: z.string().refine(validDate, "La date de confirmation est invalide."),
     confirmationReference: cleanText("La preuve de confirmation", 160),
     validUntil: z.string().refine(validDate, "La date de validite est invalide."),
     allocationReason: cleanText("Le motif d'attribution", 500),
+    pricingOverrideReason: optionalText("Le motif de modification du loyer", 500),
   })
   .strict()
   .superRefine((value, context) => {
@@ -173,7 +182,12 @@ export const housingInventoryGovernanceInputSchema = z
     priceValidationStatus: z
       .enum(["unverified", "verified", "requires_admin_review"])
       .optional(),
-    monthlyRentForCertificate: z.number().positive().max(10_000).optional(),
+    monthlyRentForCertificate: z
+      .number()
+      .positive()
+      .max(10_000)
+      .refine(hasCentPrecision, "Le loyer ne peut pas depasser deux decimales.")
+      .optional(),
     autoIssuanceEnabled: z.boolean().optional(),
     eligibilityStatus: z
       .enum(["eligible", "manual_review_only", "suspended", "expired"])
