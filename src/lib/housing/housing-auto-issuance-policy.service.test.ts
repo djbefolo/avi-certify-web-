@@ -107,16 +107,10 @@ describe("housing automatic issuance policy", () => {
     );
   });
 
-  it("fails closed when versioned pricing is internally inconsistent", () => {
+  it("fails closed when the client price is absent", () => {
     const item = inventory({
       pricing: {
         currency: "EUR",
-        residenceDisplayedRent: 610,
-        partnerMonthlyRent: 610,
-        discountBasisPoints: 1_000,
-        clientMonthlyRent: 610,
-        monthlyRentForCertificate: 549,
-        pricingVersion: "partner-discount-v1",
         priceValidationStatus: "verified",
       },
     });

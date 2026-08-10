@@ -1,55 +1,50 @@
 import { describe, expect, it } from "vitest";
 import {
   HOUSING_PARTNER_DISCOUNT_BASIS_POINTS,
-  buildPartnerDiscountHousingPricing,
-  calculateDiscountedHousingRentCents,
-  resolveHousingClientPricing,
+  buildHousingClientPricing,
+  resolveHousingClientRent,
+  resolveHousingSnapshotRent,
 } from "@/lib/housing/housing-pricing";
 
 describe("housing partner discount pricing", () => {
   it.each([
-    [610, 549],
-    [575, 517.5],
-  ])("applies the 10 percent discount to %s EUR", (partner, client) => {
-    expect(buildPartnerDiscountHousingPricing(partner)).toMatchObject({
-      partnerMonthlyRent: partner,
+    [610, 500, 579.5],
+    [610, 1_000, 549],
+    [610, 1_500, 518.5],
+    [575, 1_000, 517.5],
+  ])(
+    "applies %s EUR with %s basis points as %s EUR",
+    (partner, discountBasisPoints, client) => {
+      expect(resolveHousingClientRent(partner, discountBasisPoints)).toBe(client);
+    },
+  );
+
+  it("uses the single configured discount when building new pricing", () => {
+    expect(HOUSING_PARTNER_DISCOUNT_BASIS_POINTS).toBe(1_000);
+    expect(buildHousingClientPricing(610)).toEqual({
+      partnerMonthlyRent: 610,
       discountBasisPoints: 1_000,
-      clientMonthlyRent: client,
-      monthlyRentForCertificate: client,
-      pricingVersion: "partner-discount-v1",
+      clientMonthlyRent: 549,
+      monthlyRentForCertificate: 549,
     });
   });
 
-  it("rounds a fractional cent half-up deterministically", () => {
+  it("keeps a historical snapshot unchanged", () => {
     expect(
-      calculateDiscountedHousingRentCents({
-        partnerRentCents: 57_555,
-        discountBasisPoints: HOUSING_PARTNER_DISCOUNT_BASIS_POINTS,
-      }),
-    ).toBe(51_800);
-  });
-
-  it("keeps legacy pricing unchanged when no pricing version is present", () => {
-    expect(
-      resolveHousingClientPricing({
+      resolveHousingSnapshotRent({
         monthlyRentForCertificate: 610,
-        residenceDisplayedRent: 610,
       }),
-    ).toEqual({
-      mode: "legacy",
-      partnerMonthlyRent: null,
-      discountBasisPoints: null,
-      clientMonthlyRent: 610,
-      pricingVersion: null,
-    });
+    ).toBe(610);
   });
 
-  it("fails closed when versioned pricing fields disagree", () => {
-    expect(() =>
-      resolveHousingClientPricing({
-        ...buildPartnerDiscountHousingPricing(610),
-        clientMonthlyRent: 610,
+  it("reads the frozen client rent from a new snapshot without recalculating it", () => {
+    expect(
+      resolveHousingSnapshotRent({
+        partnerMonthlyRent: 610,
+        discountBasisPoints: 1_000,
+        clientMonthlyRent: 549,
+        monthlyRentForCertificate: 549,
       }),
-    ).toThrow("HOUSING_PRICING_VALUES_INCONSISTENT");
+    ).toBe(549);
   });
 });

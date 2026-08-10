@@ -97,7 +97,6 @@ export type HousingInventoryItem = {
     partnerMonthlyRent?: number;
     discountBasisPoints?: number;
     clientMonthlyRent?: number;
-    pricingVersion?: string;
     serviceFee?: number;
     priceValidationStatus: "unverified" | "verified" | "requires_admin_review";
   };

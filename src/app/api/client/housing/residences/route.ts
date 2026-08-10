@@ -4,7 +4,7 @@ import {
   requireVerifiedHousingClient,
 } from "@/app/api/client/housing/_auth";
 import { listAvailableHousingResidences } from "@/lib/housing/housing-inventory.service";
-import { resolveHousingClientPricing } from "@/lib/housing/housing-pricing";
+import { resolveHousingSnapshotRent } from "@/lib/housing/housing-pricing";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     }
     const residences = result.data.map((item) => {
       const clientMonthlyRent =
-        resolveHousingClientPricing(item.pricing)?.clientMonthlyRent ?? null;
+        resolveHousingSnapshotRent(item.pricing);
       return {
       id: item.id,
       internalReference: item.internalReference,

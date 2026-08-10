@@ -1,7 +1,6 @@
 import path from "node:path";
 import process from "node:process";
 import ExcelJS from "exceljs";
-import { buildImportedHousingPricing } from "../src/lib/housing/housing-pricing-import.ts";
 
 const DEFAULT_WORKBOOK = path.resolve(
   "data/imports/housing/AVI_CERTIFY_housing_inventory_2026-08-03.xlsx",
@@ -250,11 +249,17 @@ async function applyImport(items, workbookPath) {
     const existing = existingSnapshot.exists ? existingSnapshot.data() : null;
     if (existingSnapshot.exists) updated += 1;
     else created += 1;
-    const pricing = buildImportedHousingPricing({
-      inventoryId: item.id,
-      sourcePricing: item.sourcePricing,
-      existingPricing: existing?.pricing,
-    });
+    const pricing = {
+      currency: "EUR",
+      ...item.sourcePricing,
+      priceValidationStatus: existing?.pricing?.priceValidationStatus ?? "unverified",
+      ...(existing?.pricing?.monthlyRentForCertificate
+        ? { monthlyRentForCertificate: existing.pricing.monthlyRentForCertificate }
+        : {}),
+      ...(existing?.pricing?.serviceFee
+        ? { serviceFee: existing.pricing.serviceFee }
+        : {}),
+    };
     const source = {
       ...item.source,
       lastCheckedAt: item.source.lastCheckedAt

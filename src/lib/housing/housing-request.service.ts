@@ -8,7 +8,7 @@ import {
 } from "@/lib/housing/housing-inventory.service";
 import { evaluateHousingAutoIssuance } from "@/lib/housing/housing-auto-issuance-policy.service";
 import {
-  resolveHousingClientPricing,
+  resolveHousingSnapshotRent,
   sameHousingMoneyAmount,
 } from "@/lib/housing/housing-pricing";
 import {
@@ -234,8 +234,8 @@ export async function createOrUpdateHousingRequest({
     accommodationType: input.accommodationType,
     selectedAt: timestamp,
   });
-  const clientPricing = resolveHousingClientPricing(selectionSnapshot.pricing);
-  if (!clientPricing) {
+  const clientMonthlyRent = resolveHousingSnapshotRent(selectionSnapshot.pricing);
+  if (clientMonthlyRent === null) {
     throw new Error("HOUSING_CLIENT_RENT_MISSING");
   }
   const request: HousingRequest = {
@@ -269,7 +269,7 @@ export async function createOrUpdateHousingRequest({
     expectedArrivalDate: input.expectedArrivalDate,
     expectedStayDurationMonths: input.expectedStayDurationMonths,
     accommodationType: input.accommodationType,
-    indicativeMonthlyRent: clientPricing.clientMonthlyRent,
+    indicativeMonthlyRent: clientMonthlyRent,
     currency: "EUR",
     specialNeeds: input.specialNeeds || null,
     notes: input.notes || null,
@@ -487,7 +487,7 @@ function buildAutomaticAllocation({
     request.selectionSnapshot.pricing
       ? request.selectionSnapshot.pricing
       : inventory.pricing;
-  const monthlyRent = resolveHousingClientPricing(pricing)?.clientMonthlyRent;
+  const monthlyRent = resolveHousingSnapshotRent(pricing);
   const validUntil = inventory.autoIssuance.validUntil;
   if (!monthlyRent || !validUntil) {
     throw new Error("HOUSING_AUTO_ALLOCATION_DATA_MISSING");
@@ -1125,11 +1125,11 @@ export async function approveHousingAllocation({
   }
 
   const expectedMonthlyRent =
-    resolveHousingClientPricing(
+    resolveHousingSnapshotRent(
       request.selectionSnapshot?.pricing ?? {
         monthlyRentForCertificate: request.indicativeMonthlyRent,
       },
-    )?.clientMonthlyRent ?? request.indicativeMonthlyRent;
+    ) ?? request.indicativeMonthlyRent;
   const pricingOverridden = !sameHousingMoneyAmount(
     input.monthlyRent,
     expectedMonthlyRent,

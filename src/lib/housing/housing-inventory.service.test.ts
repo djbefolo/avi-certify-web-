@@ -128,7 +128,38 @@ describe("housing inventory source resolution", () => {
 
     expect(cities.source).toBe("firestore");
     expect(cities.data.map((item) => item.code)).toEqual(["TEST_CITY"]);
+    expect(cities.data[0].minimumDisplayedRent).toBe(630);
     expect(missingBootstrapItem).toEqual({ source: "firestore", data: null });
+  });
+
+  it("derives the client rent from the Firestore partner price in memory", async () => {
+    mocks.documents.set("firestore-1", {
+      ...firestoreInventoryItem(),
+      pricing: {
+        currency: "EUR",
+        monthlyRentForCertificate: 610,
+        priceValidationStatus: "verified",
+      },
+    });
+
+    const result = await getHousingResidenceById("firestore-1");
+
+    expect(result).toMatchObject({
+      source: "firestore",
+      data: {
+        pricing: {
+          partnerMonthlyRent: 610,
+          discountBasisPoints: 1_000,
+          clientMonthlyRent: 549,
+          monthlyRentForCertificate: 549,
+        },
+      },
+    });
+    expect(mocks.documents.get("firestore-1")?.pricing).toEqual({
+      currency: "EUR",
+      monthlyRentForCertificate: 610,
+      priceValidationStatus: "verified",
+    });
   });
 
   it("resolves a bootstrap residence with a forced manual-review policy", async () => {
@@ -143,7 +174,6 @@ describe("housing inventory source resolution", () => {
         discountBasisPoints: 1_000,
         clientMonthlyRent: 564.3,
         monthlyRentForCertificate: 564.3,
-        pricingVersion: "partner-discount-v1",
       },
       autoIssuance: {
         enabled: false,

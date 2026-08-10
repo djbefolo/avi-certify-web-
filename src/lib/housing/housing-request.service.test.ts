@@ -276,7 +276,7 @@ describe("housing payment decision", () => {
     );
   });
 
-  it("uses the versioned client price captured in the selection snapshot", async () => {
+  it("uses the client price captured in the new selection snapshot", async () => {
     const request = mocks.collectionMap("housing_requests").get("request-1") as Record<
       string,
       unknown
@@ -288,7 +288,6 @@ describe("housing payment decision", () => {
       discountBasisPoints: 1_000,
       clientMonthlyRent: 549,
       monthlyRentForCertificate: 549,
-      pricingVersion: "partner-discount-v1",
       priceValidationStatus: "verified",
     };
     mocks.collectionMap("housing_requests").set("request-1", {
@@ -320,6 +319,12 @@ describe("housing payment decision", () => {
           ?.certificateSnapshot as { housing: { monthlyRent: number } }
       ).housing.monthlyRent,
     ).toBe(549);
+    expect(
+      (
+        mocks.collectionMap("housing_requests").get("request-1")
+          ?.allocation as { monthlyRent: number }
+      ).monthlyRent,
+    ).toBe(549);
   });
 
   it("does not retroactively discount a legacy selection snapshot", async () => {
@@ -347,7 +352,6 @@ describe("housing payment decision", () => {
         discountBasisPoints: 1_000,
         clientMonthlyRent: 549,
         monthlyRentForCertificate: 549,
-        pricingVersion: "partner-discount-v1",
         priceValidationStatus: "verified",
       },
     });
@@ -481,7 +485,6 @@ describe("housing payment decision", () => {
         discountBasisPoints: 1_000,
         clientMonthlyRent: 564.3,
         monthlyRentForCertificate: 564.3,
-        pricingVersion: "partner-discount-v1",
       },
     });
 

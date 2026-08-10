@@ -13,7 +13,6 @@
     "predeploy": "npm run lint && npm run typecheck && npm run test && npm run build",
     "admin:bootstrap": "node scripts/bootstrap-admin-claim.mjs",
     "housing:inventory:import": "node scripts/import-housing-inventory.mjs",
-    "housing:pricing:migrate": "node scripts/migrate-housing-partner-discount.mjs",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:schemas": "vitest run src/lib/validations/lead.test.ts"

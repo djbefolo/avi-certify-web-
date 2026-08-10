@@ -10,10 +10,9 @@ import {
 } from "@/data/housing-inventory.bootstrap";
 import { getAdminFirestore } from "@/lib/firebase/admin";
 import {
-  HOUSING_PARTNER_DISCOUNT_PRICING_VERSION,
-  buildPartnerDiscountHousingPricing,
-  resolveHousingClientPricing,
-  sameHousingMoneyAmount,
+  buildHousingClientPricing,
+  resolveHousingPartnerRent,
+  resolveHousingSnapshotRent,
 } from "@/lib/housing/housing-pricing";
 import type { AdminActor } from "@/lib/admin/admin-auth";
 import type { HousingInventoryGovernanceInput } from "@/lib/validations/housing";
@@ -125,15 +124,8 @@ function mapBootstrapHousingInventoryItem(
   );
   const partnerName =
     residence.partner.commercialName || residence.partner.operatorName;
-  const partnerMonthlyRent =
-    residence.pricing.monthlyRentForCertificate ??
-    residence.pricing.residenceDisplayedRent ??
-    residence.pricing.cityStartingPrice;
-  if (!partnerMonthlyRent) {
-    throw new Error("HOUSING_BOOTSTRAP_PARTNER_RENT_MISSING");
-  }
 
-  return mapHousingInventoryItem(residence.id, {
+  return applyConfiguredHousingDiscount(mapHousingInventoryItem(residence.id, {
     ...residence,
     partner: {
       displayName: partnerName,
@@ -143,7 +135,6 @@ function mapBootstrapHousingInventoryItem(
     pricing: {
       ...residence.pricing,
       cityIndicativePrice: residence.pricing.cityStartingPrice,
-      ...buildPartnerDiscountHousingPricing(partnerMonthlyRent),
     },
     inventoryStatus: residence.availability.status,
     availabilityGuaranteed: false,
@@ -162,7 +153,7 @@ function mapBootstrapHousingInventoryItem(
     version: 1,
     createdAt: HOUSING_INVENTORY.generatedAt,
     updatedAt: HOUSING_INVENTORY.generatedAt,
-  });
+  }));
 }
 
 function listBootstrapHousingInventory(cityCode?: string | null) {
@@ -261,9 +252,6 @@ export function mapHousingInventoryItem(
       ...(typeof pricing.clientMonthlyRent === "number"
         ? { clientMonthlyRent: pricing.clientMonthlyRent }
         : {}),
-      ...(typeof pricing.pricingVersion === "string" && pricing.pricingVersion
-        ? { pricingVersion: pricing.pricingVersion }
-        : {}),
       ...(typeof pricing.serviceFee === "number" ? { serviceFee: pricing.serviceFee } : {}),
       priceValidationStatus:
         pricing.priceValidationStatus === "verified" ||
@@ -338,6 +326,23 @@ export function mapHousingInventoryItem(
   };
 }
 
+function applyConfiguredHousingDiscount(
+  inventory: HousingInventoryItem,
+): HousingInventoryItem {
+  const partnerMonthlyRent = resolveHousingPartnerRent(inventory.pricing);
+  if (partnerMonthlyRent === null) {
+    throw new Error("HOUSING_PARTNER_RENT_MISSING");
+  }
+
+  return {
+    ...inventory,
+    pricing: {
+      ...inventory.pricing,
+      ...buildHousingClientPricing(partnerMonthlyRent),
+    },
+  };
+}
+
 export async function getHousingInventoryItemById(id: string) {
   const snapshot = await getAdminFirestore().collection(INVENTORY_COLLECTION).doc(id).get();
   return snapshot.exists
@@ -367,9 +372,9 @@ async function resolveHousingInventory(
     if (firestoreItems.length > 0) {
       return {
         source: "firestore",
-        data: firestoreItems.filter(
-          (item) => !cityCode || item.cityCode === cityCode,
-        ),
+        data: firestoreItems
+          .filter((item) => !cityCode || item.cityCode === cityCode)
+          .map(applyConfiguredHousingDiscount),
       };
     }
   } catch (error) {
@@ -421,9 +426,11 @@ export async function getHousingResidenceById(
       if (snapshot.exists) {
         return {
           source: "firestore",
-          data: mapHousingInventoryItem(
-            snapshot.id,
-            snapshot.data() as Record<string, unknown>,
+          data: applyConfiguredHousingDiscount(
+            mapHousingInventoryItem(
+              snapshot.id,
+              snapshot.data() as Record<string, unknown>,
+            ),
           ),
         };
       }
@@ -469,9 +476,9 @@ export async function listAvailableHousingCities(): Promise<
   >();
   for (const item of result.data.filter(isPubliclySelectable)) {
     const current = cities.get(item.cityCode);
-    const displayedRent = resolveHousingClientPricing(item.pricing)?.clientMonthlyRent;
+    const displayedRent = resolveHousingSnapshotRent(item.pricing);
     const minimumRent =
-      displayedRent === undefined
+      displayedRent === null
         ? current?.minimumDisplayedRent ?? null
         : current?.minimumDisplayedRent === null ||
             current?.minimumDisplayedRent === undefined
@@ -555,17 +562,6 @@ export async function updateHousingInventoryGovernance({
       snapshot.id,
       snapshot.data() as Record<string, unknown>,
     );
-    if (
-      current.pricing.pricingVersion === HOUSING_PARTNER_DISCOUNT_PRICING_VERSION &&
-      input.monthlyRentForCertificate !== undefined &&
-      current.pricing.monthlyRentForCertificate !== undefined &&
-      !sameHousingMoneyAmount(
-        input.monthlyRentForCertificate,
-        current.pricing.monthlyRentForCertificate,
-      )
-    ) {
-      throw new Error("HOUSING_VERSIONED_PRICING_MANAGED");
-    }
     const nextPricing = {
       ...current.pricing,
       ...(input.priceValidationStatus

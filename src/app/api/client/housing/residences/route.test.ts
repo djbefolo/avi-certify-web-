@@ -33,12 +33,11 @@ function inventoryItem(displayToClient: boolean) {
     accommodationTypes: ["studio"],
     pricing: {
       currency: "EUR",
-      residenceDisplayedRent: 720,
-      partnerMonthlyRent: 720,
+      residenceDisplayedRent: 610,
+      partnerMonthlyRent: 610,
       discountBasisPoints: 1_000,
-      clientMonthlyRent: 648,
-      monthlyRentForCertificate: 648,
-      pricingVersion: "partner-discount-v1",
+      clientMonthlyRent: 549,
+      monthlyRentForCertificate: 549,
     },
     inventoryStatus: "conditionally_available",
     autoIssuance: {
@@ -88,12 +87,11 @@ describe("GET /api/client/housing/residences", () => {
     expect(payload.residences[1]).not.toHaveProperty("address");
     expect(payload.residences[0].internalReference).toBe("AVI-LOG-FR-0001");
     expect(payload.residences[0]).not.toHaveProperty("autoIssuance");
-    expect(payload.residences[0].monthlyRent).toBe(648);
-    expect(payload.residences[0].indicativeMonthlyRent).toBe(648);
-    expect(payload.residences[0].cityIndicativePrice).toBe(648);
+    expect(payload.residences[0].monthlyRent).toBe(549);
+    expect(payload.residences[0].indicativeMonthlyRent).toBe(549);
+    expect(payload.residences[0].cityIndicativePrice).toBe(549);
     expect(payload.residences[0]).not.toHaveProperty("partnerMonthlyRent");
     expect(payload.residences[0]).not.toHaveProperty("discountBasisPoints");
-    expect(payload.residences[0]).not.toHaveProperty("pricingVersion");
   });
 
   it("rejects malformed city codes before inventory access", async () => {
