@@ -7,16 +7,9 @@ import type { HousingCertificateTemplateData } from "@/lib/certificates/housing-
 import { getAdminStorage } from "@/lib/firebase/admin";
 
 const templateFileName = "housing-certificate-france.html";
-const templateVersion = "housing-conditional-v4";
 const signatureStampStoragePath = "internal-assets/certificates/president-signature-stamp.png";
+const logoAssetPath = "public/assets/photos/avi-certify-logo.png";
 const pngSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
-const logoAssetCandidates = [
-  "public/assets/photos/avi-certify-logo.png",
-  "public/assets/photos/logo_avi_certify.png",
-  "public/assets/avi-certify-logo.png",
-  "public/avi-certify-logo.png",
-  "public/logo.png",
-];
 const rawTemplateFields = new Set(["logoDataUrl", "qrCodeDataUrl", "signatureStampMarkup"]);
 
 function cleanString(value: unknown) {
@@ -42,27 +35,35 @@ function formatCertificateDate(date: Date) {
 
 function formatRent(rent: number) {
   return new Intl.NumberFormat("fr-FR", {
-    style: "currency",
-    currency: "EUR",
     maximumFractionDigits: 0,
   }).format(rent);
+}
+
+function getVerificationCode(certificateReference: string) {
+  const value = cleanString(certificateReference);
+  if (!value) {
+    throw new Error("HOUSING_CERTIFICATE_REFERENCE_MISSING");
+  }
+  return value;
 }
 
 function isSafeImageDataUrl(value: string) {
   return /^data:image\/(png|jpe?g|webp);base64,[a-z0-9+/=\s]+$/i.test(value);
 }
 
-async function loadDataUrl(candidates: string[]) {
-  for (const candidate of candidates) {
-    try {
-      const asset = await readFile(path.join(process.cwd(), candidate));
-      return `data:image/png;base64,${asset.toString("base64")}`;
-    } catch {
-      // Continue only through known server-side logo paths.
+async function loadLogoDataUrl() {
+  try {
+    const asset = await readFile(path.join(process.cwd(), logoAssetPath));
+    if (!isPng(asset)) {
+      throw new Error("HOUSING_CERTIFICATE_LOGO_NOT_PNG");
     }
+    return `data:image/png;base64,${asset.toString("base64")}`;
+  } catch (error) {
+    if (error instanceof Error && error.message === "HOUSING_CERTIFICATE_LOGO_NOT_PNG") {
+      throw error;
+    }
+    throw new Error("HOUSING_CERTIFICATE_LOGO_NOT_FOUND");
   }
-
-  throw new Error("HOUSING_CERTIFICATE_LOGO_NOT_FOUND");
 }
 
 async function loadTemplate() {
@@ -123,23 +124,17 @@ async function getSignatureStampMarkup() {
   );
 }
 
-function getSchoolStatement(targetSchoolName: string | null) {
-  return targetSchoolName
-    ? `Etablissement vise : ${targetSchoolName}.`
-    : "L'etablissement d'enseignement vise est en cours de confirmation dans le dossier.";
-}
-
 export async function renderHousingCertificateHtml(data: HousingCertificateTemplateData) {
   if (!cleanString(data.verificationUrl)) {
     throw new Error("HOUSING_CERTIFICATE_VERIFICATION_URL_MISSING");
   }
-  if (!Number.isFinite(data.housing.rent) || data.housing.rent < 0) {
+  if (!Number.isFinite(data.housing.monthlyRent) || data.housing.monthlyRent < 0) {
     throw new Error("HOUSING_CERTIFICATE_RENT_INVALID");
   }
 
   const [template, logoDataUrl, qrCodeDataUrl, signatureStampMarkup] = await Promise.all([
     loadTemplate(),
-    loadDataUrl(logoAssetCandidates),
+    loadLogoDataUrl(),
     QRCode.toDataURL(data.verificationUrl, {
       errorCorrectionLevel: "M",
       margin: 1,
@@ -147,25 +142,26 @@ export async function renderHousingCertificateHtml(data: HousingCertificateTempl
     }),
     getSignatureStampMarkup(),
   ]);
-  const validUntil = cleanString(data.validUntil) || "date a confirmer";
+  const validUntil = cleanString(data.validUntil) || "date à confirmer";
   const html = renderTemplate(template, {
-    certificateNumber: data.certificateNumber,
-    dateOfBirth: data.dateOfBirth,
-    birthPlace: data.birthPlace,
-    durationMonths: String(data.durationMonths),
-    entryDate: data.entryDate,
-    housingAddress: data.housing.fullAddress,
+    certificateReference: data.certificateReference,
+    certificateStatus: data.certificateStatus,
+    expectedArrivalDate: data.expectedArrivalDate,
+    expectedStayDurationMonths: String(data.expectedStayDurationMonths),
+    housingAddress: data.housing.addressLine,
     housingCity: data.housing.city,
-    housingRent: formatRent(data.housing.rent),
-    issueDate: data.issueDate,
+    housingPostalCode: data.housing.postalCode,
+    issuedAt: data.issuedAt,
     logoDataUrl,
-    nationality: data.nationality,
+    monthlyRent: formatRent(data.housing.monthlyRent),
     qrCodeDataUrl,
-    schoolStatement: getSchoolStatement(data.targetSchoolName),
     signatureStampMarkup,
+    studentDateOfBirth: data.studentDateOfBirth,
     studentFullName: data.studentFullName,
-    templateVersion: data.templateVersion ?? templateVersion,
+    studentNationality: data.studentNationality,
+    studentPlaceOfBirth: data.studentPlaceOfBirth,
     validUntil,
+    verificationCode: getVerificationCode(data.certificateReference),
   });
 
   if (/\{\{[a-zA-Z0-9_]+\}\}/.test(html)) {
@@ -174,7 +170,7 @@ export async function renderHousingCertificateHtml(data: HousingCertificateTempl
   return html;
 }
 
-async function renderHtmlToPdfBuffer(html: string) {
+export async function renderHousingCertificatePdfFromHtml(html: string) {
   let browser: Awaited<ReturnType<typeof puppeteer.launch>> | null = null;
   try {
     browser = await puppeteer.launch({
@@ -208,7 +204,7 @@ async function renderHtmlToPdfBuffer(html: string) {
 }
 
 export async function generateHousingCertificatePdf(data: HousingCertificateTemplateData) {
-  return renderHtmlToPdfBuffer(await renderHousingCertificateHtml(data));
+  return renderHousingCertificatePdfFromHtml(await renderHousingCertificateHtml(data));
 }
 
 export function getDefaultCertificateDates(now = new Date()) {

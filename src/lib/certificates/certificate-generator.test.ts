@@ -1,4 +1,7 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { readFile, readdir } from "node:fs/promises";
+import path from "node:path";
+import { PDFDocument } from "pdf-lib";
 
 const pdfMocks = vi.hoisted(() => {
   const page = {
@@ -6,7 +9,7 @@ const pdfMocks = vi.hoisted(() => {
     setContent: vi.fn(),
     emulateMediaType: vi.fn(),
     evaluate: vi.fn(),
-    pdf: vi.fn().mockResolvedValue(Buffer.from("%PDF-housing-certificate\n%%EOF")),
+    pdf: vi.fn(),
   };
   return {
     executablePath: vi.fn().mockResolvedValue("/opt/chromium"),
@@ -20,12 +23,11 @@ const pdfMocks = vi.hoisted(() => {
 });
 
 const signatureStorageMocks = vi.hoisted(() => {
-  const download = vi.fn().mockResolvedValue([
-    Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00]),
-  ]);
+  const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00]);
+  const download = vi.fn().mockResolvedValue([signature]);
   const file = vi.fn(() => ({ download }));
   const bucket = vi.fn(() => ({ file }));
-  return { bucket, download, file };
+  return { bucket, download, file, signature };
 });
 
 vi.mock("@sparticuz/chromium", () => ({
@@ -45,71 +47,133 @@ import {
   renderHousingCertificateHtml,
 } from "@/lib/certificates/certificate-generator";
 
-describe("conditional housing certificate PDF", () => {
-  it("builds a readable PDF with the repository AVI CERTIFY logo and QR code", async () => {
-    const warning = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+const templateDirectory = path.join(process.cwd(), "src", "lib", "certificates", "templates");
+const canonicalTemplatePath = path.join(templateDirectory, "housing-certificate-france.html");
 
-    const buffer = await generateHousingCertificatePdf({
-      certificateNumber: "AVI-HBG-2026-CASE0001",
-      studentFullName: "Awa Student",
-      dateOfBirth: "3 fevrier 2001",
-      birthPlace: "Douala",
-      nationality: "Camerounaise",
-      targetSchoolName: "Universite test",
-      housing: {
-        city: "Paris",
-        fullAddress: "1 rue Test, 75000 Paris",
-        rent: 500,
-      },
-      entryDate: "1 septembre 2026",
-      durationMonths: 12,
-      issueDate: "3 aout 2026",
-      validUntil: "30 septembre 2026",
-      verificationUrl: "https://www.avicertify.fr/verifier/test-token-1234567890",
-      templateVersion: "housing-conditional-v4",
-    });
-    expect(buffer.subarray(0, 4).toString()).toBe("%PDF");
-    expect(buffer.byteLength).toBeGreaterThan(10);
-    expect(buffer.toString("latin1")).toContain("%%EOF");
-    expect(pdfMocks.launch).toHaveBeenCalledTimes(1);
-    expect(pdfMocks.page.setContent).toHaveBeenCalledWith(
-      expect.stringContaining("ATTESTATION CONDITIONNELLE DE LOGEMENT"),
-      expect.anything(),
-    );
-    expect(warning).not.toHaveBeenCalled();
-    warning.mockRestore();
+const testCertificate = {
+  certificateReference: "AVI-HBG-2026-CASETYFI",
+  certificateStatus: "CONDITIONNELLE",
+  studentFullName: "Cécile Gaelle EYENGA",
+  studentDateOfBirth: "8 juin 1988",
+  studentPlaceOfBirth: "Yaoundé",
+  studentNationality: "Camerounaise",
+  housing: {
+    city: "Rennes",
+    addressLine: "4 rue d’Alsace",
+    postalCode: "35000",
+    monthlyRent: 610,
+  },
+  expectedArrivalDate: "1 septembre 2026",
+  expectedStayDurationMonths: 12,
+  issuedAt: "10 août 2026",
+  validUntil: "9 septembre 2026",
+  verificationUrl: "https://www.avicertify.fr/verifier/test-token-1234567890",
+};
+
+function normalizedText(html: string) {
+  return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+describe("conditional housing certificate PDF", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  it("renders the administrative template from a frozen certificate payload", async () => {
-    const html = await renderHousingCertificateHtml({
-      certificateNumber: "AVI-HBG-2026-CASE0001",
-      studentFullName: "Awa Student",
-      dateOfBirth: "3 fevrier 2001",
-      birthPlace: "Douala",
-      nationality: "Camerounaise",
-      targetSchoolName: "Universite test",
-      housing: { city: "Paris", fullAddress: "1 rue Test, 75000 Paris", rent: 500 },
-      entryDate: "1 septembre 2026",
-      durationMonths: 12,
-      issueDate: "3 aout 2026",
-      validUntil: "30 septembre 2026",
-      verificationUrl: "https://www.avicertify.fr/verifier/test-token-1234567890",
-      templateVersion: "housing-conditional-v4",
-    });
+  it("produces exactly one A4 PDF page from fully rendered HTML", async () => {
+    const pdf = await PDFDocument.create();
+    pdf.addPage([595.28, 841.89]);
+    pdfMocks.page.pdf.mockResolvedValueOnce(await pdf.save());
 
-    expect(html).toContain("ATTESTATION CONDITIONNELLE DE LOGEMENT");
-    expect(html).toContain("Awa Student");
-    expect(html).toContain("1 rue Test, 75000 Paris");
-    expect(html).toContain("data:image/png;base64,");
-    expect(html).toContain('class="signature-stamp"');
-    expect(html).toContain(".header { position: relative;");
-    expect(html).toContain("margin: 0 auto; object-fit: contain; object-position: center;");
-    expect(html).toContain(".reference { position: absolute; top: 0; right: 0; width: 52mm;");
-    expect(html).not.toContain("BEFOLO NKOA Gabriel");
+    const buffer = await generateHousingCertificatePdf(testCertificate);
+    const renderedPdf = await PDFDocument.load(Uint8Array.from(buffer));
+    const [page] = renderedPdf.getPages();
+    const htmlPassedToChromium = pdfMocks.page.setContent.mock.calls[0]?.[0] as string;
+
+    expect(renderedPdf.getPageCount()).toBe(1);
+    expect(page.getWidth()).toBeCloseTo(595.28, 1);
+    expect(page.getHeight()).toBeCloseTo(841.89, 1);
+    expect(htmlPassedToChromium).toContain("ATTESTATION CONDITIONNELLE DE LOGEMENT");
+    expect(htmlPassedToChromium).not.toMatch(/\{\{[a-zA-Z0-9_]+\}\}/);
+    expect(pdfMocks.page.pdf).toHaveBeenCalledWith(
+      expect.objectContaining({ format: "A4", preferCSSPageSize: true }),
+    );
+  });
+
+  it("renders the validated historical content with the complete test dossier", async () => {
+    const canonicalLogo = await readFile(
+      path.join(process.cwd(), "public", "assets", "photos", "avi-certify-logo.png"),
+    );
+    const html = await renderHousingCertificateHtml(testCertificate);
+    const text = normalizedText(html);
+    const imageSources = html.match(/src="data:image\/png;base64,[^"]+"/g) ?? [];
+
+    expect(text).toContain("Je soussigné, BEFOLO NKOA Gabriel Emmanuel");
+    expect(text).toContain(
+      "AVI CERTIFY est une société spécialisée dans l’accompagnement des étudiants internationaux dans leurs démarches administratives, financières et leur installation en France.",
+    );
+    expect(text).toContain(
+      "Nous restons à votre disposition pour tout complément d’information. Ce document est strictement personnel, vérifiable par QR code et ne peut être revendu.",
+    );
+    expect(text).toContain("Cécile Gaelle EYENGA");
+    expect(text).toContain("8 juin 1988");
+    expect(text).toContain("Yaoundé");
+    expect(text).toContain("Camerounaise");
+    expect(text).toContain("4 rue d’Alsace, 35000 Rennes");
+    expect(text).toContain("610 EUR");
+    expect(text).toContain("1 septembre 2026");
+    expect(text).toContain("12 mois");
+    expect(html).toContain(`data:image/png;base64,${canonicalLogo.toString("base64")}`);
+    expect(html).toContain(
+      `data:image/png;base64,${signatureStorageMocks.signature.toString("base64")}`,
+    );
+    expect(imageSources).toHaveLength(3);
+    expect(html).toContain('class="qr" src="data:image/png;base64,');
     expect(html).not.toMatch(/\{\{[a-zA-Z0-9_]+\}\}/);
     expect(signatureStorageMocks.file).toHaveBeenCalledWith(
       "internal-assets/certificates/president-signature-stamp.png",
     );
-    expect(signatureStorageMocks.download).toHaveBeenCalled();
+  });
+
+  it("has one canonical template with the canonical placeholder contract", async () => {
+    const templateFiles = (await readdir(templateDirectory)).filter((name) =>
+      name.startsWith("housing-certificate-france"),
+    );
+    const template = await readFile(canonicalTemplatePath, "utf8");
+    const placeholders = [
+      ...new Set(
+        [...template.matchAll(/\{\{([a-zA-Z0-9_]+)\}\}/g)].map((match) => match[1]),
+      ),
+    ].sort();
+
+    expect(templateFiles).toEqual(["housing-certificate-france.html"]);
+    expect(placeholders).toEqual(
+      [
+        "certificateReference",
+        "certificateStatus",
+        "expectedArrivalDate",
+        "expectedStayDurationMonths",
+        "housingAddress",
+        "housingCity",
+        "housingPostalCode",
+        "issuedAt",
+        "logoDataUrl",
+        "monthlyRent",
+        "qrCodeDataUrl",
+        "signatureStampMarkup",
+        "studentDateOfBirth",
+        "studentFullName",
+        "studentNationality",
+        "studentPlaceOfBirth",
+        "validUntil",
+        "verificationCode",
+      ].sort(),
+    );
+    expect(template).toContain("Je soussigné");
+    expect(template).not.toContain("BÉNÉFICIAIRE");
+    expect(template).not.toContain("B&eacute;n&eacute;ficiaire");
+    expect(template).not.toContain("SOLUTION DE LOGEMENT CONDITIONNELLE");
+    expect(template).not.toContain("Solution de logement conditionnelle");
+    expect(template).not.toContain("schoolStatement");
+    expect(template).not.toContain(";base64,");
   });
 });

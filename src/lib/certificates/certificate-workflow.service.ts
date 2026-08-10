@@ -866,6 +866,9 @@ export async function generateHousingCertificateForCase({
   const housing = {
     region: housingRequest.preferredCityCode,
     city: certificateSnapshot.housing.city,
+    addressLine: certificateSnapshot.housing.addressLine,
+    postalCode: certificateSnapshot.housing.postalCode,
+    monthlyRent: certificateSnapshot.housing.monthlyRent,
     fullAddress: `${certificateSnapshot.housing.addressLine}, ${certificateSnapshot.housing.postalCode} ${certificateSnapshot.housing.city}`,
     rent: certificateSnapshot.housing.monthlyRent,
   };
@@ -881,19 +884,18 @@ export async function generateHousingCertificateForCase({
   const durationMonths = getDurationMonths(profile.expectedStayDuration) ?? 12;
   const storagePath = `users/${ownerId}/documents/${certificateId}-attestation-hebergement.pdf`;
   const pdfBuffer = await generateHousingCertificatePdf({
-    certificateNumber,
+    certificateReference: certificateNumber,
+    certificateStatus: "CONDITIONNELLE",
     studentFullName: profile.fullName,
-    dateOfBirth: formatProfileDate(profile.dateOfBirth) ?? profile.dateOfBirth ?? "",
-    birthPlace: profile.birthPlace ?? "",
-    nationality: profile.nationality ?? "",
-    targetSchoolName: profile.targetSchoolName,
+    studentDateOfBirth: formatProfileDate(profile.dateOfBirth) ?? profile.dateOfBirth ?? "",
+    studentPlaceOfBirth: profile.birthPlace ?? "",
+    studentNationality: profile.nationality ?? "",
     housing,
-    entryDate,
-    durationMonths,
-    issueDate,
+    expectedArrivalDate: entryDate,
+    expectedStayDurationMonths: durationMonths,
+    issuedAt: issueDate,
     validUntil: formatProfileDate(certificateSnapshot.housing.validUntil),
     verificationUrl,
-    templateVersion: TEMPLATE_VERSION,
   });
   const checksumSha256 = crypto.createHash("sha256").update(pdfBuffer).digest("hex");
 
