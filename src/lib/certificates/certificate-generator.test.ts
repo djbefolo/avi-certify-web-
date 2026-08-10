@@ -134,6 +134,18 @@ describe("conditional housing certificate PDF", () => {
     );
   });
 
+  it.each([
+    [549, "549 EUR"],
+    [517.5, "517,50 EUR"],
+  ])("formats a snapshot rent of %s without recalculating it", async (monthlyRent, expected) => {
+    const html = await renderHousingCertificateHtml({
+      ...testCertificate,
+      housing: { ...testCertificate.housing, monthlyRent },
+    });
+
+    expect(normalizedText(html)).toContain(expected);
+  });
+
   it("has one canonical template with the canonical placeholder contract", async () => {
     const templateFiles = (await readdir(templateDirectory)).filter((name) =>
       name.startsWith("housing-certificate-france"),

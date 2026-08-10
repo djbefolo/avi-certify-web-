@@ -113,6 +113,7 @@ const firebaseMocks = vi.hoisted(() => {
 });
 
 vi.mock("@/lib/certificates/certificate-generator", () => ({
+  formatHousingCertificateRent: (rent: number) => String(rent).replace(".", ","),
   renderHousingCertificateHtml: generatorMocks.renderHtml,
   renderHousingCertificatePdfFromHtml: generatorMocks.renderPdf,
 }));

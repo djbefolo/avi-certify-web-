@@ -66,9 +66,9 @@ const residence = {
   residenceName: "Aix Campus 1",
   partnerName: "SafeHouse",
   accommodationTypes: ["studio", "t1_bis"],
-  indicativeMonthlyRent: 627,
-  monthlyRent: 627,
-  cityIndicativePrice: 500,
+  indicativeMonthlyRent: 517.5,
+  monthlyRent: 517.5,
+  cityIndicativePrice: 517.5,
   currency: "EUR",
   availabilityStatus: "confirmation_required",
   availabilityLabel: "Disponibilité à confirmer avec le partenaire",
@@ -177,7 +177,9 @@ describe("housing client journey", () => {
     });
     await user.selectOptions(screen.getByLabelText("Résidence souhaitée"), "AVI-LOG-FR-0001");
 
-    expect(screen.getByTestId("selected-residence-card")).toHaveTextContent("627 EUR/mois");
+    expect(screen.getByTestId("selected-residence-card")).toHaveTextContent(
+      "517,50 EUR/mois",
+    );
     expect(screen.getByTestId("selected-residence-card")).toHaveTextContent(
       "L'adresse exacte sera confirmée après vérification",
     );

@@ -99,6 +99,9 @@ describe("housing inventory source resolution", () => {
 
     expect(cities.source).toBe("bootstrap");
     expect(cities.data).toHaveLength(21);
+    expect(cities.data.find((city) => city.code === "AIX_EN_PROVENCE")).toMatchObject({
+      minimumDisplayedRent: 523.8,
+    });
     expect(residences.source).toBe("bootstrap");
     expect(residences.data).toHaveLength(3);
     expect(residences.data[0].autoIssuance).toMatchObject({
@@ -134,7 +137,14 @@ describe("housing inventory source resolution", () => {
     expect(result.source).toBe("bootstrap");
     expect(result.data).toMatchObject({
       id: "AVI-LOG-FR-0001",
-      pricing: { residenceDisplayedRent: 627 },
+      pricing: {
+        residenceDisplayedRent: 627,
+        partnerMonthlyRent: 627,
+        discountBasisPoints: 1_000,
+        clientMonthlyRent: 564.3,
+        monthlyRentForCertificate: 564.3,
+        pricingVersion: "partner-discount-v1",
+      },
       autoIssuance: {
         enabled: false,
         eligibilityStatus: "manual_review_only",

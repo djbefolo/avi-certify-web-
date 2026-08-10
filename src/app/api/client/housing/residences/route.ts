@@ -4,6 +4,7 @@ import {
   requireVerifiedHousingClient,
 } from "@/app/api/client/housing/_auth";
 import { listAvailableHousingResidences } from "@/lib/housing/housing-inventory.service";
+import { resolveHousingClientPricing } from "@/lib/housing/housing-pricing";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,7 +23,10 @@ export async function GET(request: NextRequest) {
     if (result.source === "unavailable") {
       throw new Error("HOUSING_INVENTORY_UNAVAILABLE");
     }
-    const residences = result.data.map((item) => ({
+    const residences = result.data.map((item) => {
+      const clientMonthlyRent =
+        resolveHousingClientPricing(item.pricing)?.clientMonthlyRent ?? null;
+      return {
       id: item.id,
       internalReference: item.internalReference,
       cityCode: item.cityCode,
@@ -32,11 +36,9 @@ export async function GET(request: NextRequest) {
       residenceName: item.residenceName,
       partnerName: item.partner.displayName,
       accommodationTypes: item.accommodationTypes,
-      indicativeMonthlyRent:
-        item.pricing.residenceDisplayedRent ?? item.pricing.cityIndicativePrice ?? null,
-      monthlyRent:
-        item.pricing.residenceDisplayedRent ?? item.pricing.cityIndicativePrice ?? null,
-      cityIndicativePrice: item.pricing.cityIndicativePrice ?? null,
+      indicativeMonthlyRent: clientMonthlyRent,
+      monthlyRent: clientMonthlyRent,
+      cityIndicativePrice: clientMonthlyRent,
       currency: item.pricing.currency,
       availabilityStatus: item.inventoryStatus,
       availabilityLabel: "Sous réserve de disponibilité",
@@ -53,7 +55,8 @@ export async function GET(request: NextRequest) {
               displayToClient: true,
             }
           : null,
-    }));
+      };
+    });
     return NextResponse.json(
       { source: result.source, residences },
       { headers: { "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" } },

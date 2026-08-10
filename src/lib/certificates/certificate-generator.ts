@@ -33,9 +33,11 @@ function formatCertificateDate(date: Date) {
   return new Intl.DateTimeFormat("fr-FR", { dateStyle: "long" }).format(date);
 }
 
-function formatRent(rent: number) {
+export function formatHousingCertificateRent(rent: number) {
+  const hasCentimes = Math.round(rent * 100) % 100 !== 0;
   return new Intl.NumberFormat("fr-FR", {
-    maximumFractionDigits: 0,
+    minimumFractionDigits: hasCentimes ? 2 : 0,
+    maximumFractionDigits: hasCentimes ? 2 : 0,
   }).format(rent);
 }
 
@@ -153,7 +155,7 @@ export async function renderHousingCertificateHtml(data: HousingCertificateTempl
     housingPostalCode: data.housing.postalCode,
     issuedAt: data.issuedAt,
     logoDataUrl,
-    monthlyRent: formatRent(data.housing.monthlyRent),
+    monthlyRent: formatHousingCertificateRent(data.housing.monthlyRent),
     qrCodeDataUrl,
     signatureStampMarkup,
     studentDateOfBirth: data.studentDateOfBirth,

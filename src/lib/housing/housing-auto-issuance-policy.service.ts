@@ -3,6 +3,7 @@ import type {
   HousingAutoIssuanceReason,
   HousingInventoryItem,
 } from "@/types/housing";
+import { resolveHousingClientPricing } from "@/lib/housing/housing-pricing";
 
 export const HOUSING_AUTO_ISSUANCE_POLICY_VERSION = "housing-auto-issuance-v1";
 
@@ -46,10 +47,18 @@ export function evaluateHousingAutoIssuance(
       autoIssuance?.enabled &&
       autoIssuance.eligibilityStatus === "eligible",
   );
+  let resolvedClientMonthlyRent: number | null = null;
+  try {
+    resolvedClientMonthlyRent = inventory
+      ? resolveHousingClientPricing(inventory.pricing)?.clientMonthlyRent ?? null
+      : null;
+  } catch {
+    resolvedClientMonthlyRent = null;
+  }
   const priceVerified = Boolean(
     inventory?.pricing.priceValidationStatus === "verified" &&
-      inventory.pricing.monthlyRentForCertificate &&
-      inventory.pricing.monthlyRentForCertificate > 0,
+      resolvedClientMonthlyRent &&
+      resolvedClientMonthlyRent > 0,
   );
   const validityCurrent = Boolean(
     autoIssuance?.validUntil &&

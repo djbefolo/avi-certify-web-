@@ -9,6 +9,12 @@ import {
   type HousingBootstrapResidence,
 } from "@/data/housing-inventory.bootstrap";
 import { getAdminFirestore } from "@/lib/firebase/admin";
+import {
+  HOUSING_PARTNER_DISCOUNT_PRICING_VERSION,
+  buildPartnerDiscountHousingPricing,
+  resolveHousingClientPricing,
+  sameHousingMoneyAmount,
+} from "@/lib/housing/housing-pricing";
 import type { AdminActor } from "@/lib/admin/admin-auth";
 import type { HousingInventoryGovernanceInput } from "@/lib/validations/housing";
 import type {
@@ -119,6 +125,13 @@ function mapBootstrapHousingInventoryItem(
   );
   const partnerName =
     residence.partner.commercialName || residence.partner.operatorName;
+  const partnerMonthlyRent =
+    residence.pricing.monthlyRentForCertificate ??
+    residence.pricing.residenceDisplayedRent ??
+    residence.pricing.cityStartingPrice;
+  if (!partnerMonthlyRent) {
+    throw new Error("HOUSING_BOOTSTRAP_PARTNER_RENT_MISSING");
+  }
 
   return mapHousingInventoryItem(residence.id, {
     ...residence,
@@ -130,6 +143,7 @@ function mapBootstrapHousingInventoryItem(
     pricing: {
       ...residence.pricing,
       cityIndicativePrice: residence.pricing.cityStartingPrice,
+      ...buildPartnerDiscountHousingPricing(partnerMonthlyRent),
     },
     inventoryStatus: residence.availability.status,
     availabilityGuaranteed: false,
@@ -237,6 +251,18 @@ export function mapHousingInventoryItem(
         : {}),
       ...(typeof pricing.monthlyRentForCertificate === "number"
         ? { monthlyRentForCertificate: pricing.monthlyRentForCertificate }
+        : {}),
+      ...(typeof pricing.partnerMonthlyRent === "number"
+        ? { partnerMonthlyRent: pricing.partnerMonthlyRent }
+        : {}),
+      ...(typeof pricing.discountBasisPoints === "number"
+        ? { discountBasisPoints: pricing.discountBasisPoints }
+        : {}),
+      ...(typeof pricing.clientMonthlyRent === "number"
+        ? { clientMonthlyRent: pricing.clientMonthlyRent }
+        : {}),
+      ...(typeof pricing.pricingVersion === "string" && pricing.pricingVersion
+        ? { pricingVersion: pricing.pricingVersion }
         : {}),
       ...(typeof pricing.serviceFee === "number" ? { serviceFee: pricing.serviceFee } : {}),
       priceValidationStatus:
@@ -443,8 +469,7 @@ export async function listAvailableHousingCities(): Promise<
   >();
   for (const item of result.data.filter(isPubliclySelectable)) {
     const current = cities.get(item.cityCode);
-    const displayedRent =
-      item.pricing.residenceDisplayedRent ?? item.pricing.cityIndicativePrice;
+    const displayedRent = resolveHousingClientPricing(item.pricing)?.clientMonthlyRent;
     const minimumRent =
       displayedRent === undefined
         ? current?.minimumDisplayedRent ?? null
@@ -530,6 +555,17 @@ export async function updateHousingInventoryGovernance({
       snapshot.id,
       snapshot.data() as Record<string, unknown>,
     );
+    if (
+      current.pricing.pricingVersion === HOUSING_PARTNER_DISCOUNT_PRICING_VERSION &&
+      input.monthlyRentForCertificate !== undefined &&
+      current.pricing.monthlyRentForCertificate !== undefined &&
+      !sameHousingMoneyAmount(
+        input.monthlyRentForCertificate,
+        current.pricing.monthlyRentForCertificate,
+      )
+    ) {
+      throw new Error("HOUSING_VERSIONED_PRICING_MANAGED");
+    }
     const nextPricing = {
       ...current.pricing,
       ...(input.priceValidationStatus

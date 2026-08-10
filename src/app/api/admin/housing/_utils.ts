@@ -14,6 +14,8 @@ const messages: Record<string, string> = {
   HOUSING_CAPACITY_INVALID: "La capacite restante ne peut pas depasser le quota configure.",
   HOUSING_INVENTORY_NOT_SELECTED: "Aucune residence d'inventaire n'est rattachee a cette demande.",
   HOUSING_AUTO_ALLOCATION_DATA_MISSING: "Les donnees pre-validees de la residence sont incompletes.",
+  HOUSING_PRICING_OVERRIDE_REASON_REQUIRED: "Un motif explicite est requis pour modifier le loyer client calcule.",
+  HOUSING_VERSIONED_PRICING_MANAGED: "Le loyer versionne doit etre modifie via le workflow de tarification audite.",
 };
 
 export function housingAdminErrorResponse(error: unknown) {

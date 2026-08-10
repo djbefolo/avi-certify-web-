@@ -106,4 +106,23 @@ describe("housing automatic issuance policy", () => {
       ]),
     );
   });
+
+  it("fails closed when versioned pricing is internally inconsistent", () => {
+    const item = inventory({
+      pricing: {
+        currency: "EUR",
+        residenceDisplayedRent: 610,
+        partnerMonthlyRent: 610,
+        discountBasisPoints: 1_000,
+        clientMonthlyRent: 610,
+        monthlyRentForCertificate: 549,
+        pricingVersion: "partner-discount-v1",
+        priceValidationStatus: "verified",
+      },
+    });
+
+    const decision = evaluateHousingAutoIssuance({ ...baseInput, inventory: item });
+    expect(decision.priceVerified).toBe(false);
+    expect(decision.reasons).toContain("PRICE_NOT_VERIFIED");
+  });
 });
