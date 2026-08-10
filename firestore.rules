@@ -25,9 +25,13 @@ service cloud.firestore {
 
     function userUpdateFields() {
       return [
+        "firstName",
+        "lastName",
         "fullName",
         "phone",
         "phoneWhatsApp",
+        "birthDate",
+        "birthCountry",
         "dateOfBirth",
         "placeOfBirth",
         "nationality",
@@ -44,12 +48,19 @@ service cloud.firestore {
         "expectedStayDuration",
         "financialNeedType",
         "requestedAviAmount",
+        "needsFinancing",
         "selectedService",
         "housingNeed",
         "preferredHousingCity",
+        "previousVisaRefusal",
+        "previousVisaRefusalCountry",
         "emergencyContactName",
         "emergencyContactPhone",
-        "updatedAt"
+        "serviceInterest",
+        "profileSource",
+        "lastIntent",
+        "updatedAt",
+        "profileUpdatedAt"
       ];
     }
 
@@ -123,6 +134,11 @@ service cloud.firestore {
         && request.resource.data.role == resource.data.role
         && request.resource.data.status == resource.data.status
         && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.profileSource == "user_profile"
+        && request.resource.data.lastIntent == "profile_update"
+        && request.resource.data.serviceInterest == request.resource.data.selectedService
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.profileUpdatedAt == request.time
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(userUpdateFields());
       allow delete: if false;
     }

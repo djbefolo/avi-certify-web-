@@ -164,9 +164,27 @@ export type CommunicationLog = {
   type: "DOCUMENT_REQUEST" | "ADMIN_NOTIFICATION" | "EMAIL" | "SYSTEM";
   template: string | null;
   recipient: string | null;
-  status: "QUEUED" | "SENT" | "DELIVERED" | "FAILED" | "NOT_SENT";
+  status:
+    | "PENDING"
+    | "QUEUED"
+    | "SENT"
+    | "DELIVERED"
+    | "FAILED"
+    | "NOT_SENT";
   provider: "resend" | "internal" | "system";
   messageId: string | null;
+  providerMessageId?: string | null;
+  idempotencyKey?: string | null;
+  attemptCount?: number;
+  lastAttemptAt?: string | null;
+  sentAt?: string | null;
+  failedAt?: string | null;
+  updatedAt?: string;
+  error?: {
+    code: string;
+    message: string;
+    retryable: boolean;
+  } | null;
   subject?: string | null;
   body?: string | null;
   createdAt: string;

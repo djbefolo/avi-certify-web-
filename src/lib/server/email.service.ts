@@ -47,6 +47,7 @@ type SendEmailParams = {
   template: EmailTemplate;
   replyTo?: string | null;
   context: string;
+  idempotencyKey?: string;
 };
 
 export type SendEmailResult = {
@@ -71,6 +72,7 @@ async function sendEmailWithResult({
   template,
   replyTo,
   context,
+  idempotencyKey,
 }: SendEmailParams): Promise<SendEmailResult> {
   const resend = getResendClient();
   const config = getEmailConfig();
@@ -95,14 +97,17 @@ async function sendEmailWithResult({
   }
 
   try {
-    const response = await resend.emails.send({
-      from: config.fromEmail,
-      to,
-      subject: template.subject,
-      html: template.html,
-      text: template.text,
-      replyTo: replyTo ?? config.replyTo ?? undefined,
-    });
+    const response = await resend.emails.send(
+      {
+        from: config.fromEmail,
+        to,
+        subject: template.subject,
+        html: template.html,
+        text: template.text,
+        replyTo: replyTo ?? config.replyTo ?? undefined,
+      },
+      idempotencyKey ? { idempotencyKey } : undefined,
+    );
 
     if (response.error) {
       console.warn(`[email] Failed to send ${context}`, response.error);
@@ -161,6 +166,18 @@ export async function sendWelcomeEmail(
     to: user.email,
     template: renderAuthWelcomeEmail(user),
     context: "auth welcome",
+  });
+}
+
+export async function sendWelcomeEmailWithResult(
+  user: AuthWelcomeEmailInput,
+  idempotencyKey: string,
+): Promise<SendEmailResult> {
+  return sendEmailWithResult({
+    to: user.email,
+    template: renderAuthWelcomeEmail(user),
+    context: "auth welcome",
+    idempotencyKey,
   });
 }
 

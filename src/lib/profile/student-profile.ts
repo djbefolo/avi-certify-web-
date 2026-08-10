@@ -6,7 +6,8 @@ import {
   Timestamp,
   type DocumentData,
 } from "firebase/firestore";
-import { getFirebaseDb } from "@/lib/firebase/client";
+import { runPostVerificationTransition } from "@/lib/firebase/auth";
+import { getFirebaseAuth, getFirebaseDb } from "@/lib/firebase/client";
 import {
   resolveCountryReference,
   resolveNationalityReference,
@@ -286,7 +287,6 @@ function cleanString(value: string | null) {
 export async function updateStudentProfile(
   uid: string,
   profile: EditableStudentProfile,
-  account?: { email?: string | null },
 ) {
   const firstName = cleanString(profile.firstName);
   const lastName = cleanString(profile.lastName);
@@ -339,24 +339,14 @@ export async function updateStudentProfile(
     return;
   }
 
-  await setDoc(
-    userRef,
-    {
-      uid,
-      email: cleanString(account?.email ?? null)?.toLowerCase() ?? null,
-      role: "student",
-      status: "active",
-      createdVia: "profile_recovery",
-      clientOrigin: "dashboard",
-      marketingConsent: false,
-      marketingConsentAt: null,
-      firstTouch: null,
-      lastTouch: null,
-      createdAt: timestamp,
-      ...profileFields,
-    },
-    { merge: true },
-  );
+  const currentUser = getFirebaseAuth().currentUser;
+
+  if (!currentUser || currentUser.uid !== uid) {
+    throw new Error("Le profil utilisateur ne peut pas etre initialise.");
+  }
+
+  await runPostVerificationTransition(currentUser);
+  await setDoc(userRef, profileFields, { merge: true });
 }
 
 function hasProfileValue(value: StudentProfile[keyof StudentProfile]) {

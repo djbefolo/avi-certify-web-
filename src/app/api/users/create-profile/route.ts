@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { getAdminAuth } from "@/lib/firebase/admin";
-import { sendWelcomeEmail } from "@/lib/server/email.service";
 import {
   createUserProfile,
   validateUserProfile,
@@ -158,14 +157,7 @@ export async function POST(request: NextRequest) {
       email: decodedToken.email,
     });
 
-    const result = await createUserProfile(profile);
-
-    if (result.created) {
-      await sendWelcomeEmail({
-        email: profile.email,
-        fullName: `${profile.firstName} ${profile.lastName}`.trim(),
-      });
-    }
+    await createUserProfile(profile);
 
     return jsonResponse(
       {

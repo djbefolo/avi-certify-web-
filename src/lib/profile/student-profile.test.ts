@@ -19,6 +19,11 @@ const firestoreMocks = vi.hoisted(() => {
     serverTimestamp: vi.fn(() => "server-timestamp"),
     setDoc: vi.fn(),
     Timestamp: MockTimestamp,
+    currentUser: {
+      uid: "auth-only-1",
+      getIdToken: vi.fn(),
+    },
+    runPostVerificationTransition: vi.fn(),
   };
 });
 
@@ -31,7 +36,12 @@ vi.mock("firebase/firestore", () => ({
 }));
 
 vi.mock("@/lib/firebase/client", () => ({
+  getFirebaseAuth: () => ({ currentUser: firestoreMocks.currentUser }),
   getFirebaseDb: () => ({ app: "firebase-db" }),
+}));
+
+vi.mock("@/lib/firebase/auth", () => ({
+  runPostVerificationTransition: firestoreMocks.runPostVerificationTransition,
 }));
 
 import {
@@ -69,6 +79,8 @@ beforeEach(() => {
   firestoreMocks.getDoc.mockReset();
   firestoreMocks.serverTimestamp.mockClear();
   firestoreMocks.setDoc.mockReset();
+  firestoreMocks.runPostVerificationTransition.mockReset();
+  firestoreMocks.runPostVerificationTransition.mockResolvedValue(undefined);
 });
 
 describe("student profile mapping", () => {
@@ -157,9 +169,7 @@ describe("student profile mapping", () => {
   it("updates an existing user profile without overwriting system fields", async () => {
     firestoreMocks.getDoc.mockResolvedValueOnce({ exists: () => true });
 
-    await updateStudentProfile("client-1", editableProfile(), {
-      email: "awa@example.com",
-    });
+    await updateStudentProfile("client-1", editableProfile());
 
     expect(firestoreMocks.doc).toHaveBeenCalledWith(
       { app: "firebase-db" },
@@ -203,31 +213,22 @@ describe("student profile mapping", () => {
   it("repairs a missing users/{uid} document with minimal safe fields", async () => {
     firestoreMocks.getDoc.mockResolvedValueOnce({ exists: () => false });
 
-    await updateStudentProfile("auth-only-1", editableProfile(), {
-      email: "AUTH-ONLY@EXAMPLE.COM",
-    });
+    await updateStudentProfile("auth-only-1", editableProfile());
+
+    expect(firestoreMocks.runPostVerificationTransition).toHaveBeenCalledWith(
+      firestoreMocks.currentUser,
+    );
 
     expect(firestoreMocks.setDoc).toHaveBeenCalledWith(
       expect.objectContaining({ collectionName: "users", id: "auth-only-1" }),
       expect.objectContaining({
-        uid: "auth-only-1",
-        email: "auth-only@example.com",
-        role: "student",
-        status: "active",
-        createdVia: "profile_recovery",
         profileSource: "user_profile",
-        clientOrigin: "dashboard",
         selectedService: "attestation_hebergement",
         serviceInterest: "attestation_hebergement",
         lastIntent: "profile_update",
-        marketingConsent: false,
-        marketingConsentAt: null,
-        firstTouch: null,
-        lastTouch: null,
         firstName: "Awa",
         lastName: "Ndiaye",
         fullName: "Awa Ndiaye",
-        createdAt: "server-timestamp",
         updatedAt: "server-timestamp",
         profileUpdatedAt: "server-timestamp",
       }),
@@ -240,5 +241,15 @@ describe("student profile mapping", () => {
       "client_cases",
       expect.anything(),
     );
+
+    const payload = firestoreMocks.setDoc.mock.calls[0][1] as Record<
+      string,
+      unknown
+    >;
+    expect(payload).not.toHaveProperty("uid");
+    expect(payload).not.toHaveProperty("email");
+    expect(payload).not.toHaveProperty("role");
+    expect(payload).not.toHaveProperty("status");
+    expect(payload).not.toHaveProperty("createdAt");
   });
 });

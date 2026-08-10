@@ -7,7 +7,10 @@ import { useEffect, useRef, useState } from "react";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { signInWithEmail } from "@/lib/firebase/auth";
+import {
+  runPostVerificationTransition,
+  signInWithEmail,
+} from "@/lib/firebase/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -98,6 +101,11 @@ export function LoginForm() {
       const values: LoginValues = loginSchema.parse(input);
       const credential = await signInWithEmail(values.email, values.password);
       trackLoginCompleted();
+
+      if (credential.user.emailVerified) {
+        await runPostVerificationTransition(credential.user);
+      }
+
       router.replace(
         credential.user.emailVerified
           ? getPostAuthGuideRedirect("/dashboard")

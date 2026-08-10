@@ -6,6 +6,7 @@ import { RegisterForm } from "@/components/auth/register-form";
 vi.mock("@/lib/firebase/auth", () => ({
   clearAdminSession: vi.fn(),
   observeAuthState: vi.fn(),
+  runPostVerificationTransition: vi.fn(),
   sendPasswordReset: vi.fn(),
   sendVerificationEmail: vi.fn(),
   signInWithEmail: vi.fn(),
