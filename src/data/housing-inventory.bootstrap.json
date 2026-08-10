@@ -1,0 +1,3285 @@
+{
+  "schemaVersion": "avi-certify-housing-bootstrap-v1",
+  "generatedAt": "2026-08-04T02:03:32Z",
+  "sourceWorkbook": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+  "sourceSheet": "Résidences disponibles",
+  "summary": {
+    "residenceCount": 42,
+    "cityZoneCount": 21,
+    "municipalityCount": 28,
+    "allAutoIssuanceDisabled": true,
+    "allManualReviewRequired": true
+  },
+  "cities": [
+    {
+      "code": "AIX_EN_PROVENCE",
+      "label": "Aix-en-Provence",
+      "residenceCount": 3,
+      "minimumDisplayedRent": 582,
+      "maximumDisplayedRent": 631,
+      "currency": "EUR",
+      "cityStartingPrice": 500,
+      "availabilityLabel": "Pré-réservation conditionnelle — disponibilité à confirmer",
+      "residenceIds": [
+        "AVI-LOG-FR-0001",
+        "AVI-LOG-FR-0002",
+        "AVI-LOG-FR-0003"
+      ],
+      "residences": [
+        {
+          "id": "AVI-LOG-FR-0001",
+          "internalReference": "AVI-LOG-FR-0001",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "AIX_EN_PROVENCE",
+          "cityLabel": "Aix-en-Provence",
+          "zoneLabel": "Aix-en-Provence",
+          "municipality": "Aix-en-Provence",
+          "postalCode": "13090",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Aix Campus 1",
+          "residenceDisplayName": "Aix Campus 1 — Nemea Appart’Etud",
+          "address": {
+            "line1": "6 rue Jean Andréani",
+            "postalCode": "13090",
+            "city": "Aix-en-Provence",
+            "country": "France",
+            "formattedAddress": "6 rue Jean Andréani, 13090 Aix-en-Provence, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "6 rue Jean Andréani, 13090 Aix-en-Provence, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio",
+            "T1 bis"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 500,
+            "residenceDisplayedRent": 627,
+            "monthlyRentForCertificate": 627,
+            "priceGapWithCityStartingPrice": 127,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/aix-campus-1",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": null
+        },
+        {
+          "id": "AVI-LOG-FR-0002",
+          "internalReference": "AVI-LOG-FR-0002",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "AIX_EN_PROVENCE",
+          "cityLabel": "Aix-en-Provence",
+          "zoneLabel": "Aix-en-Provence",
+          "municipality": "Aix-en-Provence",
+          "postalCode": "13090",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Aix Sainte Victoire",
+          "residenceDisplayName": "Aix Sainte Victoire — Nemea Appart’Etud",
+          "address": {
+            "line1": "684 avenue du Club Hippique",
+            "postalCode": "13090",
+            "city": "Aix-en-Provence",
+            "country": "France",
+            "formattedAddress": "684 avenue du Club Hippique, 13090 Aix-en-Provence, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "684 avenue du Club Hippique, 13090 Aix-en-Provence, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 500,
+            "residenceDisplayedRent": 582,
+            "monthlyRentForCertificate": 582,
+            "priceGapWithCityStartingPrice": 82,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/aix-sainte-victoire",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": null
+        },
+        {
+          "id": "AVI-LOG-FR-0003",
+          "internalReference": "AVI-LOG-FR-0003",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "AIX_EN_PROVENCE",
+          "cityLabel": "Aix-en-Provence",
+          "zoneLabel": "Aix-en-Provence",
+          "municipality": "Aix-en-Provence",
+          "postalCode": "13090",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Aix Campus 2",
+          "residenceDisplayName": "Aix Campus 2 — Nemea Appart’Etud",
+          "address": {
+            "line1": "30 rue Magdeleine Hutin",
+            "postalCode": "13090",
+            "city": "Aix-en-Provence",
+            "country": "France",
+            "formattedAddress": "30 rue Magdeleine Hutin, 13090 Aix-en-Provence, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "30 rue Magdeleine Hutin, 13090 Aix-en-Provence, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio",
+            "T1 bis"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 500,
+            "residenceDisplayedRent": 631,
+            "monthlyRentForCertificate": 631,
+            "priceGapWithCityStartingPrice": 131,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/aix-campus-2",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": null
+        }
+      ]
+    },
+    {
+      "code": "AMIENS",
+      "label": "Amiens",
+      "residenceCount": 2,
+      "minimumDisplayedRent": 535,
+      "maximumDisplayedRent": 546,
+      "currency": "EUR",
+      "cityStartingPrice": 400,
+      "availabilityLabel": "Pré-réservation conditionnelle — disponibilité à confirmer",
+      "residenceIds": [
+        "AVI-LOG-FR-0004",
+        "AVI-LOG-FR-0005"
+      ],
+      "residences": [
+        {
+          "id": "AVI-LOG-FR-0004",
+          "internalReference": "AVI-LOG-FR-0004",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "AMIENS",
+          "cityLabel": "Amiens",
+          "zoneLabel": "Amiens",
+          "municipality": "Amiens",
+          "postalCode": "80000",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Amiens Beffroi",
+          "residenceDisplayName": "Amiens Beffroi — Nemea Appart’Etud",
+          "address": {
+            "line1": "29 rue du Général Leclerc",
+            "postalCode": "80000",
+            "city": "Amiens",
+            "country": "France",
+            "formattedAddress": "29 rue du Général Leclerc, 80000 Amiens, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "29 rue du Général Leclerc, 80000 Amiens, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio",
+            "T1 bis",
+            "T2"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 400,
+            "residenceDisplayedRent": 546,
+            "monthlyRentForCertificate": 546,
+            "priceGapWithCityStartingPrice": 146,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/amiens-beffroi",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": null
+        },
+        {
+          "id": "AVI-LOG-FR-0005",
+          "internalReference": "AVI-LOG-FR-0005",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "AMIENS",
+          "cityLabel": "Amiens",
+          "zoneLabel": "Amiens",
+          "municipality": "Amiens",
+          "postalCode": "80000",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Amiens Coliseum",
+          "residenceDisplayName": "Amiens Coliseum — Nemea Appart’Etud",
+          "address": {
+            "line1": "27 rue Frédéric Petit",
+            "postalCode": "80000",
+            "city": "Amiens",
+            "country": "France",
+            "formattedAddress": "27 rue Frédéric Petit, 80000 Amiens, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "27 rue Frédéric Petit, 80000 Amiens, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 400,
+            "residenceDisplayedRent": 535,
+            "monthlyRentForCertificate": 535,
+            "priceGapWithCityStartingPrice": 135,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/amiens-coliseum",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": null
+        }
+      ]
+    },
+    {
+      "code": "ANTIBES",
+      "label": "Antibes",
+      "residenceCount": 1,
+      "minimumDisplayedRent": 625,
+      "maximumDisplayedRent": 625,
+      "currency": "EUR",
+      "cityStartingPrice": 500,
+      "availabilityLabel": "Pré-réservation conditionnelle — disponibilité à confirmer",
+      "residenceIds": [
+        "AVI-LOG-FR-0006"
+      ],
+      "residences": [
+        {
+          "id": "AVI-LOG-FR-0006",
+          "internalReference": "AVI-LOG-FR-0006",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "ANTIBES",
+          "cityLabel": "Antibes",
+          "zoneLabel": "Antibes",
+          "municipality": "Biot",
+          "postalCode": "06410",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Biot Le Magister",
+          "residenceDisplayName": "Biot Le Magister — Nemea Appart’Etud",
+          "address": {
+            "line1": "75 rue Evariste Galois, Les Lucioles",
+            "postalCode": "06410",
+            "city": "Biot",
+            "country": "France",
+            "formattedAddress": "75 rue Evariste Galois, Les Lucioles, 06410 Biot, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "75 rue Evariste Galois, Les Lucioles, 06410 Biot, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 500,
+            "residenceDisplayedRent": 625,
+            "monthlyRentForCertificate": 625,
+            "priceGapWithCityStartingPrice": 125,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/le-magister",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": "Résidence à Biot / Sophia Antipolis, rattachée ici à la zone SafeHouse « Antibes »."
+        }
+      ]
+    },
+    {
+      "code": "BORDEAUX",
+      "label": "Bordeaux",
+      "residenceCount": 1,
+      "minimumDisplayedRent": 702,
+      "maximumDisplayedRent": 702,
+      "currency": "EUR",
+      "cityStartingPrice": 500,
+      "availabilityLabel": "Pré-réservation conditionnelle — disponibilité à confirmer",
+      "residenceIds": [
+        "AVI-LOG-FR-0031"
+      ],
+      "residences": [
+        {
+          "id": "AVI-LOG-FR-0031",
+          "internalReference": "AVI-LOG-FR-0031",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "BORDEAUX",
+          "cityLabel": "Bordeaux",
+          "zoneLabel": "Bordeaux",
+          "municipality": "Pessac",
+          "postalCode": "33600",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Pessac Campus",
+          "residenceDisplayName": "Pessac Campus — Nemea Appart’Etud",
+          "address": {
+            "line1": "42 avenue du Dr Albert Schweitzer",
+            "postalCode": "33600",
+            "city": "Pessac",
+            "country": "France",
+            "formattedAddress": "42 avenue du Dr Albert Schweitzer, 33600 Pessac, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "42 avenue du Dr Albert Schweitzer, 33600 Pessac, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 500,
+            "residenceDisplayedRent": 702,
+            "monthlyRentForCertificate": 702,
+            "priceGapWithCityStartingPrice": 202,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/pessac-campus",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": "Résidence de Bordeaux Métropole."
+        }
+      ]
+    },
+    {
+      "code": "BREST",
+      "label": "Brest",
+      "residenceCount": 1,
+      "minimumDisplayedRent": 554,
+      "maximumDisplayedRent": 554,
+      "currency": "EUR",
+      "cityStartingPrice": 400,
+      "availabilityLabel": "Pré-réservation conditionnelle — disponibilité à confirmer",
+      "residenceIds": [
+        "AVI-LOG-FR-0007"
+      ],
+      "residences": [
+        {
+          "id": "AVI-LOG-FR-0007",
+          "internalReference": "AVI-LOG-FR-0007",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "BREST",
+          "cityLabel": "Brest",
+          "zoneLabel": "Brest",
+          "municipality": "Brest",
+          "postalCode": "29200",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Brest Kervern",
+          "residenceDisplayName": "Brest Kervern — Nemea Appart’Etud",
+          "address": {
+            "line1": "17 rue Auguste Kervern",
+            "postalCode": "29200",
+            "city": "Brest",
+            "country": "France",
+            "formattedAddress": "17 rue Auguste Kervern, 29200 Brest, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "17 rue Auguste Kervern, 29200 Brest, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio",
+            "T1 bis"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 400,
+            "residenceDisplayedRent": 554,
+            "monthlyRentForCertificate": 554,
+            "priceGapWithCityStartingPrice": 154,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/brest-kervern",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": null
+        }
+      ]
+    },
+    {
+      "code": "CAEN",
+      "label": "Caen",
+      "residenceCount": 3,
+      "minimumDisplayedRent": 564,
+      "maximumDisplayedRent": 598,
+      "currency": "EUR",
+      "cityStartingPrice": 450,
+      "availabilityLabel": "Pré-réservation conditionnelle — disponibilité à confirmer",
+      "residenceIds": [
+        "AVI-LOG-FR-0008",
+        "AVI-LOG-FR-0009",
+        "AVI-LOG-FR-0010"
+      ],
+      "residences": [
+        {
+          "id": "AVI-LOG-FR-0008",
+          "internalReference": "AVI-LOG-FR-0008",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "CAEN",
+          "cityLabel": "Caen",
+          "zoneLabel": "Caen",
+          "municipality": "Caen",
+          "postalCode": "14000",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Caen Stanford",
+          "residenceDisplayName": "Caen Stanford — Nemea Appart’Etud",
+          "address": {
+            "line1": "10 rue Professeur Joseph Rousselot",
+            "postalCode": "14000",
+            "city": "Caen",
+            "country": "France",
+            "formattedAddress": "10 rue Professeur Joseph Rousselot, 14000 Caen, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "10 rue Professeur Joseph Rousselot, 14000 Caen, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio",
+            "T1 bis"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 450,
+            "residenceDisplayedRent": 567,
+            "monthlyRentForCertificate": 567,
+            "priceGapWithCityStartingPrice": 117,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/stanford",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": null
+        },
+        {
+          "id": "AVI-LOG-FR-0009",
+          "internalReference": "AVI-LOG-FR-0009",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "CAEN",
+          "cityLabel": "Caen",
+          "zoneLabel": "Caen",
+          "municipality": "Caen",
+          "postalCode": "14000",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Caen Beaumois",
+          "residenceDisplayName": "Caen Beaumois — Nemea Appart’Etud",
+          "address": {
+            "line1": "26-28 rue du Clos Beaumois",
+            "postalCode": "14000",
+            "city": "Caen",
+            "country": "France",
+            "formattedAddress": "26-28 rue du Clos Beaumois, 14000 Caen, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "26-28 rue du Clos Beaumois, 14000 Caen, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio",
+            "T1 bis",
+            "T2"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 450,
+            "residenceDisplayedRent": 564,
+            "monthlyRentForCertificate": 564,
+            "priceGapWithCityStartingPrice": 114,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/caen-beaumois",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": null
+        },
+        {
+          "id": "AVI-LOG-FR-0010",
+          "internalReference": "AVI-LOG-FR-0010",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "CAEN",
+          "cityLabel": "Caen",
+          "zoneLabel": "Caen",
+          "municipality": "Caen",
+          "postalCode": "14000",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Caen Campus 1",
+          "residenceDisplayName": "Caen Campus 1 — Nemea Appart’Etud",
+          "address": {
+            "line1": "111 rue de la Délivrande",
+            "postalCode": "14000",
+            "city": "Caen",
+            "country": "France",
+            "formattedAddress": "111 rue de la Délivrande, 14000 Caen, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "111 rue de la Délivrande, 14000 Caen, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio",
+            "T1 bis"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 450,
+            "residenceDisplayedRent": 598,
+            "monthlyRentForCertificate": 598,
+            "priceGapWithCityStartingPrice": 148,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/caen-campus-1",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": null
+        }
+      ]
+    },
+    {
+      "code": "CLERMONT_FERRAND",
+      "label": "Clermont-Ferrand",
+      "residenceCount": 1,
+      "minimumDisplayedRent": 524,
+      "maximumDisplayedRent": 524,
+      "currency": "EUR",
+      "cityStartingPrice": 350,
+      "availabilityLabel": "Pré-réservation conditionnelle — disponibilité à confirmer",
+      "residenceIds": [
+        "AVI-LOG-FR-0012"
+      ],
+      "residences": [
+        {
+          "id": "AVI-LOG-FR-0012",
+          "internalReference": "AVI-LOG-FR-0012",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "CLERMONT_FERRAND",
+          "cityLabel": "Clermont-Ferrand",
+          "zoneLabel": "Clermont-Ferrand",
+          "municipality": "Clermont-Ferrand",
+          "postalCode": "63000",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Clermont Centre",
+          "residenceDisplayName": "Clermont Centre — Nemea Appart’Etud",
+          "address": {
+            "line1": "45 rue Saint-Dominique",
+            "postalCode": "63000",
+            "city": "Clermont-Ferrand",
+            "country": "France",
+            "formattedAddress": "45 rue Saint-Dominique, 63000 Clermont-Ferrand, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "45 rue Saint-Dominique, 63000 Clermont-Ferrand, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio",
+            "T1 bis"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 350,
+            "residenceDisplayedRent": 524,
+            "monthlyRentForCertificate": 524,
+            "priceGapWithCityStartingPrice": 174,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/clermont-centre",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": null
+        }
+      ]
+    },
+    {
+      "code": "GRENOBLE",
+      "label": "Grenoble",
+      "residenceCount": 1,
+      "minimumDisplayedRent": 584,
+      "maximumDisplayedRent": 584,
+      "currency": "EUR",
+      "cityStartingPrice": 400,
+      "availabilityLabel": "Pré-réservation conditionnelle — disponibilité à confirmer",
+      "residenceIds": [
+        "AVI-LOG-FR-0017"
+      ],
+      "residences": [
+        {
+          "id": "AVI-LOG-FR-0017",
+          "internalReference": "AVI-LOG-FR-0017",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "GRENOBLE",
+          "cityLabel": "Grenoble",
+          "zoneLabel": "Grenoble",
+          "municipality": "Gières",
+          "postalCode": "38610",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Gières Campus",
+          "residenceDisplayName": "Gières Campus — Nemea Appart’Etud",
+          "address": {
+            "line1": "10 rue des Condamines",
+            "postalCode": "38610",
+            "city": "Gières",
+            "country": "France",
+            "formattedAddress": "10 rue des Condamines, 38610 Gières, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "10 rue des Condamines, 38610 Gières, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio",
+            "T1 bis",
+            "T2"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 400,
+            "residenceDisplayedRent": 584,
+            "monthlyRentForCertificate": 584,
+            "priceGapWithCityStartingPrice": 184,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/gieres-campus",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": "Résidence de l’agglomération grenobloise."
+        }
+      ]
+    },
+    {
+      "code": "HORS_LISTE_INITIALE_SAFEHOUSE",
+      "label": "Hors liste initiale SafeHouse",
+      "residenceCount": 1,
+      "minimumDisplayedRent": 528,
+      "maximumDisplayedRent": 528,
+      "currency": "EUR",
+      "cityStartingPrice": null,
+      "availabilityLabel": "Pré-réservation conditionnelle — disponibilité à confirmer",
+      "residenceIds": [
+        "AVI-LOG-FR-0016"
+      ],
+      "residences": [
+        {
+          "id": "AVI-LOG-FR-0016",
+          "internalReference": "AVI-LOG-FR-0016",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "HORS_LISTE_INITIALE_SAFEHOUSE",
+          "cityLabel": "Hors liste initiale SafeHouse",
+          "zoneLabel": "Hors liste initiale SafeHouse",
+          "municipality": "Dijon",
+          "postalCode": "21000",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Dijon Eiffel",
+          "residenceDisplayName": "Dijon Eiffel — Nemea Appart’Etud",
+          "address": {
+            "line1": "8-12 rue Chanoine Vinceneux",
+            "postalCode": "21000",
+            "city": "Dijon",
+            "country": "France",
+            "formattedAddress": "8-12 rue Chanoine Vinceneux, 21000 Dijon, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "8-12 rue Chanoine Vinceneux, 21000 Dijon, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio",
+            "T1 bis",
+            "T2"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": null,
+            "residenceDisplayedRent": 528,
+            "monthlyRentForCertificate": 528,
+            "priceGapWithCityStartingPrice": null,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/dijon-eiffel",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": "Résidence figurant dans l’inventaire Nemea, mais Dijon n’apparaissait pas dans la liste SafeHouse transmise."
+        }
+      ]
+    },
+    {
+      "code": "LA_ROCHELLE",
+      "label": "La Rochelle",
+      "residenceCount": 1,
+      "minimumDisplayedRent": 475,
+      "maximumDisplayedRent": 475,
+      "currency": "EUR",
+      "cityStartingPrice": 500,
+      "availabilityLabel": "Pré-réservation conditionnelle — disponibilité à confirmer",
+      "residenceIds": [
+        "AVI-LOG-FR-0019"
+      ],
+      "residences": [
+        {
+          "id": "AVI-LOG-FR-0019",
+          "internalReference": "AVI-LOG-FR-0019",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "LA_ROCHELLE",
+          "cityLabel": "La Rochelle",
+          "zoneLabel": "La Rochelle",
+          "municipality": "La Rochelle",
+          "postalCode": "17000",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "La Rochelle Stud’Marine",
+          "residenceDisplayName": "La Rochelle Stud’Marine — Nemea Appart’Etud",
+          "address": {
+            "line1": "17 rue Alexander Fleming",
+            "postalCode": "17000",
+            "city": "La Rochelle",
+            "country": "France",
+            "formattedAddress": "17 rue Alexander Fleming, 17000 La Rochelle, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "17 rue Alexander Fleming, 17000 La Rochelle, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio",
+            "T2",
+            "T2/4",
+            "T3",
+            "T3/6",
+            "T4",
+            "T4/8"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 500,
+            "residenceDisplayedRent": 475,
+            "monthlyRentForCertificate": 475,
+            "priceGapWithCityStartingPrice": -25,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/stud-marine",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": null
+        }
+      ]
+    },
+    {
+      "code": "LILLE",
+      "label": "Lille",
+      "residenceCount": 4,
+      "minimumDisplayedRent": 525,
+      "maximumDisplayedRent": 645,
+      "currency": "EUR",
+      "cityStartingPrice": 450,
+      "availabilityLabel": "Pré-réservation conditionnelle — disponibilité à confirmer",
+      "residenceIds": [
+        "AVI-LOG-FR-0020",
+        "AVI-LOG-FR-0033",
+        "AVI-LOG-FR-0039",
+        "AVI-LOG-FR-0040"
+      ],
+      "residences": [
+        {
+          "id": "AVI-LOG-FR-0020",
+          "internalReference": "AVI-LOG-FR-0020",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "LILLE",
+          "cityLabel": "Lille",
+          "zoneLabel": "Lille",
+          "municipality": "Loos-lez-Lille",
+          "postalCode": "59120",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Lille Eurasanté",
+          "residenceDisplayName": "Lille Eurasanté — Nemea Appart’Etud",
+          "address": {
+            "line1": "16 place Albert Tacquet",
+            "postalCode": "59120",
+            "city": "Loos-lez-Lille",
+            "country": "France",
+            "formattedAddress": "16 place Albert Tacquet, 59120 Loos-lez-Lille, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "16 place Albert Tacquet, 59120 Loos-lez-Lille, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio",
+            "T1 bis"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 450,
+            "residenceDisplayedRent": 614,
+            "monthlyRentForCertificate": 614,
+            "priceGapWithCityStartingPrice": 164,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/eurasante",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": "Résidence de la métropole lilloise."
+        },
+        {
+          "id": "AVI-LOG-FR-0033",
+          "internalReference": "AVI-LOG-FR-0033",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "LILLE",
+          "cityLabel": "Lille",
+          "zoneLabel": "Lille",
+          "municipality": "Roubaix",
+          "postalCode": "59100",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Roubaix Eurotéléport",
+          "residenceDisplayName": "Roubaix Eurotéléport — Nemea Appart’Etud",
+          "address": {
+            "line1": "23 boulevard Gambetta",
+            "postalCode": "59100",
+            "city": "Roubaix",
+            "country": "France",
+            "formattedAddress": "23 boulevard Gambetta, 59100 Roubaix, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "23 boulevard Gambetta, 59100 Roubaix, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio",
+            "T1 bis",
+            "T2"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 450,
+            "residenceDisplayedRent": 525,
+            "monthlyRentForCertificate": 525,
+            "priceGapWithCityStartingPrice": 75,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/roubaix-euroteleport",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": "Résidence de la métropole lilloise."
+        },
+        {
+          "id": "AVI-LOG-FR-0039",
+          "internalReference": "AVI-LOG-FR-0039",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "LILLE",
+          "cityLabel": "Lille",
+          "zoneLabel": "Lille",
+          "municipality": "Villeneuve-d’Ascq",
+          "postalCode": "59650",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Villeneuve Métropole",
+          "residenceDisplayName": "Villeneuve Métropole — Nemea Appart’Etud",
+          "address": {
+            "line1": "20 place Salvadore Allende",
+            "postalCode": "59650",
+            "city": "Villeneuve-d’Ascq",
+            "country": "France",
+            "formattedAddress": "20 place Salvadore Allende, 59650 Villeneuve-d’Ascq, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "20 place Salvadore Allende, 59650 Villeneuve-d’Ascq, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio",
+            "T1 bis"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 450,
+            "residenceDisplayedRent": 632,
+            "monthlyRentForCertificate": 632,
+            "priceGapWithCityStartingPrice": 182,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/villeneuve-metropole",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": "Résidence de la métropole lilloise ; orthographe de l’adresse reprise de la fiche officielle."
+        },
+        {
+          "id": "AVI-LOG-FR-0040",
+          "internalReference": "AVI-LOG-FR-0040",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "LILLE",
+          "cityLabel": "Lille",
+          "zoneLabel": "Lille",
+          "municipality": "Villeneuve-d’Ascq",
+          "postalCode": "59650",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Villeneuve Pont de Bois",
+          "residenceDisplayName": "Villeneuve Pont de Bois — Nemea Appart’Etud",
+          "address": {
+            "line1": "80 boulevard de l’Ouest",
+            "postalCode": "59650",
+            "city": "Villeneuve-d’Ascq",
+            "country": "France",
+            "formattedAddress": "80 boulevard de l’Ouest, 59650 Villeneuve-d’Ascq, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "80 boulevard de l’Ouest, 59650 Villeneuve-d’Ascq, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio",
+            "T1 bis",
+            "T2"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 450,
+            "residenceDisplayedRent": 645,
+            "monthlyRentForCertificate": 645,
+            "priceGapWithCityStartingPrice": 195,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/villeneuve-pont-de-bois",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": "Résidence de la métropole lilloise."
+        }
+      ]
+    },
+    {
+      "code": "LYON",
+      "label": "Lyon",
+      "residenceCount": 3,
+      "minimumDisplayedRent": 588,
+      "maximumDisplayedRent": 609,
+      "currency": "EUR",
+      "cityStartingPrice": 480,
+      "availabilityLabel": "Pré-réservation conditionnelle — disponibilité à confirmer",
+      "residenceIds": [
+        "AVI-LOG-FR-0021",
+        "AVI-LOG-FR-0041",
+        "AVI-LOG-FR-0042"
+      ],
+      "residences": [
+        {
+          "id": "AVI-LOG-FR-0021",
+          "internalReference": "AVI-LOG-FR-0021",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "LYON",
+          "cityLabel": "Lyon",
+          "zoneLabel": "Lyon",
+          "municipality": "Lyon",
+          "postalCode": "69008",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Lyon 8",
+          "residenceDisplayName": "Lyon 8 — Nemea Appart’Etud",
+          "address": {
+            "line1": "218 boulevard Pinel",
+            "postalCode": "69008",
+            "city": "Lyon",
+            "country": "France",
+            "formattedAddress": "218 boulevard Pinel, 69008 Lyon, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "218 boulevard Pinel, 69008 Lyon, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio",
+            "T2"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 480,
+            "residenceDisplayedRent": 593,
+            "monthlyRentForCertificate": 593,
+            "priceGapWithCityStartingPrice": 113,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/lyon-8",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": null
+        },
+        {
+          "id": "AVI-LOG-FR-0041",
+          "internalReference": "AVI-LOG-FR-0041",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "LYON",
+          "cityLabel": "Lyon",
+          "zoneLabel": "Lyon",
+          "municipality": "Villeurbanne",
+          "postalCode": "69100",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Villeurbanne Thésée",
+          "residenceDisplayName": "Villeurbanne Thésée — Nemea Appart’Etud",
+          "address": {
+            "line1": "30-32 rue Jules Vallès",
+            "postalCode": "69100",
+            "city": "Villeurbanne",
+            "country": "France",
+            "formattedAddress": "30-32 rue Jules Vallès, 69100 Villeurbanne, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "30-32 rue Jules Vallès, 69100 Villeurbanne, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 480,
+            "residenceDisplayedRent": 588,
+            "monthlyRentForCertificate": 588,
+            "priceGapWithCityStartingPrice": 108,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/thesee",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": "Résidence de la Métropole de Lyon."
+        },
+        {
+          "id": "AVI-LOG-FR-0042",
+          "internalReference": "AVI-LOG-FR-0042",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "LYON",
+          "cityLabel": "Lyon",
+          "zoneLabel": "Lyon",
+          "municipality": "Villeurbanne",
+          "postalCode": "69100",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Villeurbanne Villenciel",
+          "residenceDisplayName": "Villeurbanne Villenciel — Nemea Appart’Etud",
+          "address": {
+            "line1": "35 rue du Docteur Rollet",
+            "postalCode": "69100",
+            "city": "Villeurbanne",
+            "country": "France",
+            "formattedAddress": "35 rue du Docteur Rollet, 69100 Villeurbanne, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "35 rue du Docteur Rollet, 69100 Villeurbanne, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 480,
+            "residenceDisplayedRent": 609,
+            "monthlyRentForCertificate": 609,
+            "priceGapWithCityStartingPrice": 129,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/villeurbanne-villenciel",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": "Résidence de la Métropole de Lyon."
+        }
+      ]
+    },
+    {
+      "code": "MONTPELLIER",
+      "label": "Montpellier",
+      "residenceCount": 5,
+      "minimumDisplayedRent": 646,
+      "maximumDisplayedRent": 684,
+      "currency": "EUR",
+      "cityStartingPrice": 450,
+      "availabilityLabel": "Pré-réservation conditionnelle — disponibilité à confirmer",
+      "residenceIds": [
+        "AVI-LOG-FR-0022",
+        "AVI-LOG-FR-0023",
+        "AVI-LOG-FR-0024",
+        "AVI-LOG-FR-0025",
+        "AVI-LOG-FR-0026"
+      ],
+      "residences": [
+        {
+          "id": "AVI-LOG-FR-0022",
+          "internalReference": "AVI-LOG-FR-0022",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "MONTPELLIER",
+          "cityLabel": "Montpellier",
+          "zoneLabel": "Montpellier",
+          "municipality": "Montpellier",
+          "postalCode": "34000",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Montpellier Carré du Roi",
+          "residenceDisplayName": "Montpellier Carré du Roi — Nemea Appart’Etud",
+          "address": {
+            "line1": "2 bis rue Gerhardt",
+            "postalCode": "34000",
+            "city": "Montpellier",
+            "country": "France",
+            "formattedAddress": "2 bis rue Gerhardt, 34000 Montpellier, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "2 bis rue Gerhardt, 34000 Montpellier, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio",
+            "T1 bis"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 450,
+            "residenceDisplayedRent": 646,
+            "monthlyRentForCertificate": 646,
+            "priceGapWithCityStartingPrice": 196,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/montpellier-carre-du-roi",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": null
+        },
+        {
+          "id": "AVI-LOG-FR-0023",
+          "internalReference": "AVI-LOG-FR-0023",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "MONTPELLIER",
+          "cityLabel": "Montpellier",
+          "zoneLabel": "Montpellier",
+          "municipality": "Montpellier",
+          "postalCode": "34000",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Montpellier Beaux-Arts",
+          "residenceDisplayName": "Montpellier Beaux-Arts — Nemea Appart’Etud",
+          "address": {
+            "line1": "9 avenue Saint-Lazare",
+            "postalCode": "34000",
+            "city": "Montpellier",
+            "country": "France",
+            "formattedAddress": "9 avenue Saint-Lazare, 34000 Montpellier, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "9 avenue Saint-Lazare, 34000 Montpellier, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio",
+            "T1 bis",
+            "T2"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 450,
+            "residenceDisplayedRent": 652,
+            "monthlyRentForCertificate": 652,
+            "priceGapWithCityStartingPrice": 202,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/montpellier-beaux-arts",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": null
+        },
+        {
+          "id": "AVI-LOG-FR-0024",
+          "internalReference": "AVI-LOG-FR-0024",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "MONTPELLIER",
+          "cityLabel": "Montpellier",
+          "zoneLabel": "Montpellier",
+          "municipality": "Montpellier",
+          "postalCode": "34000",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Montpellier Mondial 98",
+          "residenceDisplayName": "Montpellier Mondial 98 — Nemea Appart’Etud",
+          "address": {
+            "line1": "600 avenue Mondial 98",
+            "postalCode": "34000",
+            "city": "Montpellier",
+            "country": "France",
+            "formattedAddress": "600 avenue Mondial 98, 34000 Montpellier, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "600 avenue Mondial 98, 34000 Montpellier, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio",
+            "T1 bis"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 450,
+            "residenceDisplayedRent": 652,
+            "monthlyRentForCertificate": 652,
+            "priceGapWithCityStartingPrice": 202,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/montpellier-mondial-98",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": null
+        },
+        {
+          "id": "AVI-LOG-FR-0025",
+          "internalReference": "AVI-LOG-FR-0025",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "MONTPELLIER",
+          "cityLabel": "Montpellier",
+          "zoneLabel": "Montpellier",
+          "municipality": "Montpellier",
+          "postalCode": "34090",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Montpellier Paul Valéry",
+          "residenceDisplayName": "Montpellier Paul Valéry — Nemea Appart’Etud",
+          "address": {
+            "line1": "206 rue du Triolet",
+            "postalCode": "34090",
+            "city": "Montpellier",
+            "country": "France",
+            "formattedAddress": "206 rue du Triolet, 34090 Montpellier, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "206 rue du Triolet, 34090 Montpellier, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio",
+            "T1 bis"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 450,
+            "residenceDisplayedRent": 684,
+            "monthlyRentForCertificate": 684,
+            "priceGapWithCityStartingPrice": 234,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/montpellier-paul-valery",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": null
+        },
+        {
+          "id": "AVI-LOG-FR-0026",
+          "internalReference": "AVI-LOG-FR-0026",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "MONTPELLIER",
+          "cityLabel": "Montpellier",
+          "zoneLabel": "Montpellier",
+          "municipality": "Montpellier",
+          "postalCode": "34000",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Montpellier Comédie",
+          "residenceDisplayName": "Montpellier Comédie — Nemea Appart’Etud",
+          "address": {
+            "line1": "2 rue Du Guesclin",
+            "postalCode": "34000",
+            "city": "Montpellier",
+            "country": "France",
+            "formattedAddress": "2 rue Du Guesclin, 34000 Montpellier, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "2 rue Du Guesclin, 34000 Montpellier, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 450,
+            "residenceDisplayedRent": 674,
+            "monthlyRentForCertificate": 674,
+            "priceGapWithCityStartingPrice": 224,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/montpellier-comedie",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": null
+        }
+      ]
+    },
+    {
+      "code": "NANCY",
+      "label": "Nancy",
+      "residenceCount": 1,
+      "minimumDisplayedRent": 560,
+      "maximumDisplayedRent": 560,
+      "currency": "EUR",
+      "cityStartingPrice": 400,
+      "availabilityLabel": "Pré-réservation conditionnelle — disponibilité à confirmer",
+      "residenceIds": [
+        "AVI-LOG-FR-0027"
+      ],
+      "residences": [
+        {
+          "id": "AVI-LOG-FR-0027",
+          "internalReference": "AVI-LOG-FR-0027",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "NANCY",
+          "cityLabel": "Nancy",
+          "zoneLabel": "Nancy",
+          "municipality": "Nancy",
+          "postalCode": "54000",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Nancy Campus",
+          "residenceDisplayName": "Nancy Campus — Nemea Appart’Etud",
+          "address": {
+            "line1": "28 boulevard du 21ème Régiment d’Aviation",
+            "postalCode": "54000",
+            "city": "Nancy",
+            "country": "France",
+            "formattedAddress": "28 boulevard du 21ème Régiment d’Aviation, 54000 Nancy, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "28 boulevard du 21ème Régiment d’Aviation, 54000 Nancy, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio",
+            "T1 bis",
+            "T2"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 400,
+            "residenceDisplayedRent": 560,
+            "monthlyRentForCertificate": 560,
+            "priceGapWithCityStartingPrice": 160,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/nancy-campus",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": null
+        }
+      ]
+    },
+    {
+      "code": "NANTES",
+      "label": "Nantes",
+      "residenceCount": 1,
+      "minimumDisplayedRent": 549,
+      "maximumDisplayedRent": 549,
+      "currency": "EUR",
+      "cityStartingPrice": 450,
+      "availabilityLabel": "Pré-réservation conditionnelle — disponibilité à confirmer",
+      "residenceIds": [
+        "AVI-LOG-FR-0029"
+      ],
+      "residences": [
+        {
+          "id": "AVI-LOG-FR-0029",
+          "internalReference": "AVI-LOG-FR-0029",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "NANTES",
+          "cityLabel": "Nantes",
+          "zoneLabel": "Nantes",
+          "municipality": "Nantes",
+          "postalCode": "44200",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Nantes Montecristo",
+          "residenceDisplayName": "Nantes Montecristo — Nemea Appart’Etud",
+          "address": {
+            "line1": "8 place François II",
+            "postalCode": "44200",
+            "city": "Nantes",
+            "country": "France",
+            "formattedAddress": "8 place François II, 44200 Nantes, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "8 place François II, 44200 Nantes, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio",
+            "T1 bis",
+            "T2"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 450,
+            "residenceDisplayedRent": 549,
+            "monthlyRentForCertificate": 549,
+            "priceGapWithCityStartingPrice": 99,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/montecristo",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": null
+        }
+      ]
+    },
+    {
+      "code": "NICE",
+      "label": "Nice",
+      "residenceCount": 1,
+      "minimumDisplayedRent": 630,
+      "maximumDisplayedRent": 630,
+      "currency": "EUR",
+      "cityStartingPrice": 550,
+      "availabilityLabel": "Pré-réservation conditionnelle — disponibilité à confirmer",
+      "residenceIds": [
+        "AVI-LOG-FR-0030"
+      ],
+      "residences": [
+        {
+          "id": "AVI-LOG-FR-0030",
+          "internalReference": "AVI-LOG-FR-0030",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "NICE",
+          "cityLabel": "Nice",
+          "zoneLabel": "Nice",
+          "municipality": "Nice",
+          "postalCode": "06200",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Nice Campus",
+          "residenceDisplayName": "Nice Campus — Nemea Appart’Etud",
+          "address": {
+            "line1": "3 rue Maurice Mignon",
+            "postalCode": "06200",
+            "city": "Nice",
+            "country": "France",
+            "formattedAddress": "3 rue Maurice Mignon, 06200 Nice, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "3 rue Maurice Mignon, 06200 Nice, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio",
+            "T1 bis",
+            "T2"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 550,
+            "residenceDisplayedRent": 630,
+            "monthlyRentForCertificate": 630,
+            "priceGapWithCityStartingPrice": 80,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/nice-campus",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": "Nouvelle résidence annoncée avec ouverture en 2026."
+        }
+      ]
+    },
+    {
+      "code": "PARIS_BANLIEUE",
+      "label": "Paris banlieue",
+      "residenceCount": 5,
+      "minimumDisplayedRent": 760,
+      "maximumDisplayedRent": 888,
+      "currency": "EUR",
+      "cityStartingPrice": 500,
+      "availabilityLabel": "Pré-réservation conditionnelle — disponibilité à confirmer",
+      "residenceIds": [
+        "AVI-LOG-FR-0011",
+        "AVI-LOG-FR-0013",
+        "AVI-LOG-FR-0014",
+        "AVI-LOG-FR-0015",
+        "AVI-LOG-FR-0028"
+      ],
+      "residences": [
+        {
+          "id": "AVI-LOG-FR-0011",
+          "internalReference": "AVI-LOG-FR-0011",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "PARIS_BANLIEUE",
+          "cityLabel": "Paris banlieue",
+          "zoneLabel": "Paris banlieue",
+          "municipality": "Clamart",
+          "postalCode": "92140",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Clamart Campus",
+          "residenceDisplayName": "Clamart Campus — Nemea Appart’Etud",
+          "address": {
+            "line1": "8 boulevard des Frères Vigouroux",
+            "postalCode": "92140",
+            "city": "Clamart",
+            "country": "France",
+            "formattedAddress": "8 boulevard des Frères Vigouroux, 92140 Clamart, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "8 boulevard des Frères Vigouroux, 92140 Clamart, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio",
+            "T1 bis"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 500,
+            "residenceDisplayedRent": 802,
+            "monthlyRentForCertificate": 802,
+            "priceGapWithCityStartingPrice": 302,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/clamart",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": null
+        },
+        {
+          "id": "AVI-LOG-FR-0013",
+          "internalReference": "AVI-LOG-FR-0013",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "PARIS_BANLIEUE",
+          "cityLabel": "Paris banlieue",
+          "zoneLabel": "Paris banlieue",
+          "municipality": "Clichy",
+          "postalCode": "92110",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Paris Clichy",
+          "residenceDisplayName": "Paris Clichy — Nemea Appart’Etud",
+          "address": {
+            "line1": "8-16 rue du 19 mars 1962",
+            "postalCode": "92110",
+            "city": "Clichy",
+            "country": "France",
+            "formattedAddress": "8-16 rue du 19 mars 1962, 92110 Clichy, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "8-16 rue du 19 mars 1962, 92110 Clichy, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio",
+            "T1 bis",
+            "T2/4"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 500,
+            "residenceDisplayedRent": 834,
+            "monthlyRentForCertificate": 834,
+            "priceGapWithCityStartingPrice": 334,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/paris-clichy",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": null
+        },
+        {
+          "id": "AVI-LOG-FR-0014",
+          "internalReference": "AVI-LOG-FR-0014",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "PARIS_BANLIEUE",
+          "cityLabel": "Paris banlieue",
+          "zoneLabel": "Paris banlieue",
+          "municipality": "Créteil",
+          "postalCode": "94000",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Créteil Campus 1",
+          "residenceDisplayName": "Créteil Campus 1 — Nemea Appart’Etud",
+          "address": {
+            "line1": "17-27 chemin des Mèches",
+            "postalCode": "94000",
+            "city": "Créteil",
+            "country": "France",
+            "formattedAddress": "17-27 chemin des Mèches, 94000 Créteil, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "17-27 chemin des Mèches, 94000 Créteil, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio",
+            "T1 bis"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 500,
+            "residenceDisplayedRent": 760,
+            "monthlyRentForCertificate": 760,
+            "priceGapWithCityStartingPrice": 260,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/creteil-campus",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": null
+        },
+        {
+          "id": "AVI-LOG-FR-0015",
+          "internalReference": "AVI-LOG-FR-0015",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "PARIS_BANLIEUE",
+          "cityLabel": "Paris banlieue",
+          "zoneLabel": "Paris banlieue",
+          "municipality": "Créteil",
+          "postalCode": "94000",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Créteil Campus 2",
+          "residenceDisplayName": "Créteil Campus 2 — Nemea Appart’Etud",
+          "address": {
+            "line1": "25-37 rue Jean Hémard",
+            "postalCode": "94000",
+            "city": "Créteil",
+            "country": "France",
+            "formattedAddress": "25-37 rue Jean Hémard, 94000 Créteil, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "25-37 rue Jean Hémard, 94000 Créteil, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio",
+            "T1 bis"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 500,
+            "residenceDisplayedRent": 760,
+            "monthlyRentForCertificate": 760,
+            "priceGapWithCityStartingPrice": 260,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/creteil-campus-2",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": null
+        },
+        {
+          "id": "AVI-LOG-FR-0028",
+          "internalReference": "AVI-LOG-FR-0028",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "PARIS_BANLIEUE",
+          "cityLabel": "Paris banlieue",
+          "zoneLabel": "Paris banlieue",
+          "municipality": "Nanterre",
+          "postalCode": "92000",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Nanterre Campus",
+          "residenceDisplayName": "Nanterre Campus — Nemea Appart’Etud",
+          "address": {
+            "line1": "14 rue Anatole France",
+            "postalCode": "92000",
+            "city": "Nanterre",
+            "country": "France",
+            "formattedAddress": "14 rue Anatole France, 92000 Nanterre, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "14 rue Anatole France, 92000 Nanterre, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio",
+            "T1 bis"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 500,
+            "residenceDisplayedRent": 888,
+            "monthlyRentForCertificate": 888,
+            "priceGapWithCityStartingPrice": 388,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/nanterre-campus",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": null
+        }
+      ]
+    },
+    {
+      "code": "RENNES",
+      "label": "Rennes",
+      "residenceCount": 1,
+      "minimumDisplayedRent": 610,
+      "maximumDisplayedRent": 610,
+      "currency": "EUR",
+      "cityStartingPrice": 450,
+      "availabilityLabel": "Pré-réservation conditionnelle — disponibilité à confirmer",
+      "residenceIds": [
+        "AVI-LOG-FR-0032"
+      ],
+      "residences": [
+        {
+          "id": "AVI-LOG-FR-0032",
+          "internalReference": "AVI-LOG-FR-0032",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "RENNES",
+          "cityLabel": "Rennes",
+          "zoneLabel": "Rennes",
+          "municipality": "Rennes",
+          "postalCode": "35000",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Rennes Villejean",
+          "residenceDisplayName": "Rennes Villejean — Nemea Appart’Etud",
+          "address": {
+            "line1": "4 rue d’Alsace",
+            "postalCode": "35000",
+            "city": "Rennes",
+            "country": "France",
+            "formattedAddress": "4 rue d’Alsace, 35000 Rennes, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "4 rue d’Alsace, 35000 Rennes, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 450,
+            "residenceDisplayedRent": 610,
+            "monthlyRentForCertificate": 610,
+            "priceGapWithCityStartingPrice": 160,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/rennes-villejean",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": null
+        }
+      ]
+    },
+    {
+      "code": "ROUEN",
+      "label": "Rouen",
+      "residenceCount": 1,
+      "minimumDisplayedRent": 531,
+      "maximumDisplayedRent": 531,
+      "currency": "EUR",
+      "cityStartingPrice": 400,
+      "availabilityLabel": "Pré-réservation conditionnelle — disponibilité à confirmer",
+      "residenceIds": [
+        "AVI-LOG-FR-0034"
+      ],
+      "residences": [
+        {
+          "id": "AVI-LOG-FR-0034",
+          "internalReference": "AVI-LOG-FR-0034",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "ROUEN",
+          "cityLabel": "Rouen",
+          "zoneLabel": "Rouen",
+          "municipality": "Rouen",
+          "postalCode": "76000",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Rouen Constantine",
+          "residenceDisplayName": "Rouen Constantine — Nemea Appart’Etud",
+          "address": {
+            "line1": "158 rue Constantine",
+            "postalCode": "76000",
+            "city": "Rouen",
+            "country": "France",
+            "formattedAddress": "158 rue Constantine, 76000 Rouen, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "158 rue Constantine, 76000 Rouen, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio",
+            "T1 bis",
+            "T2"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 400,
+            "residenceDisplayedRent": 531,
+            "monthlyRentForCertificate": 531,
+            "priceGapWithCityStartingPrice": 131,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/rouen-constantine",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": null
+        }
+      ]
+    },
+    {
+      "code": "STRASBOURG",
+      "label": "Strasbourg",
+      "residenceCount": 3,
+      "minimumDisplayedRent": 555,
+      "maximumDisplayedRent": 617,
+      "currency": "EUR",
+      "cityStartingPrice": 550,
+      "availabilityLabel": "Pré-réservation conditionnelle — disponibilité à confirmer",
+      "residenceIds": [
+        "AVI-LOG-FR-0018",
+        "AVI-LOG-FR-0035",
+        "AVI-LOG-FR-0036"
+      ],
+      "residences": [
+        {
+          "id": "AVI-LOG-FR-0018",
+          "internalReference": "AVI-LOG-FR-0018",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "STRASBOURG",
+          "cityLabel": "Strasbourg",
+          "zoneLabel": "Strasbourg",
+          "municipality": "Illkirch-Graffenstaden",
+          "postalCode": "67400",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Illkirch Cœur Europe",
+          "residenceDisplayName": "Illkirch Cœur Europe — Nemea Appart’Etud",
+          "address": {
+            "line1": "15 B rue de l’Industrie",
+            "postalCode": "67400",
+            "city": "Illkirch-Graffenstaden",
+            "country": "France",
+            "formattedAddress": "15 B rue de l’Industrie, 67400 Illkirch-Graffenstaden, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "15 B rue de l’Industrie, 67400 Illkirch-Graffenstaden, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 550,
+            "residenceDisplayedRent": 555,
+            "monthlyRentForCertificate": 555,
+            "priceGapWithCityStartingPrice": 5,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/coeur-europe",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": "Résidence de l’Eurométropole de Strasbourg."
+        },
+        {
+          "id": "AVI-LOG-FR-0035",
+          "internalReference": "AVI-LOG-FR-0035",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "STRASBOURG",
+          "cityLabel": "Strasbourg",
+          "zoneLabel": "Strasbourg",
+          "municipality": "Strasbourg",
+          "postalCode": "67000",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Strasbourg Meinau",
+          "residenceDisplayName": "Strasbourg Meinau — Nemea Appart’Etud",
+          "address": {
+            "line1": "208 avenue de Colmar",
+            "postalCode": "67000",
+            "city": "Strasbourg",
+            "country": "France",
+            "formattedAddress": "208 avenue de Colmar, 67000 Strasbourg, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "208 avenue de Colmar, 67000 Strasbourg, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 550,
+            "residenceDisplayedRent": 603,
+            "monthlyRentForCertificate": 603,
+            "priceGapWithCityStartingPrice": 53,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/strasbourg-meinau",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": null
+        },
+        {
+          "id": "AVI-LOG-FR-0036",
+          "internalReference": "AVI-LOG-FR-0036",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "STRASBOURG",
+          "cityLabel": "Strasbourg",
+          "zoneLabel": "Strasbourg",
+          "municipality": "Strasbourg",
+          "postalCode": "67100",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Strasbourg Elypseo",
+          "residenceDisplayName": "Strasbourg Elypseo — Nemea Appart’Etud",
+          "address": {
+            "line1": "45 avenue du Rhin",
+            "postalCode": "67100",
+            "city": "Strasbourg",
+            "country": "France",
+            "formattedAddress": "45 avenue du Rhin, 67100 Strasbourg, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "45 avenue du Rhin, 67100 Strasbourg, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 550,
+            "residenceDisplayedRent": 617,
+            "monthlyRentForCertificate": 617,
+            "priceGapWithCityStartingPrice": 67,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/strasbourg-elypseo",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": null
+        }
+      ]
+    },
+    {
+      "code": "TOULOUSE",
+      "label": "Toulouse",
+      "residenceCount": 2,
+      "minimumDisplayedRent": 620,
+      "maximumDisplayedRent": 650,
+      "currency": "EUR",
+      "cityStartingPrice": 450,
+      "availabilityLabel": "Pré-réservation conditionnelle — disponibilité à confirmer",
+      "residenceIds": [
+        "AVI-LOG-FR-0037",
+        "AVI-LOG-FR-0038"
+      ],
+      "residences": [
+        {
+          "id": "AVI-LOG-FR-0037",
+          "internalReference": "AVI-LOG-FR-0037",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "TOULOUSE",
+          "cityLabel": "Toulouse",
+          "zoneLabel": "Toulouse",
+          "municipality": "Toulouse",
+          "postalCode": "31300",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Toulouse Tolosa",
+          "residenceDisplayName": "Toulouse Tolosa — Nemea Appart’Etud",
+          "address": {
+            "line1": "88 avenue de Lombez",
+            "postalCode": "31300",
+            "city": "Toulouse",
+            "country": "France",
+            "formattedAddress": "88 avenue de Lombez, 31300 Toulouse, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "88 avenue de Lombez, 31300 Toulouse, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 450,
+            "residenceDisplayedRent": 620,
+            "monthlyRentForCertificate": 620,
+            "priceGapWithCityStartingPrice": 170,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/tolosa",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": null
+        },
+        {
+          "id": "AVI-LOG-FR-0038",
+          "internalReference": "AVI-LOG-FR-0038",
+          "countryCode": "FR",
+          "countryName": "France",
+          "cityCode": "TOULOUSE",
+          "cityLabel": "Toulouse",
+          "zoneLabel": "Toulouse",
+          "municipality": "Toulouse",
+          "postalCode": "31300",
+          "partner": {
+            "commercialName": "SafeHouse",
+            "operatorName": "Nemea Appart’Etud"
+          },
+          "residenceName": "Toulouse Student Arena",
+          "residenceDisplayName": "Toulouse Student Arena — Nemea Appart’Etud",
+          "address": {
+            "line1": "100 avenue de Lombez",
+            "postalCode": "31300",
+            "city": "Toulouse",
+            "country": "France",
+            "formattedAddress": "100 avenue de Lombez, 31300 Toulouse, France"
+          },
+          "publicAddress": {
+            "formattedAddress": "100 avenue de Lombez, 31300 Toulouse, France",
+            "displayToClient": false,
+            "validatedAt": null,
+            "validatedByAdminUid": null
+          },
+          "accommodationTypes": [
+            "Studio",
+            "T1 bis",
+            "T2"
+          ],
+          "pricing": {
+            "currency": "EUR",
+            "cityStartingPrice": 450,
+            "residenceDisplayedRent": 650,
+            "monthlyRentForCertificate": 650,
+            "priceGapWithCityStartingPrice": 200,
+            "priceValidationStatus": "requires_admin_review"
+          },
+          "inventoryPresence": "Affichée dans l’inventaire Nemea",
+          "availability": {
+            "status": "confirmation_required",
+            "operationalLabel": "À confirmer avec le partenaire",
+            "guaranteed": false,
+            "guaranteeLabel": "Non — disponibilité individuelle non garantie",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "isVisibleToClients": true,
+          "isSelectableForConditionalRequest": true,
+          "isEligibleForCertificate": true,
+          "manualReviewRequired": true,
+          "autoIssuance": {
+            "enabled": false,
+            "eligibilityStatus": "manual_review_only",
+            "validUntil": null,
+            "conditionalCapacity": null,
+            "remainingConditionalCapacity": null,
+            "manualReviewRequired": true
+          },
+          "source": {
+            "officialUrl": "https://www.nemea-residence-etudiante.com/fr/toulouse-student-arena",
+            "workbookName": "AVI_CERTIFY_repertoire_logements_partenaires_2026-08-03(1).xlsx",
+            "sheetName": "Résidences disponibles",
+            "lastCheckedAt": "2026-08-03"
+          },
+          "observations": null
+        }
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "name": "SafeHouse — liste des villes en France",
+      "url": "https://safehouse.fr/villes?type=france",
+      "informationUsed": "Liste des villes/zones annoncées et tarifs marketing « à partir de ».",
+      "consultedAt": "2026-08-03",
+      "limitations": "Les tarifs sont indicatifs et ne prouvent ni l’existence d’une unité précise ni sa disponibilité immédiate."
+    },
+    {
+      "name": "Nemea Appart’Etud — page partenaires",
+      "url": "https://www.nemea-residence-etudiante.com/fr/partenaires/3",
+      "informationUsed": "Vérification du référencement de SafeHouse parmi les partenaires de Nemea Appart’Etud.",
+      "consultedAt": "2026-08-03",
+      "limitations": "Le partenariat public ne permet pas, à lui seul, de garantir qu’une résidence ou une unité précise est réservable par tous les canaux."
+    },
+    {
+      "name": "Nemea Appart’Etud — inventaire des résidences",
+      "url": "https://www.nemea-residence-etudiante.com/fr/residences-etudiantes",
+      "informationUsed": "Identification des 42 résidences affichées, des types de logements et des loyers de départ.",
+      "consultedAt": "2026-08-03",
+      "limitations": "L’inventaire peut évoluer à tout moment. Les prix et catégories doivent être reconfirmés au moment du dossier."
+    },
+    {
+      "name": "Fiches officielles individuelles Nemea",
+      "url": "Voir la colonne « Source officielle » de la feuille Résidences disponibles",
+      "informationUsed": "Adresse exacte, commune, code postal, typologie et loyer affiché de chaque résidence.",
+      "consultedAt": "2026-08-03",
+      "limitations": "Les fiches précisent que la disponibilité n’est pas garantie ; une confirmation humaine demeure nécessaire."
+    }
+  ]
+}

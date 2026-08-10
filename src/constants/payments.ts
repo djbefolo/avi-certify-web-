@@ -31,7 +31,7 @@ export const paymentServiceConfigs: Record<
     type: "accommodation_certificate",
     label: "Attestation d'hebergement",
     description: "Accompagnement pour l'attestation d'hebergement.",
-    amount: 7900,
+    amount: 9900,
     currency: "eur",
     metadata: {
       serviceCode: "accommodation_certificate",

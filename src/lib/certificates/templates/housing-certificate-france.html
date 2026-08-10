@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AVI CERTIFY - Attestation conditionnelle de logement</title>
+    <style>
+      :root { --ink: #111111; --muted: #444444; }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; background: #ffffff; color: var(--ink); font-family: Arial, Helvetica, sans-serif; }
+      @page { size: A4; margin: 0; }
+      .page { position: relative; width: 210mm; height: 297mm; margin: 0 auto; padding: 15mm 14mm 9mm; overflow: hidden; background: #ffffff; }
+      .top { position: relative; display: flex; justify-content: center; align-items: flex-start; min-height: 34mm; width: 100%; }
+      .wordmark { display: block; width: 35mm; max-height: 27mm; margin: 0 auto 3mm; object-fit: contain; }
+      .reference { position: absolute; top: 1mm; right: 0; color: #333333; font-size: 7.5pt; line-height: 1.35; text-align: right; }
+      .title-box { margin: 0 0 6mm; padding: 3mm 4mm; border: 1.8px solid #222222; font-size: 15pt; font-weight: 700; text-align: center; }
+      p { margin: 0 0 4mm; font-size: 9.4pt; line-height: 1.38; text-align: left; }
+      .lead { margin-bottom: 5mm; }
+      .identity { margin-top: 5mm; }
+      .address { margin: 5mm 0 4mm; font-weight: 700; }
+      .condition { font-size: 8.9pt; line-height: 1.38; }
+      .validity { font-weight: 700; }
+      .footer-zone { display: grid; grid-template-columns: 45% 55%; gap: 10mm; margin-top: 10mm; align-items: start; }
+      .verify-title { margin-bottom: 3mm; font-size: 9.3pt; font-weight: 700; }
+      .qr-row { display: flex; gap: 4mm; align-items: flex-start; }
+      .qr { display: block; width: 36mm; height: 36mm; object-fit: contain; }
+      .verify-copy { padding-top: 1mm; font-size: 7.7pt; line-height: 1.4; overflow-wrap: anywhere; }
+      .signature-side { text-align: center; }
+      .issue-line { margin: 0 0 3mm; font-size: 8.4pt; text-align: center; }
+      .signature-stamp { display: block; width: 58mm; max-height: 55mm; margin: 0 auto; object-fit: contain; }
+      .legal-footer { position: absolute; right: 14mm; bottom: 7mm; left: 14mm; padding-top: 1.8mm; border-top: 0.6px solid #aaaaaa; color: #333333; font-size: 5.6pt; line-height: 1.25; text-align: justify; }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <div class="top">
+        <img class="wordmark" src="{{logoDataUrl}}" alt="AVI CERTIFY" />
+        <div class="reference"><strong>N° {{certificateReference}}</strong><br />Statut : {{certificateStatus}}</div>
+      </div>
+
+      <div class="title-box">ATTESTATION CONDITIONNELLE DE LOGEMENT</div>
+
+      <p class="lead">AVI CERTIFY est une société spécialisée dans l’accompagnement des étudiants internationaux dans leurs démarches administratives, financières et leur installation en France.</p>
+
+      <p class="identity">Je soussigné, <strong>BEFOLO NKOA Gabriel Emmanuel</strong>, président de la société AVI CERTIFY, dont le siège social est situé au 75 Rue de Besançon, 25300 Pontarlier, France, atteste sur l’honneur que :</p>
+
+      <p><strong>{{studentFullName}}</strong>, né(e) le <strong>{{studentDateOfBirth}}</strong> à <strong>{{studentPlaceOfBirth}}</strong>, de nationalité <strong>{{studentNationality}}</strong>, bénéficiera d’une proposition conditionnelle de logement dans l’un des logements proposés par AVI CERTIFY, situé à l’adresse ci-dessous :</p>
+
+      <p class="address">{{housingAddress}}, {{housingPostalCode}} {{housingCity}}, au loyer mensuel indicatif de {{monthlyRent}} EUR.</p>
+
+      <p>La date d’entrée envisagée est le <strong>{{expectedArrivalDate}}</strong>, avec une durée de location estimée de <strong>{{expectedStayDurationMonths}} mois</strong>.</p>
+
+      <p class="condition">Cette attestation est délivrée dans le cadre de l’accompagnement du bénéficiaire pour son projet d’études en France. Elle est établie sous réserve de disponibilité du logement, de validation administrative du dossier et des conditions contractuelles applicables.</p>
+
+      <p class="condition">Le logement proposé pourra, en cas d’indisponibilité, être remplacé par une solution équivalente après information du bénéficiaire. La présente attestation ne constitue ni un bail définitif, ni une attribution irrévocable, ni une garantie d’obtention de visa ou d’admission administrative.</p>
+
+      <p>Nous restons à votre disposition pour tout complément d’information. Ce document est strictement personnel, vérifiable par QR code et ne peut être revendu.</p>
+
+      <p class="validity">Validité conditionnelle du document : jusqu’au {{validUntil}}.</p>
+
+      <section class="footer-zone">
+        <div>
+          <div class="verify-title">Vérifiez l’authenticité</div>
+          <div class="qr-row">
+            <img class="qr" src="{{qrCodeDataUrl}}" alt="QR code de vérification" />
+            <div class="verify-copy">Scannez le QR code généré par la plateforme AVI CERTIFY pour consulter le statut du document.<br /><br /><strong>Code :</strong><br />{{verificationCode}}</div>
+          </div>
+        </div>
+        <div class="signature-side">
+          <p class="issue-line">Fait à Pontarlier, en France, le {{issuedAt}}</p>
+          {{signatureStampMarkup}}
+        </div>
+      </section>
+
+      <footer class="legal-footer">AVI CERTIFY - Document conditionnel émis pour l’accompagnement d’un dossier administratif ou de visa étudiant. L’authenticité et le statut du document doivent être contrôlés au moyen du QR code produit par la plateforme.</footer>
+    </main>
+  </body>
+</html>

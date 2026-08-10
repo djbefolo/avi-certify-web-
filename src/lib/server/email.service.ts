@@ -26,6 +26,14 @@ import {
 import { renderLeadConfirmationEmail } from "@/lib/email/templates/lead-confirmation";
 import { renderPaymentStartedEmail } from "@/lib/email/templates/payment-started";
 import {
+  renderHousingReviewRequiredEmail,
+  type HousingReviewRequiredEmailInput,
+} from "@/lib/email/templates/housing-review-required";
+import {
+  renderHousingAdminReviewRequiredEmail,
+  type HousingAdminReviewRequiredEmailInput,
+} from "@/lib/email/templates/housing-admin-review-required";
+import {
   renderQuoteReadyEmail,
   type QuoteReadyEmailInput,
 } from "@/lib/email/templates/quote-ready";
@@ -223,5 +231,27 @@ export async function sendCertificateAvailableEmailWithResult(
     to: certificate.recipientEmail ?? null,
     template: renderCertificateAvailableEmail(certificate),
     context: "certificate available",
+  });
+}
+
+export async function sendHousingReviewRequiredEmail(
+  input: HousingReviewRequiredEmailInput & { recipientEmail?: string | null },
+): Promise<SendEmailResult> {
+  return sendEmailWithResult({
+    to: input.recipientEmail ?? null,
+    template: renderHousingReviewRequiredEmail(input),
+    context: "housing administrative review required",
+  });
+}
+
+export async function sendHousingAdminReviewRequiredEmail(
+  input: HousingAdminReviewRequiredEmailInput,
+): Promise<SendEmailResult> {
+  const config = getEmailConfig();
+  return sendEmailWithResult({
+    to: config.adminEmail,
+    template: renderHousingAdminReviewRequiredEmail(input),
+    replyTo: input.clientEmail,
+    context: "housing administrative review required for admin",
   });
 }

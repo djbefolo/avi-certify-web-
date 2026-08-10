@@ -1,291 +1,215 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { PDFDocument, PDFImage, StandardFonts, rgb } from "pdf-lib";
+import chromium from "@sparticuz/chromium";
+import puppeteer from "puppeteer-core";
 import QRCode from "qrcode";
-import {
-  getHousingCertificateParagraphs,
-  type HousingCertificateTemplateData,
-} from "@/lib/certificates/housing-certificate-template";
+import type { HousingCertificateTemplateData } from "@/lib/certificates/housing-certificate-template";
+import { getAdminStorage } from "@/lib/firebase/admin";
 
-const pageWidth = 595.28;
-const pageHeight = 841.89;
-const margin = 52;
+const templateFileName = "housing-certificate-france.html";
+const signatureStampStoragePath = "internal-assets/certificates/president-signature-stamp.png";
+const logoAssetPath = "public/assets/photos/avi-certify-logo.png";
+const pngSignature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+const rawTemplateFields = new Set(["logoDataUrl", "qrCodeDataUrl", "signatureStampMarkup"]);
 
-const logoAssetCandidates = [
-  "public/assets/avi-certify-logo.png",
-  "public/avi-certify-logo.png",
-  "public/logo.png",
-  "src/assets/avi-certify-logo.png",
-];
-
-function sanitizeWinAnsi(value: string) {
-  return value
-    .replace(/[’‘]/g, "'")
-    .replace(/[“”]/g, '"')
-    .replace(/œ/g, "oe")
-    .replace(/Œ/g, "OE")
-    .replace(/–/g, "-");
+function cleanString(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
 }
 
-function wrapText(text: string, maxWidth: number, fontSize: number) {
-  const words = sanitizeWinAnsi(text).split(/\s+/);
-  const lines: string[] = [];
-  let currentLine = "";
-  const averageCharacterWidth = fontSize * 0.48;
-  const maxCharacters = Math.max(24, Math.floor(maxWidth / averageCharacterWidth));
-
-  for (const word of words) {
-    const nextLine = currentLine ? `${currentLine} ${word}` : word;
-
-    if (nextLine.length > maxCharacters && currentLine) {
-      lines.push(currentLine);
-      currentLine = word;
-    } else {
-      currentLine = nextLine;
-    }
-  }
-
-  if (currentLine) {
-    lines.push(currentLine);
-  }
-
-  return lines;
+function escapeHtml(value: unknown) {
+  return cleanString(value)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
-async function loadAsset(candidates: string[], label: string) {
-  for (const candidate of candidates) {
-    try {
-      return await readFile(path.join(process.cwd(), candidate));
-    } catch {
-      // Try the next known asset path.
-    }
-  }
-
-  console.warn(`[certificate-generator] ${label} asset could not be loaded`, {
-    candidates,
-  });
-  return null;
-}
-
-async function embedImage(pdf: PDFDocument, candidates: string[], label: string) {
-  const asset = await loadAsset(candidates, label);
-
-  if (!asset) {
-    return null;
-  }
-
-  try {
-    return await pdf.embedPng(asset);
-  } catch {
-    try {
-      return await pdf.embedJpg(asset);
-    } catch (error) {
-      console.warn(`[certificate-generator] ${label} asset is not embeddable`, {
-        error,
-      });
-      return null;
-    }
-  }
-}
-
-function fitImage({
-  image,
-  maxWidth,
-  maxHeight,
-  x,
-  y,
-}: {
-  image: PDFImage;
-  maxWidth: number;
-  maxHeight: number;
-  x: number;
-  y: number;
-}) {
-  const scale = Math.min(maxWidth / image.width, maxHeight / image.height);
-
-  return {
-    x,
-    y,
-    width: image.width * scale,
-    height: image.height * scale,
-  };
-}
-
-function drawText(
-  page: ReturnType<PDFDocument["addPage"]>,
-  text: string,
-  options: Parameters<typeof page.drawText>[1],
-) {
-  page.drawText(sanitizeWinAnsi(text), options);
+function escapeAttribute(value: string) {
+  return escapeHtml(value);
 }
 
 function formatCertificateDate(date: Date) {
-  return new Intl.DateTimeFormat("fr-FR", {
-    dateStyle: "long",
-  }).format(date);
+  return new Intl.DateTimeFormat("fr-FR", { dateStyle: "long" }).format(date);
 }
 
-export async function generateHousingCertificatePdf(
-  data: HousingCertificateTemplateData,
-) {
-  const pdf = await PDFDocument.create();
-  const page = pdf.addPage([pageWidth, pageHeight]);
-  const regular = await pdf.embedFont(StandardFonts.Helvetica);
-  const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
-  const logoImage = await embedImage(
-    pdf,
-    logoAssetCandidates,
-    "AVI CERTIFY logo",
-  );
-  const qrDataUrl = await QRCode.toDataURL(data.verificationUrl, {
-    errorCorrectionLevel: "M",
-    margin: 1,
-    width: 180,
-  });
-  const qrImage = await pdf.embedPng(qrDataUrl);
-  const dark = rgb(0.08, 0.1, 0.16);
-  const muted = rgb(0.36, 0.39, 0.46);
-  const border = rgb(0.86, 0.88, 0.91);
-  let y = pageHeight - margin;
+function formatRent(rent: number) {
+  return new Intl.NumberFormat("fr-FR", {
+    maximumFractionDigits: 0,
+  }).format(rent);
+}
 
-  page.drawLine({
-    start: { x: margin, y: pageHeight - 112 },
-    end: { x: pageWidth - margin, y: pageHeight - 112 },
-    thickness: 0.7,
-    color: border,
-  });
-
-  if (logoImage) {
-    page.drawImage(
-      logoImage,
-      fitImage({
-        image: logoImage,
-        maxWidth: 118,
-        maxHeight: 72,
-        x: margin,
-        y: pageHeight - 96,
-      }),
-    );
-  } else {
-    drawText(page, "AVI CERTIFY", {
-      x: margin,
-      y,
-      size: 20,
-      font: bold,
-      color: dark,
-    });
+function getVerificationCode(certificateReference: string) {
+  const value = cleanString(certificateReference);
+  if (!value) {
+    throw new Error("HOUSING_CERTIFICATE_REFERENCE_MISSING");
   }
+  return value;
+}
 
-  drawText(page, `N° ${data.certificateNumber}`, {
-    x: pageWidth - margin - 152,
-    y: pageHeight - 68,
-    size: 10,
-    font: bold,
-    color: muted,
-  });
+function isSafeImageDataUrl(value: string) {
+  return /^data:image\/(png|jpe?g|webp);base64,[a-z0-9+/=\s]+$/i.test(value);
+}
 
-  y = pageHeight - 150;
-  drawText(page, "ATTESTATION D'HÉBERGEMENT / DOMICILIATION", {
-    x: margin,
-    y,
-    size: 15,
-    font: bold,
-    color: dark,
-  });
-  page.drawLine({
-    start: { x: margin, y: y - 10 },
-    end: { x: pageWidth - margin, y: y - 10 },
-    thickness: 0.4,
-    color: border,
-  });
-
-  y -= 32;
-
-  for (const paragraph of getHousingCertificateParagraphs(data)) {
-    const lines = wrapText(paragraph, pageWidth - margin * 2, 9.6);
-
-    for (const line of lines) {
-      drawText(page, line, {
-        x: margin,
-        y,
-        size: 9.6,
-        font: paragraph === data.housing.fullAddress ? bold : regular,
-        color: dark,
-      });
-      y -= 12.8;
+async function loadLogoDataUrl() {
+  try {
+    const asset = await readFile(path.join(process.cwd(), logoAssetPath));
+    if (!isPng(asset)) {
+      throw new Error("HOUSING_CERTIFICATE_LOGO_NOT_PNG");
     }
+    return `data:image/png;base64,${asset.toString("base64")}`;
+  } catch (error) {
+    if (error instanceof Error && error.message === "HOUSING_CERTIFICATE_LOGO_NOT_PNG") {
+      throw error;
+    }
+    throw new Error("HOUSING_CERTIFICATE_LOGO_NOT_FOUND");
+  }
+}
 
-    y -= 5.5;
+async function loadTemplate() {
+  return readFile(
+    path.join(process.cwd(), "src", "lib", "certificates", "templates", templateFileName),
+    "utf8",
+  );
+}
+
+function renderTemplate(template: string, values: Record<string, string>) {
+  return template.replace(/\{\{([a-zA-Z0-9_]+)\}\}/g, (placeholder, key: string) => {
+    if (!(key in values)) {
+      throw new Error(`HOUSING_CERTIFICATE_TEMPLATE_VALUE_MISSING:${key}`);
+    }
+    return rawTemplateFields.has(key) ? values[key] : escapeHtml(values[key]);
+  });
+}
+
+function buildSignatureStampMarkup(signatureDataUrl: string) {
+  if (!signatureDataUrl) return "";
+  if (!isSafeImageDataUrl(signatureDataUrl)) {
+    throw new Error("HOUSING_CERTIFICATE_SIGNATURE_STAMP_INVALID");
   }
 
-  const verificationY = 146;
-  page.drawLine({
-    start: { x: margin, y: verificationY + 104 },
-    end: { x: pageWidth - margin, y: verificationY + 104 },
-    thickness: 0.7,
-    color: border,
-  });
-  page.drawImage(qrImage, {
-    x: margin,
-    y: verificationY,
-    width: 82,
-    height: 82,
-  });
-  drawText(page, "Scannez ce QR code pour vérifier l'authenticité du document.", {
-    x: margin + 98,
-    y: verificationY + 52,
-    size: 10,
-    font: bold,
-    color: dark,
-  });
-  drawText(page, "Vérification en ligne AVI CERTIFY", {
-    x: margin + 98,
-    y: verificationY + 32,
-    size: 9.5,
-    font: regular,
-    color: muted,
+  return `<img class="signature-stamp" src="${escapeAttribute(signatureDataUrl)}" alt="Signature electronique AVI CERTIFY" />`;
+}
+
+function isPng(buffer: Buffer) {
+  return buffer.byteLength >= pngSignature.byteLength && buffer.subarray(0, 8).equals(pngSignature);
+}
+
+async function loadPrivateSignatureStampDataUrl() {
+  try {
+    const [buffer] = await getAdminStorage()
+      .bucket()
+      .file(signatureStampStoragePath)
+      .download();
+    if (!isPng(buffer)) {
+      throw new Error("HOUSING_CERTIFICATE_SIGNATURE_STAMP_NOT_PNG");
+    }
+    return `data:image/png;base64,${buffer.toString("base64")}`;
+  } catch (error) {
+    console.warn("[housing-certificate-pdf] Private signature stamp unavailable", {
+      code: error instanceof Error ? error.message : "unknown_error",
+    });
+    return "";
+  }
+}
+
+async function getSignatureStampMarkup() {
+  const privateSignatureDataUrl = await loadPrivateSignatureStampDataUrl();
+  if (privateSignatureDataUrl) {
+    return buildSignatureStampMarkup(privateSignatureDataUrl);
+  }
+
+  return buildSignatureStampMarkup(
+    cleanString(process.env.HOUSING_CERTIFICATE_SIGNATURE_STAMP_DATA_URL),
+  );
+}
+
+export async function renderHousingCertificateHtml(data: HousingCertificateTemplateData) {
+  if (!cleanString(data.verificationUrl)) {
+    throw new Error("HOUSING_CERTIFICATE_VERIFICATION_URL_MISSING");
+  }
+  if (!Number.isFinite(data.housing.monthlyRent) || data.housing.monthlyRent < 0) {
+    throw new Error("HOUSING_CERTIFICATE_RENT_INVALID");
+  }
+
+  const [template, logoDataUrl, qrCodeDataUrl, signatureStampMarkup] = await Promise.all([
+    loadTemplate(),
+    loadLogoDataUrl(),
+    QRCode.toDataURL(data.verificationUrl, {
+      errorCorrectionLevel: "M",
+      margin: 1,
+      width: 220,
+    }),
+    getSignatureStampMarkup(),
+  ]);
+  const validUntil = cleanString(data.validUntil) || "date à confirmer";
+  const html = renderTemplate(template, {
+    certificateReference: data.certificateReference,
+    certificateStatus: data.certificateStatus,
+    expectedArrivalDate: data.expectedArrivalDate,
+    expectedStayDurationMonths: String(data.expectedStayDurationMonths),
+    housingAddress: data.housing.addressLine,
+    housingCity: data.housing.city,
+    housingPostalCode: data.housing.postalCode,
+    issuedAt: data.issuedAt,
+    logoDataUrl,
+    monthlyRent: formatRent(data.housing.monthlyRent),
+    qrCodeDataUrl,
+    signatureStampMarkup,
+    studentDateOfBirth: data.studentDateOfBirth,
+    studentFullName: data.studentFullName,
+    studentNationality: data.studentNationality,
+    studentPlaceOfBirth: data.studentPlaceOfBirth,
+    validUntil,
+    verificationCode: getVerificationCode(data.certificateReference),
   });
 
-  drawText(page, `Fait à Pontarlier, France, le ${data.issueDate}`, {
-    x: margin,
-    y: 112,
-    size: 10,
-    font: regular,
-    color: dark,
-  });
+  if (/\{\{[a-zA-Z0-9_]+\}\}/.test(html)) {
+    throw new Error("HOUSING_CERTIFICATE_TEMPLATE_UNRESOLVED_PLACEHOLDER");
+  }
+  return html;
+}
 
-  const signatureX = pageWidth - margin - 178;
-  drawText(page, "Signature autorisee AVI CERTIFY", {
-    x: signatureX,
-    y: 90,
-    size: 13,
-    font: bold,
-    color: rgb(0.12, 0.2, 0.34),
-  });
+export async function renderHousingCertificatePdfFromHtml(html: string) {
+  let browser: Awaited<ReturnType<typeof puppeteer.launch>> | null = null;
+  try {
+    browser = await puppeteer.launch({
+      args: await puppeteer.defaultArgs({ args: chromium.args, headless: "shell" }),
+      defaultViewport: { width: 794, height: 1123, deviceScaleFactor: 1 },
+      executablePath: await chromium.executablePath(),
+      headless: "shell",
+    });
+    const page = await browser.newPage();
+    page.setDefaultNavigationTimeout(60_000);
+    await page.setContent(html, { waitUntil: "load", timeout: 60_000 });
+    await page.emulateMediaType("print");
+    await page.evaluate(
+      "document.fonts && document.fonts.ready ? document.fonts.ready.then(function() {}) : Promise.resolve()",
+    );
+    const pdf = await page.pdf({
+      format: "A4",
+      margin: { top: "0mm", right: "0mm", bottom: "0mm", left: "0mm" },
+      preferCSSPageSize: true,
+      printBackground: true,
+    });
+    return Buffer.isBuffer(pdf) ? pdf : Buffer.from(pdf);
+  } catch (error) {
+    console.error("[housing-certificate-pdf] Chromium rendering failed", {
+      message: error instanceof Error ? error.message : "unknown_error",
+    });
+    throw new Error("HOUSING_CERTIFICATE_PDF_RENDER_FAILED");
+  } finally {
+    await browser?.close().catch(() => undefined);
+  }
+}
 
-  drawText(page, "BEFOLO NKOA Gabriel, Emmanuel", {
-    x: signatureX,
-    y: 42,
-    size: 9.5,
-    font: bold,
-    color: dark,
-  });
-  drawText(page, "Président, AVI CERTIFY", {
-    x: signatureX,
-    y: 28,
-    size: 9,
-    font: regular,
-    color: muted,
-  });
-
-  return Buffer.from(await pdf.save());
+export async function generateHousingCertificatePdf(data: HousingCertificateTemplateData) {
+  return renderHousingCertificatePdfFromHtml(await renderHousingCertificateHtml(data));
 }
 
 export function getDefaultCertificateDates(now = new Date()) {
   const entryDate = new Date(now);
-
   entryDate.setMonth(entryDate.getMonth() + 1);
-
   return {
     issueDate: formatCertificateDate(now),
     entryDate: formatCertificateDate(entryDate),

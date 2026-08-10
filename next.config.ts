@@ -88,6 +88,12 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   devIndicators: false,
+  outputFileTracingIncludes: {
+    "/*": [
+      "./public/assets/photos/avi-certify-logo.png",
+      "./src/lib/certificates/templates/housing-certificate-france.html",
+    ],
+  },
   async headers() {
     return [
       {

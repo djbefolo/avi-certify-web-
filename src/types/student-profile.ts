@@ -1,3 +1,8 @@
+import type {
+  CountryReference,
+  NationalityReference,
+} from "@/lib/profile/country-reference";
+
 export type SelectedStudentService =
   | "attestation_hebergement"
   | "avi"
@@ -36,12 +41,17 @@ export type StudentProfile = {
   fullName: string | null;
   birthDate: string | null;
   birthCountry: string | null;
+  originCountry?: string | null;
+  originCountryReference?: CountryReference | null;
   phoneWhatsApp: string | null;
   dateOfBirth: string | null;
   placeOfBirth: string | null;
   nationality: string | null;
+  nationalityReference?: NationalityReference | null;
   countryOfResidence: string | null;
+  countryOfResidenceReference?: CountryReference | null;
   destinationCountry: string | null;
+  destinationCountryReference?: CountryReference | null;
   destinationCity: string | null;
   targetSchoolName: string | null;
   admissionStatus: AdmissionStatus | null;
@@ -67,7 +77,16 @@ export type StudentProfile = {
 
 export type EditableStudentProfile = Omit<
   StudentProfile,
-  "uid" | "email" | "role" | "createdAt" | "updatedAt"
+  | "uid"
+  | "email"
+  | "role"
+  | "createdAt"
+  | "updatedAt"
+  | "originCountry"
+  | "originCountryReference"
+  | "nationalityReference"
+  | "countryOfResidenceReference"
+  | "destinationCountryReference"
 >;
 
 export const identityProfileFields = [

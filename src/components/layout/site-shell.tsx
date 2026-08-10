@@ -10,7 +10,7 @@ type SiteShellProps = {
   children: React.ReactNode;
 };
 
-const privateRoutePrefixes = ["/dashboard", "/dossier", "/profil"];
+const privateRoutePrefixes = ["/admin", "/dashboard", "/dossier", "/profil"];
 
 function isPrivateRoute(pathname: string) {
   return privateRoutePrefixes.some(

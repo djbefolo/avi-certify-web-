@@ -215,11 +215,15 @@ function manualAviResponse() {
 function mockOperationsFetch({
   certificateResponse,
   documents = [documentRow],
+  cases = [clientCase],
+  client360Cases = cases,
   clientCertificates = [],
   manualAviError,
 }: {
   certificateResponse?: Record<string, unknown>;
   documents?: ClientDocument[];
+  cases?: ClientCase[];
+  client360Cases?: ClientCase[];
   clientCertificates?: Array<Record<string, unknown>>;
   manualAviError?: string;
 } = {}) {
@@ -262,7 +266,7 @@ function mockOperationsFetch({
       return jsonResponse({
         client: {
           profile: client,
-          cases: [clientCase],
+          cases: client360Cases,
           documents,
           documentDiagnostics: {
             resolvedUid: "client-1",
@@ -320,7 +324,7 @@ function mockOperationsFetch({
           certificatesGenerated: 0,
           casesBlocked: 0,
           clientsTotal: 1,
-          casesTotal: 1,
+          casesTotal: cases.length,
           unreadNotifications: 1,
         },
       });
@@ -362,7 +366,7 @@ function mockOperationsFetch({
       return jsonResponse({ result: { checked: 1, created: 1 } });
     }
     if (url.includes("/api/admin/cases")) {
-      return jsonResponse({ cases: [clientCase] });
+      return jsonResponse({ cases });
     }
     if (url.includes("/api/admin/documents")) {
       return jsonResponse({ documents });
@@ -626,6 +630,43 @@ describe("SuperAdminOperationsOS", () => {
         }),
       );
     });
+  });
+
+  it("shows visible Client 360 action feedback when a dossier is missing", async () => {
+    const fetchMock = mockOperationsFetch({
+      cases: [],
+      client360Cases: [],
+      documents: [],
+    });
+    const user = userEvent.setup();
+
+    render(<SuperAdminOperationsOS adminRole="super_admin" adminEmail="admin@avicertify.fr" />);
+
+    await screen.findByText("AVI CERTIFY Super Admin Operations OS");
+    await user.click(screen.getAllByRole("button", { name: "Clients" })[0]);
+    await user.click(await screen.findByRole("button", { name: "Ouvrir 360" }));
+
+    expect(await screen.findByText("Dossier requis pour les actions Client 360")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Demander document" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Demander document indisponible : créez d'abord un dossier opérationnel pour ce client.",
+    );
+    expect(fetchMock).not.toHaveBeenCalledWith(
+      "/api/admin/cases/case-1/request-document",
+      expect.anything(),
+    );
+
+    await user.click(screen.getByRole("button", { name: "Envoyer notification" }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Envoyer notification indisponible : créez d'abord un dossier opérationnel pour ce client.",
+    );
+    expect(fetchMock).not.toHaveBeenCalledWith(
+      "/api/admin/cases/case-1/notifications",
+      expect.anything(),
+    );
   });
 
   it("keeps core Client 360 actions active and downstream actions disabled", async () => {

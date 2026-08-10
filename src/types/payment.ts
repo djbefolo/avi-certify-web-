@@ -30,6 +30,8 @@ export type PaymentRecord = {
   amountRefunded?: number | null;
   customerEmail?: string | null;
   productFamily?: string | null;
+  caseId?: string | null;
+  housingRequestId?: string | null;
   paidAt?: Date | null;
   failedAt?: Date | null;
   refundedAt?: Date | null;
@@ -39,5 +41,5 @@ export type PaymentRecord = {
 
 export type CreateCheckoutSessionInput = {
   serviceType: PaymentServiceType;
-  housingRegion?: string;
+  housingRequestId?: string;
 };

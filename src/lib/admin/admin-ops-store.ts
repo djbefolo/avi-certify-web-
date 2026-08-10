@@ -908,11 +908,12 @@ export class AdminOperationsStore {
   }
 
   async getClient360(uid: string): Promise<AdminClient360> {
-    const [clients, cases, documentSources, financialFiles, events, communications] = await Promise.all([
+    const [clients, cases, documentSources, financialFiles, payments, events, communications] = await Promise.all([
       this.listClients(),
       this.listCases({}),
       this.loadDocumentSources(),
       this.listFinancialFiles(),
+      this.listPayments(),
       this.listEvents(),
       this.listCommunications(),
     ]);
@@ -937,18 +938,7 @@ export class AdminOperationsStore {
         }
       }
     }
-    const clientCases = cases.filter((clientCase) => clientCase.uid === uid);
-    const caseIds = new Set(clientCases.map((clientCase) => clientCase.id));
     const email = normalizedEmail(profile?.email);
-    const documents = documentSources.documents.filter((document) =>
-      documentBelongsToClient(document, uid, caseIds, email),
-    );
-    const publicDocuments = documentSources.publicDocuments.filter((document) =>
-      documentBelongsToClient(document, uid, caseIds, email, true),
-    );
-    const operationsDocuments = documentSources.operationsDocuments.filter(
-      (document) => documentBelongsToClient(document, uid, caseIds, email, true),
-    );
     let authUid: string | null = null;
     let diagnosticError: string | null = null;
 
@@ -959,6 +949,33 @@ export class AdminOperationsStore {
         diagnosticError = "Firebase Auth lookup failed.";
       }
     }
+    const identityUids = new Set(
+      [uid, profile?.uid, authUid].filter(
+        (value): value is string => typeof value === "string" && value.trim().length > 0,
+      ),
+    );
+    const clientCases = cases.filter(
+      (clientCase) =>
+        identityUids.has(clientCase.uid) ||
+        Boolean(email && normalizedEmail(clientCase.clientEmail) === email),
+    );
+    const caseIds = new Set(clientCases.map((clientCase) => clientCase.id));
+    const belongsToClient360Identity = (
+      document: ClientDocument,
+      includeEmail = false,
+    ) =>
+      [...identityUids].some((identityUid) =>
+        documentBelongsToClient(document, identityUid, caseIds, email, includeEmail),
+      );
+    const documents = documentSources.documents.filter((document) =>
+      belongsToClient360Identity(document),
+    );
+    const publicDocuments = documentSources.publicDocuments.filter((document) =>
+      belongsToClient360Identity(document, true),
+    );
+    const operationsDocuments = documentSources.operationsDocuments.filter(
+      (document) => belongsToClient360Identity(document, true),
+    );
 
     let storageStatus: "CHECKED" | "NOT_CONFIGURED" | "ERROR" =
       hasFirebaseAdminEnv() ? "CHECKED" : "NOT_CONFIGURED";
@@ -1032,17 +1049,30 @@ export class AdminOperationsStore {
         message: diagnosticMessage,
         error: diagnosticError,
       },
-      payments: [],
-      financialFiles: financialFiles.filter((file) => file.uid === uid || caseIds.has(file.caseId)),
+      payments: payments.filter(
+        (payment) =>
+          typeof payment.caseId === "string" && caseIds.has(payment.caseId),
+      ),
+      financialFiles: financialFiles.filter(
+        (file) => identityUids.has(file.uid) || caseIds.has(file.caseId),
+      ),
       certificates: documents
-        .filter((document) => document.uid === uid && document.documentType.includes("certificate"))
+        .filter((document) => identityUids.has(document.uid) && document.documentType.includes("certificate"))
         .map((document) => ({
           id: document.id,
           documentType: document.documentType,
           status: document.verificationStatus,
         })),
-      communications: communications.filter((log) => log.uid === uid || Boolean(log.caseId && caseIds.has(log.caseId))),
-      timeline: events.filter((event) => event.uid === uid || Boolean(event.caseId && caseIds.has(event.caseId))),
+      communications: communications.filter(
+        (log) =>
+          Boolean(log.uid && identityUids.has(log.uid)) ||
+          Boolean(log.caseId && caseIds.has(log.caseId)),
+      ),
+      timeline: events.filter(
+        (event) =>
+          Boolean(event.uid && identityUids.has(event.uid)) ||
+          Boolean(event.caseId && caseIds.has(event.caseId)),
+      ),
     };
   }
 
@@ -1558,7 +1588,10 @@ export class AdminOperationsStore {
       const caseDocuments = documents.filter((document) => document.uid === client.uid);
       const caseFinancialFiles = financialFiles.filter((file) => file.uid === client.uid);
       const documentStatus = computeDocumentStatus(caseDocuments);
-      const paymentStatus = mapPaymentSignalStatus(clientPayments) ?? computePaymentStatus(clientCase);
+      const casePayments = clientPayments.filter(
+        (payment) => payment.caseId === clientCase.id,
+      );
+      const paymentStatus = mapPaymentSignalStatus(casePayments) ?? computePaymentStatus(clientCase);
       const financeStatus = computeFinanceStatus(caseFinancialFiles);
       const certificateStatus = computeCertificateStatus(clientCase, caseDocuments);
       const updatedCase: ClientCase = {

@@ -10,66 +10,65 @@ export type CertificateAvailableEmailInput = {
   studentFullName: string;
   clientSpaceUrl: string;
   verificationUrl: string | null;
+  certificateReference?: string | null;
+  city?: string | null;
 };
 
 function renderButton(label: string, href: string) {
-  return `<a href="${escapeHtml(href)}" style="display:inline-block;margin:8px 0 18px;background:#1656a3;color:#ffffff;text-decoration:none;border-radius:6px;padding:12px 16px;font-weight:700;font-size:14px;">${escapeHtml(label)}</a>`;
+  return `<a href="${escapeHtml(href)}" style="display:inline-block;margin:8px 0 18px;background:#0f766e;color:#ffffff;text-decoration:none;border-radius:6px;padding:12px 16px;font-weight:700;font-size:14px;">${escapeHtml(label)}</a>`;
 }
 
 export function renderCertificateAvailableEmail({
   studentFullName,
   clientSpaceUrl,
   verificationUrl,
+  certificateReference,
+  city,
 }: CertificateAvailableEmailInput): EmailTemplate {
-  const greeting = studentFullName
-    ? `Bonjour ${studentFullName},`
-    : "Bonjour,";
-  const verificationText = verificationUrl
-    ? `Lien de vérification : ${verificationUrl}`
-    : "Le lien de vérification est disponible dans votre espace client.";
+  const greeting = studentFullName ? `Bonjour ${studentFullName},` : "Bonjour,";
+  const details = [
+    certificateReference ? `Reference : ${certificateReference}` : null,
+    city ? `Ville : ${city}` : null,
+  ].filter(Boolean) as string[];
   const html = renderEmailLayout({
-    title: "Votre attestation AVI CERTIFY est disponible",
-    preview: "Votre attestation d'hébergement est disponible dans votre espace client sécurisé.",
+    title: "Votre attestation conditionnelle de logement est disponible",
+    preview: "Votre document est disponible dans votre espace client securise.",
     children: [
-      renderHeading("Votre attestation AVI CERTIFY est disponible"),
+      renderHeading("Votre attestation conditionnelle de logement est disponible"),
       renderParagraph(greeting),
       renderParagraph(
-        "Nous vous confirmons la bonne réception de votre paiement.",
+        "Votre paiement a ete confirme et la disponibilite de la solution proposee a ete verifiee par AVI CERTIFY.",
       ),
+      ...details.map(renderParagraph),
       renderParagraph(
-        "Votre attestation d'hébergement a été générée et peut être téléchargée depuis votre espace client sécurisé AVI CERTIFY.",
+        "Votre document est disponible dans votre espace client securise. Il reste conditionnel et ne constitue ni un bail definitif ni une garantie de visa.",
       ),
-      renderButton("Accéder à mes documents", clientSpaceUrl),
+      renderButton("Acceder a mes documents", clientSpaceUrl),
       verificationUrl
-        ? renderParagraph(
-            "Vous pouvez également vérifier l'authenticité du document depuis le lien public ci-dessous.",
-          )
-        : "",
-      verificationUrl
-        ? renderButton("Vérifier l'authenticité", verificationUrl)
+        ? renderButton("Verifier l'authenticite", verificationUrl)
         : "",
       renderParagraph(
-        "Pour des raisons de sécurité et de confidentialité, le document PDF n'est pas joint à cet email.",
+        "Pour proteger vos donnees, le PDF n'est pas joint a cet email.",
       ),
-      renderParagraph("L'équipe AVI CERTIFY"),
+      renderParagraph("L'equipe AVI CERTIFY"),
     ].join(""),
   });
 
   return {
-    subject: "Votre attestation AVI CERTIFY est disponible",
+    subject: "Votre attestation conditionnelle de logement AVI CERTIFY est disponible",
     html,
     text: [
       greeting,
       "",
-      "Nous vous confirmons la bonne réception de votre paiement.",
-      "Votre attestation d'hébergement a été générée et peut être téléchargée depuis votre espace client sécurisé AVI CERTIFY.",
-      "",
+      "Votre paiement a ete confirme et la disponibilite de la solution proposee a ete verifiee par AVI CERTIFY.",
+      ...details,
+      "Votre document reste conditionnel et ne constitue ni un bail definitif ni une garantie de visa.",
       `Espace client : ${clientSpaceUrl}`,
-      verificationText,
+      verificationUrl ? `Verification : ${verificationUrl}` : "",
       "",
-      "Pour des raisons de sécurité et de confidentialité, le document PDF n'est pas joint à cet email.",
-      "",
-      "L'équipe AVI CERTIFY",
-    ].join("\n"),
+      "L'equipe AVI CERTIFY",
+    ]
+      .filter(Boolean)
+      .join("\n"),
   };
 }

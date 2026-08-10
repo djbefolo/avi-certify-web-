@@ -36,11 +36,13 @@ export type UserDocument = {
   size: number;
   storagePath: string;
   caseId?: string | null;
+  housingRequestId?: string | null;
   adminComment?: string | null;
   requestedAt?: Date | null;
   verificationStatus?: string | null;
   rejectionReason?: string | null;
   certificateId?: string | null;
+  paymentId?: string | null;
   certificateNumber?: string | null;
   verificationUrl?: string | null;
   createdAt: Date | null;

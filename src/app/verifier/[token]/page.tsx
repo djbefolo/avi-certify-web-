@@ -48,7 +48,11 @@ function getCertificateStatusLabel(status: unknown) {
   }
 
   if (status === "EXPIRED") {
-    return "Document expire";
+    return "Document expiré";
+  }
+
+  if (status === "REPLACED") {
+    return "Document remplacé";
   }
 
   return "Document invalide";
@@ -107,7 +111,7 @@ export default async function VerificationPage({ params }: VerificationPageProps
                 Type de certificat
               </dt>
               <dd className="mt-2 font-semibold">
-                Attestation d'hébergement
+                Attestation conditionnelle de logement
               </dd>
             </div>
             <div className="rounded-md border bg-muted/25 p-4">
@@ -131,6 +135,22 @@ export default async function VerificationPage({ params }: VerificationPageProps
                 Statut
               </dt>
               <dd className="mt-2 font-semibold">{statusLabel}</dd>
+            </div>
+            <div className="rounded-md border bg-muted/25 p-4">
+              <dt className="text-sm font-medium text-muted-foreground">
+                Ville
+              </dt>
+              <dd className="mt-2 font-semibold">
+                {getString(certificate?.city)}
+              </dd>
+            </div>
+            <div className="rounded-md border bg-muted/25 p-4">
+              <dt className="text-sm font-medium text-muted-foreground">
+                Validité conditionnelle
+              </dt>
+              <dd className="mt-2 font-semibold">
+                {formatDate(certificate?.validUntil ?? null)}
+              </dd>
             </div>
           </dl>
         ) : null}

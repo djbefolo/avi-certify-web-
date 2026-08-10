@@ -24,5 +24,21 @@ describe("checkoutRequestSchema", () => {
 
     expect(result.success).toBe(false);
   });
-});
 
+  it("requires a server-owned housing request for certificate checkout", () => {
+    expect(
+      checkoutRequestSchema.safeParse({
+        serviceType: "accommodation_certificate",
+      }).success,
+    ).toBe(false);
+    expect(
+      checkoutRequestSchema.parse({
+        serviceType: "accommodation_certificate",
+        housingRequestId: "housing_request_123",
+      }),
+    ).toEqual({
+      serviceType: "accommodation_certificate",
+      housingRequestId: "housing_request_123",
+    });
+  });
+});

@@ -9,6 +9,11 @@ import {
   getStripeServerClient,
   getStripeWebhookSecret,
 } from "@/lib/stripe/server";
+import {
+  claimStripeEvent,
+  markStripeEventFailed,
+  markStripeEventProcessed,
+} from "@/lib/server/stripe-event.service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,7 +27,19 @@ type WebhookResponse = {
   reason?: string;
 };
 
-function jsonResponse(body: WebhookResponse | { error: string }, init: ResponseInit) {
+type WebhookErrorResponse = {
+  error: string;
+  code?: string;
+  paymentId?: string;
+};
+
+type PaymentWebhookUpdateResult = {
+  updated: boolean;
+  paymentId?: string;
+  reason?: string;
+};
+
+function jsonResponse(body: WebhookResponse | WebhookErrorResponse, init: ResponseInit) {
   const headers = new Headers(init.headers);
 
   headers.set("Cache-Control", "no-store");
@@ -57,6 +74,31 @@ function isMissingWebhookSecretError(error: unknown) {
     error instanceof Error &&
     error.message.includes("STRIPE_WEBHOOK_SECRET")
   );
+}
+
+async function finalizePaymentWebhookResult({
+  eventId,
+  eventType,
+  result,
+}: {
+  eventId: string;
+  eventType: string;
+  result: PaymentWebhookUpdateResult;
+}) {
+  if (result.updated) {
+    await markStripeEventProcessed(eventId);
+    return null;
+  }
+
+  const code = result.reason ?? "STRIPE_EVENT_BUSINESS_NOT_UPDATED";
+  console.error("[stripe/webhook] Business processing did not complete", {
+    eventId,
+    eventType,
+    paymentId: result.paymentId,
+    code,
+  });
+  await markStripeEventFailed(eventId, code);
+  return code;
 }
 
 export async function POST(request: NextRequest) {
@@ -101,10 +143,40 @@ export async function POST(request: NextRequest) {
   };
 
   try {
+    const claim = await claimStripeEvent(context);
+    if (!claim.claimed) {
+      return jsonResponse(
+        {
+          received: true,
+          handled: false,
+          eventType: event.type,
+          reason: "duplicate_event",
+          message: `Stripe event already ${claim.duplicateStatus}.`,
+        },
+        { status: 200 },
+      );
+    }
+
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         const result = await markCheckoutSessionCompleted(session, context);
+        const failureCode = await finalizePaymentWebhookResult({
+          eventId: event.id,
+          eventType: event.type,
+          result,
+        });
+
+        if (failureCode) {
+          return jsonResponse(
+            {
+              error: "Stripe webhook business processing did not complete.",
+              code: failureCode,
+              paymentId: result.paymentId,
+            },
+            { status: 500 },
+          );
+        }
 
         return jsonResponse(
           {
@@ -124,6 +196,22 @@ export async function POST(request: NextRequest) {
       case "payment_intent.payment_failed": {
         const paymentIntent = event.data.object as Stripe.PaymentIntent;
         const result = await markPaymentIntentFailed(paymentIntent, context);
+        const failureCode = await finalizePaymentWebhookResult({
+          eventId: event.id,
+          eventType: event.type,
+          result,
+        });
+
+        if (failureCode) {
+          return jsonResponse(
+            {
+              error: "Stripe webhook business processing did not complete.",
+              code: failureCode,
+              paymentId: result.paymentId,
+            },
+            { status: 500 },
+          );
+        }
 
         return jsonResponse(
           {
@@ -143,6 +231,22 @@ export async function POST(request: NextRequest) {
       case "charge.refunded": {
         const charge = event.data.object as Stripe.Charge;
         const result = await markChargeRefunded(charge, context);
+        const failureCode = await finalizePaymentWebhookResult({
+          eventId: event.id,
+          eventType: event.type,
+          result,
+        });
+
+        if (failureCode) {
+          return jsonResponse(
+            {
+              error: "Stripe webhook business processing did not complete.",
+              code: failureCode,
+              paymentId: result.paymentId,
+            },
+            { status: 500 },
+          );
+        }
 
         return jsonResponse(
           {
@@ -165,6 +269,7 @@ export async function POST(request: NextRequest) {
           eventType: event.type,
         });
 
+        await markStripeEventProcessed(event.id);
         return jsonResponse(
           {
             received: true,
@@ -180,6 +285,16 @@ export async function POST(request: NextRequest) {
       eventId: event.id,
       eventType: event.type,
       error,
+    });
+
+    await markStripeEventFailed(
+      event.id,
+      error instanceof Error ? error.message : "STRIPE_EVENT_PROCESSING_FAILED",
+    ).catch((auditError) => {
+      console.error("[stripe/webhook] Unable to persist failed event status", {
+        eventId: event.id,
+        auditError,
+      });
     });
 
     return jsonResponse(

@@ -223,7 +223,7 @@ describe("AdminOperationsStore case materialization", () => {
     expect(state().documents[0].caseId).toBe(state().cases[0].id);
   });
 
-  it("creates a case and maps payment status when a payment signal exists", async () => {
+  it("does not confirm a new case from an unlinked owner-level payment", async () => {
     state().clients.push(authOnlyClient());
     state().payments.push({
       id: "payment-1",
@@ -238,8 +238,27 @@ describe("AdminOperationsStore case materialization", () => {
     expect(state().cases).toHaveLength(1);
     expect(state().cases[0]).toMatchObject({
       uid: "auth-only-1",
-      paymentStatus: "CONFIRMED",
+      paymentStatus: "NOT_STARTED",
       source: "reconciliation",
+    });
+  });
+
+  it("maps a payment signal only when it belongs to the current case", async () => {
+    state().clients.push(authOnlyClient());
+    state().cases.push(existingCase({ paymentStatus: "NOT_STARTED" }));
+    state().payments.push({
+      id: "payment-1",
+      ownerId: "auth-only-1",
+      caseId: "case-existing",
+      serviceType: "accommodation_certificate",
+      status: "paid",
+    });
+
+    await getAdminOperationsStore().reconcileCases(actor);
+
+    expect(state().cases[0]).toMatchObject({
+      id: "case-existing",
+      paymentStatus: "CONFIRMED",
     });
   });
 

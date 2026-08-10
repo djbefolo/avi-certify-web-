@@ -38,16 +38,16 @@ export const services: Service[] = [
     title: "Attestation d'hébergement",
     kicker: "Hébergement",
     description:
-      "Obtenez une attestation de logement à partir de 79 €, avec informations structurées, référence vérifiable et cohérence avec votre dossier visa ou installation.",
+      "Obtenez une attestation de logement à partir de 99 €, avec informations structurées, référence vérifiable et cohérence avec votre dossier visa ou installation.",
     href: "/services/hebergement",
     slug: "hebergement",
     detail: {
       objectiveTitle: "Présenter un logement cohérent avec votre parcours",
       objective:
-        "AVI CERTIFY vous aide à obtenir une attestation de logement à partir de 79 €, utile pour structurer votre dossier visa, Campus France ou installation. L'objectif est de présenter une adresse cohérente avec votre projet, votre calendrier et votre destination.",
+        "AVI CERTIFY vous aide à obtenir une attestation de logement à partir de 99 €, utile pour structurer votre dossier visa, Campus France ou installation. L'objectif est de présenter une adresse cohérente avec votre projet, votre calendrier et votre destination.",
       includes: [
         "Collecte des informations nécessaires.",
-        "Préparation d'une attestation de logement à partir de 79 €.",
+        "Préparation d'une attestation de logement à partir de 99 €.",
         "Vérification de cohérence avec ville, durée, visa ou installation.",
         "Référence vérifiable lorsque le dossier le permet.",
         "Suivi humain jusqu'à la validation documentaire.",

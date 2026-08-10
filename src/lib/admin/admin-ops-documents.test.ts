@@ -461,4 +461,55 @@ describe("AdminOperationsStore document visibility", () => {
       storage: { fileCount: 1, orphanedFileCount: 0 },
     });
   });
+
+  it("resolves Client 360 cases through Firebase Auth UID when the visible UID differs", async () => {
+    setOwnerDocument("profile-doc-uid");
+    firestoreCollections.users = [
+      {
+        id: "profile-doc-uid",
+        data: {
+          fullName: "Christelle Fongya",
+          email: "christelle@example.com",
+          createdAt: "2026-07-15T11:40:19.051Z",
+        },
+      },
+    ];
+    firestoreCollections.client_cases = [
+      {
+        id: "case-auth-uid",
+        data: {
+          id: "case-auth-uid",
+          uid: "auth-client-uid",
+          caseNumber: "AVI-2026-000123",
+          clientEmail: "christelle@example.com",
+          clientName: "Christelle Fongya",
+          productType: "TO_QUALIFY",
+          status: "NEW",
+          requestedAmount: null,
+          requestedCurrency: null,
+          destinationCountry: null,
+          schoolName: null,
+          intakeDate: null,
+          notes: null,
+          createdAt: "2026-07-15T11:40:19.051Z",
+          updatedAt: "2026-07-15T11:40:19.051Z",
+        },
+      },
+    ];
+    getUserByEmail.mockResolvedValue({ uid: "auth-client-uid" });
+
+    const client = await getAdminOperationsStore().getClient360("profile-doc-uid");
+
+    expect(client.documentDiagnostics).toMatchObject({
+      resolvedUid: "profile-doc-uid",
+      authUid: "auth-client-uid",
+      caseIds: ["case-auth-uid"],
+    });
+    expect(client.cases).toHaveLength(1);
+    expect(client.cases[0]).toMatchObject({
+      id: "case-auth-uid",
+      uid: "auth-client-uid",
+      caseNumber: "AVI-2026-000123",
+    });
+  });
 });

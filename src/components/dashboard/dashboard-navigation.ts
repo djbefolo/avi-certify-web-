@@ -4,6 +4,7 @@ import {
   FolderKanban,
   Home,
   UserRound,
+  Building2,
   type LucideIcon,
 } from "lucide-react";
 
@@ -32,6 +33,12 @@ export const dashboardNavItems: DashboardNavItem[] = [
     label: "Pieces",
     description: "Coffre documentaire",
     icon: FileText,
+  },
+  {
+    href: "/dossier/logement",
+    label: "Logement",
+    description: "Attestation conditionnelle",
+    icon: Building2,
   },
   {
     href: "/dossier/paiement",

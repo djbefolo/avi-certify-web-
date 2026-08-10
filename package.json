@@ -12,6 +12,7 @@
     "verify": "npm run lint && npm run typecheck && npm run test",
     "predeploy": "npm run lint && npm run typecheck && npm run test && npm run build",
     "admin:bootstrap": "node scripts/bootstrap-admin-claim.mjs",
+    "housing:inventory:import": "node scripts/import-housing-inventory.mjs",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:schemas": "vitest run src/lib/validations/lead.test.ts"
@@ -55,6 +56,7 @@
     "autoprefixer": "^10.4.20",
     "eslint": "^9.17.0",
     "eslint-config-next": "^15.0.0",
+    "exceljs": "^4.4.0",
     "jsdom": "^29.1.1",
     "postcss": "^8.5.10",
     "tailwindcss": "^3.4.17",

@@ -27,6 +27,30 @@ type BuildDashboardSummaryInput = {
   certificate: DashboardSummary["certificate"];
 };
 
+type CurrentHousingDossier = {
+  caseId: string;
+  housingRequestId: string;
+};
+
+async function getCurrentHousingDossier(
+  token: string,
+): Promise<CurrentHousingDossier | null> {
+  const response = await fetch("/api/client/housing-request", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (!response.ok) return null;
+
+  const payload = (await response.json()) as {
+    request?: { id?: unknown; caseId?: unknown } | null;
+  };
+  const housingRequestId = payload.request?.id;
+  const caseId = payload.request?.caseId;
+  if (typeof housingRequestId !== "string" || typeof caseId !== "string") {
+    return null;
+  }
+  return { housingRequestId, caseId };
+}
+
 const emptyRequiredDocuments: ApplicationDocument[] = REQUIRED_DOCUMENTS.map(
   (document) => ({
     id: document.id,
@@ -140,10 +164,13 @@ export function useDashboardSummary(): DashboardSummaryState {
       setErrorMessage(null);
 
       try {
-        const [documentSummary, nextPayment, nextProfile] = await Promise.all([
-          getUserDocumentDashboardSummary(user.uid),
-          getLatestPaymentSummary(user.uid),
+        const [currentHousingDossier, nextProfile] = await Promise.all([
+          user.getIdToken().then(getCurrentHousingDossier),
           getUserProfileSummary(user.uid),
+        ]);
+        const [documentSummary, nextPayment] = await Promise.all([
+          getUserDocumentDashboardSummary(user.uid, currentHousingDossier),
+          getLatestPaymentSummary(user.uid, currentHousingDossier),
         ]);
 
         if (!cancelled) {
