@@ -9,8 +9,12 @@ import {
   MailCheck,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { sendVerificationEmail } from "@/lib/firebase/auth";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { User } from "firebase/auth";
+import {
+  runPostVerificationTransition,
+  sendVerificationEmail,
+} from "@/lib/firebase/auth";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
 import { getPostAuthGuideRedirect } from "@/lib/resources/guide-intent.client";
@@ -35,6 +39,24 @@ export function EmailVerificationPanel() {
   const [isChecking, setIsChecking] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+  const transitionRef = useRef<Promise<void> | null>(null);
+
+  const finishVerification = useCallback(
+    async (verifiedUser: User) => {
+      if (!transitionRef.current) {
+        transitionRef.current = runPostVerificationTransition(verifiedUser);
+      }
+
+      try {
+        await transitionRef.current;
+        router.replace(getPostAuthGuideRedirect("/dashboard"));
+      } catch (error) {
+        transitionRef.current = null;
+        setFeedback({ status: "error", message: getErrorMessage(error) });
+      }
+    },
+    [router],
+  );
 
   useEffect(() => {
     if (loading) {
@@ -47,9 +69,10 @@ export function EmailVerificationPanel() {
     }
 
     if (isEmailVerified) {
-      router.replace(getPostAuthGuideRedirect("/dashboard"));
+      setIsChecking(true);
+      void finishVerification(user).finally(() => setIsChecking(false));
     }
-  }, [isEmailVerified, loading, router, user]);
+  }, [finishVerification, isEmailVerified, loading, router, user]);
 
   useEffect(() => {
     if (cooldown <= 0) {
@@ -98,7 +121,7 @@ export function EmailVerificationPanel() {
       const refreshedUser = await reloadUser();
 
       if (refreshedUser?.emailVerified) {
-        router.replace(getPostAuthGuideRedirect("/dashboard"));
+        await finishVerification(refreshedUser);
         return;
       }
 
@@ -119,7 +142,11 @@ export function EmailVerificationPanel() {
     router.replace("/connexion");
   };
 
-  if (loading || !user || isEmailVerified) {
+  if (
+    loading ||
+    !user ||
+    (isEmailVerified && feedback.status !== "error")
+  ) {
     return (
       <section className="container flex min-h-[48vh] items-center justify-center py-16">
         <div className="grid justify-items-center gap-4 text-center">

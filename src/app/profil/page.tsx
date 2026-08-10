@@ -330,7 +330,7 @@ export default function ProfilPage() {
     setSuccessMessage(null);
 
     try {
-      await updateStudentProfile(user.uid, form, { email: user.email });
+      await updateStudentProfile(user.uid, form);
       const nextProfile = await getStudentProfile(user.uid);
 
       setProfile(nextProfile);
