@@ -45,10 +45,14 @@ export async function PATCH(
   { params }: { params: Promise<{ leadId: string }> },
 ) {
   try {
-    await requireAdmin(request);
+    const actor = await requireAdmin(request);
     const { leadId } = await params;
     const body = await readAdminJson(request);
-    const lead = await getAdminLeadsStore().updateLeadCrm(leadId, body);
+    const lead = await getAdminLeadsStore().updateLeadCrm(
+      leadId,
+      body,
+      actor,
+    );
 
     return adminOpsJson({ lead });
   } catch (error) {

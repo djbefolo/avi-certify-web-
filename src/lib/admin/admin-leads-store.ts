@@ -3,12 +3,21 @@ import {
   normalizeLead as normalizeCanonicalLead,
   normalizeLeadStatus,
 } from "@/lib/leads/normalize-lead";
+import {
+  canTransitionLeadCrmStatus,
+  deriveLeadQualificationReadiness,
+} from "@/lib/leads/crm-qualification";
+import { getAdminOperationsStore } from "@/lib/admin/admin-ops-store";
+import type { AdminActor } from "@/lib/admin/admin-auth";
 import type {
   AdminLead,
+  AdminLeadLostReason,
+  AdminLeadNextAction,
   AdminLeadCrmPriority,
   AdminLeadCrmStatus,
   AdminLeadStats,
   AdminLeadUpdateInput,
+  AdminLeadQualificationReason,
 } from "@/types/admin-crm";
 import type { CanonicalLeadCrmStatus } from "@/types/lead";
 
@@ -34,6 +43,26 @@ const crmPriorityValues = [
   "high",
 ] as const satisfies readonly AdminLeadCrmPriority[];
 
+const nextActionValues = [
+  "NONE",
+  "CALL_PROSPECT",
+  "WHATSAPP_PROSPECT",
+  "EMAIL_PROSPECT",
+  "REQUEST_INFORMATION",
+  "REVIEW_PROFILE",
+  "REVIEW_AMBIGUOUS_LINK",
+  "FOLLOW_UP",
+] as const satisfies readonly AdminLeadNextAction[];
+
+const lostReasonValues = [
+  "NO_RESPONSE",
+  "NOT_INTERESTED",
+  "NOT_ELIGIBLE",
+  "DUPLICATE",
+  "OUT_OF_SCOPE",
+  "OTHER",
+] as const satisfies readonly AdminLeadLostReason[];
+
 const allowedUpdateKeys = new Set([
   "crmStatus",
   "crmPriority",
@@ -41,6 +70,9 @@ const allowedUpdateKeys = new Set([
   "crmNotes",
   "lastContactedAt",
   "lostReason",
+  "nextAction",
+  "nextActionDueAt",
+  "followUpReason",
 ]);
 
 declare global {
@@ -155,6 +187,29 @@ function toOptionalBoolean(value: unknown) {
   return typeof value === "boolean" ? value : null;
 }
 
+function normalizeQualificationReasons(
+  value: unknown,
+): AdminLeadQualificationReason[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const allowed = new Set<AdminLeadQualificationReason>([
+    "CONTACT_AVAILABLE",
+    "PHONE_AVAILABLE",
+    "DESTINATION_KNOWN",
+    "REQUESTED_SERVICE_KNOWN",
+    "PROJECT_HORIZON_KNOWN",
+    "IDENTITY_LINKED",
+  ]);
+
+  return value.filter(
+    (reason): reason is AdminLeadQualificationReason =>
+      typeof reason === "string" &&
+      allowed.has(reason as AdminLeadQualificationReason),
+  );
+}
+
 function toIsoString(value: unknown, fallback: string) {
   if (typeof value === "string" && value.trim()) {
     return value;
@@ -202,18 +257,35 @@ function normalizeCrmPriority(value: unknown): AdminLeadCrmPriority {
 function normalizeAdminLead(
   docId: string,
   raw: Record<string, unknown>,
+  linkedProfile: Record<string, unknown> | null = null,
 ): AdminLead {
   const timestamp = now();
   const canonical = normalizeCanonicalLead(docId, raw);
   const createdAt = canonical.createdAt ?? timestamp;
   const updatedAt = canonical.updatedAt ?? createdAt;
+  const crmStatus = normalizeCrmStatus(canonical.crmStatus);
+  const lastContactedAt = toIsoString(raw.lastContactedAt, "") || null;
+  const readiness = deriveLeadQualificationReadiness(
+    { ...canonical, crmStatus, lastContactedAt },
+    linkedProfile,
+  );
+  const nextAction = nextActionValues.includes(
+    raw.nextAction as AdminLeadNextAction,
+  )
+    ? (raw.nextAction as AdminLeadNextAction)
+    : "NONE";
 
   return {
     ...canonical,
-    fullName: canonical.fullName ?? "Prospect sans nom",
-    email: canonical.email ?? "",
-    country: canonical.residenceCountry,
-    serviceInterest: canonical.requestedService,
+    fullName: readiness.resolved.fullName ?? "Prospect sans nom",
+    email: readiness.resolved.email ?? "",
+    phone: readiness.resolved.phone,
+    residenceCountry: readiness.resolved.residenceCountry,
+    destinationCountry: readiness.resolved.destinationCountry,
+    requestedService: readiness.resolved.requestedService,
+    projectHorizon: readiness.resolved.projectHorizon,
+    country: readiness.resolved.residenceCountry,
+    serviceInterest: readiness.resolved.requestedService,
     origin: toStringOrNull(raw.origin),
     status: canonical.rawStatus,
     referrer: toStringOrNull(raw.referrer),
@@ -224,14 +296,28 @@ function normalizeAdminLead(
     guideEmailSent: toOptionalBoolean(raw.guideEmailSent),
     guideEmailStatus: toStringOrNull(raw.guideEmailStatus),
     canonicalCrmStatus: canonical.crmStatus,
-    crmStatus: normalizeCrmStatus(canonical.crmStatus),
+    crmStatus,
     crmPriority: normalizeCrmPriority(raw.crmPriority),
     crmOwner: toStringOrNull(raw.crmOwner),
     crmNotes: toStringOrNull(raw.crmNotes),
-    lastContactedAt: toIsoString(raw.lastContactedAt, "") || null,
+    lastContactedAt,
     qualifiedAt: toIsoString(raw.qualifiedAt, "") || null,
+    qualifiedBy: toStringOrNull(raw.qualifiedBy),
+    qualificationReasons: normalizeQualificationReasons(
+      raw.qualificationReasons,
+    ),
     convertedAt: toIsoString(raw.convertedAt, "") || null,
     lostReason: toStringOrNull(raw.lostReason),
+    nextAction,
+    nextActionDueAt: toIsoString(raw.nextActionDueAt, "") || null,
+    followUpReason: toStringOrNull(raw.followUpReason),
+    qualificationReadiness: readiness.qualificationReadiness,
+    qualificationMissingFields: readiness.qualificationMissingFields,
+    profileReadiness: readiness.profileReadiness,
+    profileCompletionPercent: readiness.profileCompletionPercent,
+    linkedAccountEmailVerified:
+      linkedProfile == null ? null : linkedProfile.emailVerifiedAt != null,
+    humanFollowUpRequired: readiness.humanFollowUpRequired,
     createdAt,
     updatedAt,
   };
@@ -298,7 +384,36 @@ function validateUpdateInput(input: Record<string, unknown>) {
   }
 
   if ("lostReason" in input) {
-    update.lostReason = cleanText(input.lostReason, 500);
+    if (
+      input.lostReason != null &&
+      !lostReasonValues.includes(input.lostReason as AdminLeadLostReason)
+    ) {
+      throw new AdminLeadValidationError("Invalid CRM lost reason.");
+    }
+
+    update.lostReason = input.lostReason as AdminLeadLostReason | null;
+  }
+
+  if ("nextAction" in input) {
+    if (!nextActionValues.includes(input.nextAction as AdminLeadNextAction)) {
+      throw new AdminLeadValidationError("Invalid CRM next action.");
+    }
+
+    update.nextAction = input.nextAction as AdminLeadNextAction;
+  }
+
+  if ("nextActionDueAt" in input) {
+    update.nextActionDueAt = cleanIsoDate(input.nextActionDueAt);
+  }
+
+  if ("followUpReason" in input) {
+    update.followUpReason = cleanText(input.followUpReason, 500);
+  }
+
+  if (update.nextAction === "NONE" && update.nextActionDueAt) {
+    throw new AdminLeadValidationError(
+      "A next action due date requires an actionable next action.",
+    );
   }
 
   return update;
@@ -307,6 +422,7 @@ function validateUpdateInput(input: Record<string, unknown>) {
 function enrichStatusTimestamps(
   update: AdminLeadUpdateInput,
   current: AdminLead,
+  actor: AdminActor,
 ) {
   const timestamp = now();
   const enriched: Record<string, unknown> = {
@@ -320,6 +436,10 @@ function enrichStatusTimestamps(
 
   if (update.crmStatus === "qualified" && !current.qualifiedAt) {
     enriched.qualifiedAt = timestamp;
+    enriched.qualifiedBy = actor.uid;
+    enriched.qualificationReasons = current.qualificationReasons.length
+      ? current.qualificationReasons
+      : deriveLeadQualificationReadiness(current).qualificationReasons;
   }
 
   if (update.crmStatus === "converted" && !current.convertedAt) {
@@ -330,23 +450,87 @@ function enrichStatusTimestamps(
     enriched.lostReason = current.lostReason;
   }
 
+  if (update.crmStatus === "lost") {
+    enriched.nextAction = "NONE";
+    enriched.nextActionDueAt = null;
+  }
+
+  if (update.nextAction === "NONE") {
+    enriched.nextActionDueAt = null;
+  }
+
   return enriched;
+}
+
+async function loadLinkedProfiles(
+  rawLeads: Array<{ id: string; data: Record<string, unknown> }>,
+) {
+  const linkedUids = [
+    ...new Set(
+      rawLeads
+        .map(({ data }) => toStringOrNull(data.linkedUid))
+        .filter((uid): uid is string => Boolean(uid)),
+    ),
+  ];
+  const profiles = new Map<string, Record<string, unknown>>();
+
+  if (!linkedUids.length || !hasFirebaseAdminEnv()) {
+    return profiles;
+  }
+
+  const db = getAdminFirestore();
+  const snapshots = await db.getAll(
+    ...linkedUids.map((uid) => db.collection("users").doc(uid)),
+  );
+
+  for (const snapshot of snapshots) {
+    if (snapshot.exists) {
+      profiles.set(snapshot.id, snapshot.data() as Record<string, unknown>);
+    }
+  }
+
+  return profiles;
+}
+
+async function normalizeAdminLeads(
+  rawLeads: Array<{ id: string; data: Record<string, unknown> }>,
+) {
+  const profiles = await loadLinkedProfiles(rawLeads);
+
+  return rawLeads.map(({ id, data }) => {
+    const linkedUid = toStringOrNull(data.linkedUid);
+
+    return normalizeAdminLead(
+      id,
+      data,
+      linkedUid ? profiles.get(linkedUid) ?? null : null,
+    );
+  });
 }
 
 export class AdminLeadsStore {
   async listLeads(options: { limit?: number; crmStatus?: string | null; query?: string | null } = {}) {
     const limit = Math.min(Math.max(options.limit ?? DEFAULT_LIMIT, 1), MAX_LIMIT);
     const ref = leadsCollection();
-    const rawLeads = ref
-      ? (await ref.orderBy("createdAt", "desc").limit(limit).get()).docs.map((doc) =>
-          normalizeAdminLead(doc.id, doc.data() as Record<string, unknown>),
+    const rawDocuments = ref
+      ? (await ref.orderBy("createdAt", "desc").limit(limit).get()).docs.map(
+          (doc) => ({
+            id: doc.id,
+            data: doc.data() as Record<string, unknown>,
+          }),
         )
       : fallbackState.leads
-          .map((lead) =>
-            normalizeAdminLead(toStringOrNull(lead.id) ?? "lead_local", lead),
+          .map((lead) => ({
+            id: toStringOrNull(lead.id) ?? "lead_local",
+            data: lead,
+          }))
+          .sort(
+            (a, b) =>
+              Date.parse(toIsoString(b.data.createdAt, "")) -
+              Date.parse(toIsoString(a.data.createdAt, "")),
           )
-          .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
           .slice(0, limit);
+    const rawLeads = await normalizeAdminLeads(rawDocuments);
     const query = options.query?.trim().toLowerCase();
     const crmStatus = options.crmStatus?.trim();
     const leads = rawLeads.filter((lead) => {
@@ -376,7 +560,9 @@ export class AdminLeadsStore {
     if (!ref) {
       const lead = fallbackState.leads.find((item) => item.id === leadId);
 
-      return lead ? normalizeAdminLead(leadId, lead) : null;
+      return lead
+        ? (await normalizeAdminLeads([{ id: leadId, data: lead }]))[0]
+        : null;
     }
 
     const snapshot = await ref.doc(leadId).get();
@@ -385,13 +571,21 @@ export class AdminLeadsStore {
       return null;
     }
 
-    return normalizeAdminLead(
-      snapshot.id,
-      snapshot.data() as Record<string, unknown>,
-    );
+    return (
+      await normalizeAdminLeads([
+        {
+          id: snapshot.id,
+          data: snapshot.data() as Record<string, unknown>,
+        },
+      ])
+    )[0];
   }
 
-  async updateLeadCrm(leadId: string, input: Record<string, unknown>) {
+  async updateLeadCrm(
+    leadId: string,
+    input: Record<string, unknown>,
+    actor: AdminActor,
+  ) {
     const current = await this.getLead(leadId);
 
     if (!current) {
@@ -399,7 +593,35 @@ export class AdminLeadsStore {
     }
 
     const update = validateUpdateInput(input);
-    const enriched = enrichStatusTimestamps(update, current);
+    if (
+      update.crmStatus &&
+      !canTransitionLeadCrmStatus(current.crmStatus, update.crmStatus)
+    ) {
+      throw new AdminLeadValidationError(
+        `CRM transition ${current.crmStatus} -> ${update.crmStatus} is not allowed.`,
+      );
+    }
+
+    if (
+      update.crmStatus === "lost" &&
+      !update.lostReason &&
+      !current.lostReason
+    ) {
+      throw new AdminLeadValidationError(
+        "A structured lost reason is required.",
+      );
+    }
+
+    if (
+      update.nextActionDueAt &&
+      (update.nextAction ?? current.nextAction) === "NONE"
+    ) {
+      throw new AdminLeadValidationError(
+        "A next action due date requires an actionable next action.",
+      );
+    }
+
+    const enriched = enrichStatusTimestamps(update, current, actor);
     const ref = leadsCollection();
 
     if (ref) {
@@ -415,7 +637,38 @@ export class AdminLeadsStore {
       }
     }
 
-    return {
+    const changedFields = Object.keys(enriched).filter(
+      (key) =>
+        key !== "updatedAt" &&
+        JSON.stringify(current[key as keyof AdminLead]) !==
+          JSON.stringify(enriched[key]),
+    );
+
+    if (changedFields.length) {
+      await getAdminOperationsStore().createEvent({
+        caseId: null,
+        uid: current.linkedUid,
+        actorType: "admin",
+        actorId: actor.uid,
+        actorRole: actor.role,
+        eventType: "lead_crm_updated",
+        eventLabel: "Prospect CRM mis à jour",
+        eventPayload: {
+          leadId,
+          changedFields,
+          fromCrmStatus: current.crmStatus,
+          toCrmStatus: update.crmStatus ?? current.crmStatus,
+          qualificationDecision:
+            current.crmStatus !== "qualified" &&
+            update.crmStatus === "qualified",
+          lostDecision:
+            current.crmStatus !== "lost" && update.crmStatus === "lost",
+          nextAction: update.nextAction ?? current.nextAction,
+        },
+      });
+    }
+
+    const updatedLead = {
       ...current,
       ...enriched,
       canonicalCrmStatus:
@@ -423,6 +676,12 @@ export class AdminLeadsStore {
           ? current.canonicalCrmStatus
           : normalizeLeadStatus(update.crmStatus),
     } as AdminLead;
+    const updatedReadiness = deriveLeadQualificationReadiness(updatedLead);
+
+    return {
+      ...updatedLead,
+      humanFollowUpRequired: updatedReadiness.humanFollowUpRequired,
+    };
   }
 }
 
