@@ -13,6 +13,12 @@ export type CanonicalLeadSource =
   | "PROFILE"
   | "UNKNOWN";
 
+export type LeadIdentityLinkStatus =
+  | "UNLINKED"
+  | "LINKED"
+  | "AMBIGUOUS"
+  | "CONFLICT";
+
 export type CanonicalLead = {
   id: string;
   fullName: string | null;
@@ -39,6 +45,8 @@ export type CanonicalLead = {
   linkedUid: string | null;
   linkedAt: string | null;
   linkMethod: string | null;
+  identityLinkStatus: LeadIdentityLinkStatus;
+  linkConflictReason: string | null;
   rawSource: string | null;
   rawStatus: string | null;
 };

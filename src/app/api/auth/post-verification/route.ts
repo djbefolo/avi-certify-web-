@@ -62,6 +62,7 @@ export async function POST(request: NextRequest) {
     const result = await completePostVerification({
       uid: decodedToken.uid,
       email: decodedToken.email,
+      emailVerified: decodedToken.email_verified,
     });
 
     return jsonResponse(result, { status: 200 });

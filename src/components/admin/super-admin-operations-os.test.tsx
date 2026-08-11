@@ -179,9 +179,11 @@ const lead: AdminLead = {
   qualifiedAt: null,
   convertedAt: null,
   lostReason: null,
-  linkedUid: null,
-  linkedAt: null,
-  linkMethod: null,
+  linkedUid: "firebase-user-linked-1",
+  linkedAt: "2026-06-27T10:05:00.000Z",
+  linkMethod: "VERIFIED_EMAIL",
+  identityLinkStatus: "LINKED",
+  linkConflictReason: null,
   createdAt: "2026-06-27T10:00:00.000Z",
   updatedAt: "2026-06-27T10:00:00.000Z",
 };
@@ -571,6 +573,10 @@ describe("SuperAdminOperationsOS", () => {
     expect(screen.queryByRole("button", { name: /créer dossier/i })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Ouvrir CRM" }));
+    expect(screen.getByText("Rapprochement")).toBeInTheDocument();
+    expect(screen.getAllByText("Compte lié").length).toBeGreaterThan(0);
+    expect(screen.getByText("firebase…ed-1")).toBeInTheDocument();
+    expect(screen.getByText("Verified email")).toBeInTheDocument();
     await user.selectOptions(screen.getByLabelText("Statut CRM"), "contacted");
     await user.selectOptions(screen.getByLabelText("Priorité"), "high");
     await user.type(screen.getByLabelText("Notes internes"), "Relance effectuée.");

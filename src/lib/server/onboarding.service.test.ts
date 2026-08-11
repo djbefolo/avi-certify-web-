@@ -69,6 +69,7 @@ const onboardingMocks = vi.hoisted(() => {
       transactionChain = Promise.resolve();
     },
     sendWelcomeEmailWithResult: vi.fn(),
+    linkLeadToVerifiedUser: vi.fn(),
     serverTimestamp: vi.fn(() => `server-timestamp-${++timestampSequence}`),
   };
 });
@@ -85,6 +86,10 @@ vi.mock("@/lib/firebase/admin", () => ({
 
 vi.mock("@/lib/server/email.service", () => ({
   sendWelcomeEmailWithResult: onboardingMocks.sendWelcomeEmailWithResult,
+}));
+
+vi.mock("@/lib/server/lead-user-linking.service", () => ({
+  linkLeadToVerifiedUser: onboardingMocks.linkLeadToVerifiedUser,
 }));
 
 import {
@@ -109,8 +114,12 @@ beforeEach(() => {
   onboardingMocks.db.runTransaction.mockClear();
   onboardingMocks.getAdminFirestore.mockClear();
   onboardingMocks.sendWelcomeEmailWithResult.mockReset();
+  onboardingMocks.linkLeadToVerifiedUser.mockReset();
   onboardingMocks.serverTimestamp.mockClear();
   onboardingMocks.sendWelcomeEmailWithResult.mockResolvedValue(sentResult());
+  onboardingMocks.linkLeadToVerifiedUser.mockResolvedValue({
+    status: "NO_MATCH",
+  });
 });
 
 describe("post-verification onboarding transition", () => {
@@ -127,17 +136,20 @@ describe("post-verification onboarding transition", () => {
     const first = await completePostVerification({
       uid: "user-1",
       email: "AWA@EXAMPLE.COM",
+      emailVerified: true,
     });
     const verifiedAt = onboardingMocks.documents.get("users/user-1")?.emailVerifiedAt;
     const second = await completePostVerification({
       uid: "user-1",
       email: "awa@example.com",
+      emailVerified: true,
     });
 
     expect(first).toMatchObject({
       emailVerifiedTransitionCreated: true,
       profileRecovered: false,
       welcomeStatus: "SENT",
+      leadLinkStatus: "NO_MATCH",
     });
     expect(second).toMatchObject({
       emailVerifiedTransitionCreated: false,
@@ -170,6 +182,7 @@ describe("post-verification onboarding transition", () => {
     await completePostVerification({
       uid: "auth-only-1",
       email: "AUTH-ONLY@EXAMPLE.COM",
+      emailVerified: true,
     });
 
     const profile = onboardingMocks.documents.get("users/auth-only-1");
@@ -206,6 +219,7 @@ describe("post-verification onboarding transition", () => {
     const firstCall = completePostVerification({
       uid: "user-2",
       email: "user-2@example.com",
+      emailVerified: true,
     });
     await vi.waitFor(() => {
       expect(onboardingMocks.sendWelcomeEmailWithResult).toHaveBeenCalledTimes(1);
@@ -213,6 +227,7 @@ describe("post-verification onboarding transition", () => {
     const secondResult = await completePostVerification({
       uid: "user-2",
       email: "user-2@example.com",
+      emailVerified: true,
     });
 
     expect(secondResult.welcomeStatus).toBe("PENDING");
@@ -239,14 +254,17 @@ describe("post-verification onboarding transition", () => {
     const failed = await completePostVerification({
       uid: "user-3",
       email: "user-3@example.com",
+      emailVerified: true,
     });
     const retried = await completePostVerification({
       uid: "user-3",
       email: "user-3@example.com",
+      emailVerified: true,
     });
     const noOp = await completePostVerification({
       uid: "user-3",
       email: "user-3@example.com",
+      emailVerified: true,
     });
 
     expect(failed.welcomeStatus).toBe("FAILED");
@@ -263,5 +281,39 @@ describe("post-verification onboarding transition", () => {
       messageId: "resend-message-3",
       error: null,
     });
+  });
+
+  it("keeps verification and welcome non-blocking when lead linking fails", async () => {
+    onboardingMocks.documents.set("users/user-link-error", {
+      uid: "user-link-error",
+      email: "link-error@example.com",
+      role: "student",
+    });
+    onboardingMocks.linkLeadToVerifiedUser.mockRejectedValueOnce(
+      new Error("Firestore unavailable"),
+    );
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+
+    const result = await completePostVerification({
+      uid: "user-link-error",
+      email: "link-error@example.com",
+      emailVerified: true,
+    });
+
+    expect(result).toMatchObject({
+      emailVerifiedTransitionCreated: true,
+      leadLinkStatus: "ERROR",
+      welcomeStatus: "SENT",
+      welcomeSent: true,
+    });
+    expect(
+      onboardingMocks.documents.get("users/user-link-error")?.emailVerifiedAt,
+    ).toBeTruthy();
+    expect(onboardingMocks.sendWelcomeEmailWithResult).toHaveBeenCalledTimes(1);
+    expect(warning).toHaveBeenCalledWith(
+      "[onboarding] Lead identity linking failed",
+      expect.objectContaining({ uid: "user-link-error" }),
+    );
+    warning.mockRestore();
   });
 });

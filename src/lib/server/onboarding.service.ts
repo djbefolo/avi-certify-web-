@@ -7,6 +7,10 @@ import {
   sendWelcomeEmailWithResult,
   type SendEmailResult,
 } from "@/lib/server/email.service";
+import {
+  linkLeadToVerifiedUser,
+  type LeadUserLinkingStatus,
+} from "@/lib/server/lead-user-linking.service";
 
 const USERS_COLLECTION = "users";
 const COMMUNICATIONS_COLLECTION = "communication_logs";
@@ -20,6 +24,7 @@ type WelcomeState = "SENT" | "FAILED" | "PENDING";
 export type CompletePostVerificationInput = {
   uid: string;
   email: string;
+  emailVerified: true;
 };
 
 export type CompletePostVerificationResult = {
@@ -28,6 +33,7 @@ export type CompletePostVerificationResult = {
   emailVerifiedTransitionCreated: boolean;
   welcomeStatus: WelcomeState;
   welcomeSent: boolean;
+  leadLinkStatus: LeadUserLinkingStatus | "ERROR";
 };
 
 function normalizeEmail(email: string) {
@@ -105,6 +111,30 @@ export function authWelcomeCommunicationId(uid: string) {
 
 export function authWelcomeIdempotencyKey(uid: string) {
   return `${AUTH_WELCOME_IDEMPOTENCY_PREFIX}:${uid}`;
+}
+
+async function attemptLeadIdentityLinking(
+  input: CompletePostVerificationInput,
+): Promise<LeadUserLinkingStatus | "ERROR"> {
+  try {
+    const result = await linkLeadToVerifiedUser({
+      uid: input.uid,
+      email: input.email,
+      emailVerified: input.emailVerified,
+    });
+
+    return result.status;
+  } catch (error) {
+    console.warn("[onboarding] Lead identity linking failed", {
+      uid: input.uid,
+      code:
+        error && typeof error === "object" && "code" in error
+          ? String(error.code)
+          : "UNEXPECTED_ERROR",
+    });
+
+    return "ERROR";
+  }
 }
 
 export async function completePostVerification(
@@ -224,6 +254,7 @@ export async function completePostVerification(
       status: "PENDING" as const,
     };
   });
+  const leadLinkStatus = await attemptLeadIdentityLinking(input);
 
   if (!claim.acquired) {
     return {
@@ -232,6 +263,7 @@ export async function completePostVerification(
       emailVerifiedTransitionCreated: claim.transitionCreated,
       welcomeStatus: claim.status,
       welcomeSent: claim.status === "SENT",
+      leadLinkStatus,
     };
   }
 
@@ -281,5 +313,6 @@ export async function completePostVerification(
     emailVerifiedTransitionCreated: claim.transitionCreated,
     welcomeStatus,
     welcomeSent: emailResult.sent,
+    leadLinkStatus,
   };
 }
