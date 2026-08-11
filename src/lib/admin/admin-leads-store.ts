@@ -13,6 +13,7 @@ import type {
   AdminLead,
   AdminLeadLostReason,
   AdminLeadNextAction,
+  AdminLeadNextActionSource,
   AdminLeadCrmPriority,
   AdminLeadCrmStatus,
   AdminLeadStats,
@@ -53,6 +54,11 @@ const nextActionValues = [
   "REVIEW_AMBIGUOUS_LINK",
   "FOLLOW_UP",
 ] as const satisfies readonly AdminLeadNextAction[];
+
+const nextActionSourceValues = [
+  "HUMAN_ADMIN",
+  "SYSTEM_PROFILE_REMINDER",
+] as const satisfies readonly AdminLeadNextActionSource[];
 
 const lostReasonValues = [
   "NO_RESPONSE",
@@ -274,6 +280,16 @@ function normalizeAdminLead(
   )
     ? (raw.nextAction as AdminLeadNextAction)
     : "NONE";
+  const nextActionSource = nextActionSourceValues.includes(
+    raw.nextActionSource as AdminLeadNextActionSource,
+  )
+    ? (raw.nextActionSource as AdminLeadNextActionSource)
+    : null;
+  const followUpReason = toStringOrNull(raw.followUpReason);
+  const systemProfileFollowUpRequired =
+    nextAction === "FOLLOW_UP" &&
+    nextActionSource === "SYSTEM_PROFILE_REMINDER" &&
+    followUpReason === "PROFILE_INCOMPLETE_AFTER_REMINDER";
 
   return {
     ...canonical,
@@ -310,14 +326,18 @@ function normalizeAdminLead(
     lostReason: toStringOrNull(raw.lostReason),
     nextAction,
     nextActionDueAt: toIsoString(raw.nextActionDueAt, "") || null,
-    followUpReason: toStringOrNull(raw.followUpReason),
+    followUpReason,
+    nextActionSource,
+    nextActionUpdatedAt: toIsoString(raw.nextActionUpdatedAt, "") || null,
+    nextActionUpdatedBy: toStringOrNull(raw.nextActionUpdatedBy),
     qualificationReadiness: readiness.qualificationReadiness,
     qualificationMissingFields: readiness.qualificationMissingFields,
     profileReadiness: readiness.profileReadiness,
     profileCompletionPercent: readiness.profileCompletionPercent,
     linkedAccountEmailVerified:
       linkedProfile == null ? null : linkedProfile.emailVerifiedAt != null,
-    humanFollowUpRequired: readiness.humanFollowUpRequired,
+    humanFollowUpRequired:
+      readiness.humanFollowUpRequired || systemProfileFollowUpRequired,
     createdAt,
     updatedAt,
   };
@@ -429,6 +449,16 @@ function enrichStatusTimestamps(
     ...update,
     updatedAt: timestamp,
   };
+
+  if (
+    update.nextAction !== undefined ||
+    update.nextActionDueAt !== undefined ||
+    update.followUpReason !== undefined
+  ) {
+    enriched.nextActionSource = "HUMAN_ADMIN";
+    enriched.nextActionUpdatedAt = timestamp;
+    enriched.nextActionUpdatedBy = actor.uid;
+  }
 
   if (update.crmStatus === "contacted" && !update.lastContactedAt) {
     enriched.lastContactedAt = current.lastContactedAt ?? timestamp;

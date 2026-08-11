@@ -367,6 +367,18 @@ function nextActionLabel(action: AdminLeadNextAction) {
   return labels[action];
 }
 
+function nextActionSourceLabel(source: AdminLead["nextActionSource"]) {
+  if (source === "SYSTEM_PROFILE_REMINDER") {
+    return "Système - profil incomplet après relance";
+  }
+
+  if (source === "HUMAN_ADMIN") {
+    return "Action humaine";
+  }
+
+  return "Non renseignée";
+}
+
 function qualificationReasonLabel(
   reason: AdminLead["qualificationReasons"][number],
 ) {
@@ -1143,7 +1155,7 @@ function AdminLeadsPanel({
     "all" | "linked" | "unlinked" | "needs-review"
   >("all");
   const [followUpFilter, setFollowUpFilter] = useState<
-    "all" | "needs-review" | "overdue"
+    "all" | "needs-review" | "profile-reminder" | "overdue"
   >("all");
   const [search, setSearch] = useState("");
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
@@ -1186,6 +1198,16 @@ function AdminLeadsPanel({
       }
 
       if (followUpFilter === "needs-review" && !lead.humanFollowUpRequired) {
+        return false;
+      }
+
+      if (
+        followUpFilter === "profile-reminder" &&
+        !(
+          lead.nextActionSource === "SYSTEM_PROFILE_REMINDER" &&
+          lead.followUpReason === "PROFILE_INCOMPLETE_AFTER_REMINDER"
+        )
+      ) {
         return false;
       }
 
@@ -1335,6 +1357,7 @@ function AdminLeadsPanel({
           >
             <option value="all">Tous suivis</option>
             <option value="needs-review">Intervention requise</option>
+            <option value="profile-reminder">Profil incomplet après relance</option>
             <option value="overdue">Actions en retard</option>
           </select>
         </div>
@@ -1427,9 +1450,15 @@ function AdminLeadsPanel({
                       </p>
                       {lead.humanFollowUpRequired ? (
                         <p className="mt-1 text-xs font-semibold text-amber-700">
-                          Revue humaine
+                          {lead.followUpReason ===
+                          "PROFILE_INCOMPLETE_AFTER_REMINDER"
+                            ? "Suivi humain - profil incomplet"
+                            : "Revue humaine"}
                         </p>
                       ) : null}
+                      <p className="mt-1 text-xs text-slate-500">
+                        {nextActionSourceLabel(lead.nextActionSource)}
+                      </p>
                     </td>
                     <td className="px-4 py-3">
                       <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold">
@@ -1515,13 +1544,20 @@ function AdminLeadsPanel({
                       : `${selectedLead.profileCompletionPercent} %`
                   }
                 />
+                <StatusBadge
+                  label="Source action"
+                  value={nextActionSourceLabel(selectedLead.nextActionSource)}
+                />
               </div>
 
               {selectedLead.humanFollowUpRequired ? (
                 <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
                   <p className="font-semibold">Intervention humaine requise</p>
                   <p className="mt-1 text-amber-800">
-                    {selectedLead.identityLinkStatus === "AMBIGUOUS" ||
+                    {selectedLead.followUpReason ===
+                    "PROFILE_INCOMPLETE_AFTER_REMINDER"
+                      ? "Le profil reste incomplet 72 h après la relance automatique. Un opérateur doit reprendre le suivi."
+                      : selectedLead.identityLinkStatus === "AMBIGUOUS" ||
                     selectedLead.identityLinkStatus === "CONFLICT"
                       ? "Le rapprochement d’identité doit être revu avant toute décision commerciale."
                       : "Les données permettent une revue commerciale, mais le prospect n’a pas encore été contacté."}

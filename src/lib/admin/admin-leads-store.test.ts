@@ -239,6 +239,8 @@ describe("AdminLeadsStore", () => {
       nextAction: "WHATSAPP_PROSPECT",
       nextActionDueAt: "2026-06-28T10:00:00.000Z",
       followUpReason: "Premier contact commercial.",
+      nextActionSource: "HUMAN_ADMIN",
+      nextActionUpdatedBy: "admin-1",
     });
     expect(firestoreMocks.set).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -248,6 +250,9 @@ describe("AdminLeadsStore", () => {
         nextAction: "WHATSAPP_PROSPECT",
         nextActionDueAt: "2026-06-28T10:00:00.000Z",
         followUpReason: "Premier contact commercial.",
+        nextActionSource: "HUMAN_ADMIN",
+        nextActionUpdatedAt: expect.any(String),
+        nextActionUpdatedBy: "admin-1",
         lastContactedAt: expect.any(String),
         updatedAt: expect.any(String),
       }),

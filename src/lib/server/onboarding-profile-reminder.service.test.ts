@@ -238,7 +238,14 @@ describe("onboarding profile reminder worker", () => {
       attemptCount: 1,
       providerMessageId: "resend-profile-1",
       nextAttemptAt: null,
+      humanFollowUpStatus: "PENDING",
     });
+    expect(log?.sentAt).toBeInstanceOf(Date);
+    expect(log?.humanFollowUpDueAt).toBeInstanceOf(Date);
+    expect(
+      (log?.humanFollowUpDueAt as Date).getTime() -
+        (log?.sentAt as Date).getTime(),
+    ).toBe(72 * 60 * 60 * 1000);
     expect(reminderMocks.sendProfileReminderEmailWithResult).toHaveBeenCalledWith(
       { email: "user-1@example.com", fullName: "Awa Ndiaye" },
       profileReminderIdempotencyKey("user-1"),

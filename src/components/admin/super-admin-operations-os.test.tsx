@@ -184,6 +184,9 @@ const lead: AdminLead = {
   nextAction: "NONE",
   nextActionDueAt: null,
   followUpReason: null,
+  nextActionSource: null,
+  nextActionUpdatedAt: null,
+  nextActionUpdatedBy: null,
   qualificationReadiness: "READY_FOR_REVIEW",
   qualificationMissingFields: [],
   profileReadiness: "SUFFICIENT_FOR_QUALIFICATION",
@@ -243,6 +246,7 @@ function mockOperationsFetch({
   certificateResponse,
   documents = [documentRow],
   cases = [clientCase],
+  leads = [lead],
   client360Cases = cases,
   clientCertificates = [],
   manualAviError,
@@ -250,6 +254,7 @@ function mockOperationsFetch({
   certificateResponse?: Record<string, unknown>;
   documents?: ClientDocument[];
   cases?: ClientCase[];
+  leads?: AdminLead[];
   client360Cases?: ClientCase[];
   clientCertificates?: Array<Record<string, unknown>>;
   manualAviError?: string;
@@ -285,7 +290,7 @@ function mockOperationsFetch({
     }
     if (url.includes("/api/admin/leads")) {
       return jsonResponse({
-        leads: [lead],
+        leads,
         stats: leadStats,
       });
     }
@@ -615,6 +620,43 @@ describe("SuperAdminOperationsOS", () => {
         }),
       );
     });
+  });
+
+  it("shows and filters the system-owned profile follow-up without changing CRM status", async () => {
+    const systemFollowUpLead: AdminLead = {
+      ...lead,
+      nextAction: "FOLLOW_UP",
+      nextActionDueAt: "2026-08-11T09:00:00.000Z",
+      followUpReason: "PROFILE_INCOMPLETE_AFTER_REMINDER",
+      nextActionSource: "SYSTEM_PROFILE_REMINDER",
+      nextActionUpdatedAt: "2026-08-11T09:00:00.000Z",
+      nextActionUpdatedBy: "system:onboarding-human-followup",
+      humanFollowUpRequired: true,
+    };
+    mockOperationsFetch({ leads: [systemFollowUpLead] });
+    const user = userEvent.setup();
+
+    render(
+      <SuperAdminOperationsOS
+        adminRole="super_admin"
+        adminEmail="admin@avicertify.fr"
+      />,
+    );
+
+    await screen.findByText("AVI CERTIFY Super Admin Operations OS");
+    await user.click(screen.getAllByRole("button", { name: "Prospects" })[0]);
+    await user.selectOptions(
+      screen.getByLabelText("Filtrer par suivi"),
+      "profile-reminder",
+    );
+
+    expect(
+      screen.getByText("Suivi humain - profil incomplet"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByText("Système - profil incomplet après relance").length,
+    ).toBeGreaterThan(0);
+    expect(screen.getAllByText("Nouveau").length).toBeGreaterThan(0);
   });
 
   it("shows the super-admin Firebase sync action and calls the protected API", async () => {
