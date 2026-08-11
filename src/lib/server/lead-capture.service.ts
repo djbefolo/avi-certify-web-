@@ -1,6 +1,7 @@
 import { FieldValue } from "firebase-admin/firestore";
 import { z } from "zod";
 import { getAdminFirestore } from "@/lib/firebase/admin";
+import { normalizeLeadEmail } from "@/lib/leads/normalize-lead";
 
 const LEADS_COLLECTION = "leads";
 
@@ -36,6 +37,8 @@ export type LeadCaptureInput = {
   utmSource?: string | null;
   utmMedium?: string | null;
   utmCampaign?: string | null;
+  utmContent?: string | null;
+  utmTerm?: string | null;
   referrer?: string | null;
 };
 
@@ -45,19 +48,27 @@ export type CapturedLead = {
   id: string;
   fullName: string;
   email: string;
+  normalizedEmail: string;
   phone: string | null;
   country: string | null;
+  residenceCountry: string | null;
   destinationCountry: string | null;
   serviceInterest: string | null;
+  requestedService: string | null;
   projectHorizon: string | null;
   source: LeadSource;
   origin: string | null;
+  sourceDetail: string | null;
   status: LeadStatus;
+  crmStatus: "NEW";
   marketingConsent: boolean;
+  contactConsent: false;
   marketingConsentAt: FirestoreServerTimestamp | null;
   utmSource: string | null;
   utmMedium: string | null;
   utmCampaign: string | null;
+  utmContent: string | null;
+  utmTerm: string | null;
   referrer: string | null;
   guideRequested: boolean;
   guideDelivered: boolean;
@@ -120,6 +131,8 @@ const leadCaptureSchema = z
     utmSource: optionalText(100),
     utmMedium: optionalText(100),
     utmCampaign: optionalText(120),
+    utmContent: optionalText(120),
+    utmTerm: optionalText(120),
     referrer: optionalText(300),
   })
   .strict()
@@ -159,19 +172,27 @@ export function mapLeadCaptureToFirestore(
     id,
     fullName: input.fullName,
     email: input.email,
+    normalizedEmail: normalizeLeadEmail(input.email) ?? input.email,
     phone: input.phone ?? null,
     country: input.country ?? null,
+    residenceCountry: input.country ?? null,
     destinationCountry: input.destinationCountry ?? null,
     serviceInterest: input.serviceInterest ?? null,
+    requestedService: input.serviceInterest ?? null,
     projectHorizon: input.projectHorizon ?? null,
     source: input.source,
     origin: input.origin ?? null,
+    sourceDetail: input.origin ?? input.source,
     status: "NEW",
+    crmStatus: "NEW",
     marketingConsent: input.marketingConsent,
+    contactConsent: false,
     marketingConsentAt,
     utmSource: input.utmSource ?? null,
     utmMedium: input.utmMedium ?? null,
     utmCampaign: input.utmCampaign ?? null,
+    utmContent: input.utmContent ?? null,
+    utmTerm: input.utmTerm ?? null,
     referrer: input.referrer ?? null,
     guideRequested: input.source === "guide",
     guideDelivered: false,

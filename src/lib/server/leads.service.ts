@@ -1,5 +1,6 @@
 import { FieldValue } from "firebase-admin/firestore";
 import { getAdminFirestore } from "@/lib/firebase/admin";
+import { normalizeLeadEmail } from "@/lib/leads/normalize-lead";
 import {
   leadFormSchema,
   type LeadFormValues,
@@ -30,13 +31,18 @@ export type FirestoreLeadDocument = {
   fullName: string;
   phone: string;
   email: string;
+  normalizedEmail: string;
   residenceCountry: LeadFormValues["residenceCountry"];
   destinationCountry: LeadFormValues["destinationCountry"];
   requestedService: LeadFormValues["requestedService"];
   message: string | null;
   source: LeadSource;
+  sourceDetail: LeadSource;
   status: "new";
+  crmStatus: "NEW";
   consentAccepted: true;
+  contactConsent: true;
+  marketingConsent: false;
   receivedAt: number;
   createdAt: FirestoreServerTimestamp;
   updatedAt: FirestoreServerTimestamp;
@@ -76,17 +82,28 @@ export function validateLead(data: unknown): LeadFormValues {
 export function mapLeadToFirestore(
   data: CreateLeadInput,
 ): FirestoreLeadDocument {
+  const normalizedEmail = normalizeLeadEmail(data.email);
+
+  if (!normalizedEmail) {
+    throw new Error("Validated lead email is required.");
+  }
+
   return {
     fullName: data.fullName,
     phone: data.phone,
     email: data.email,
+    normalizedEmail,
     residenceCountry: data.residenceCountry,
     destinationCountry: data.destinationCountry,
     requestedService: data.requestedService,
     message: data.message ?? null,
     source: data.source,
+    sourceDetail: data.source,
     status: "new",
+    crmStatus: "NEW",
     consentAccepted: true,
+    contactConsent: true,
+    marketingConsent: false,
     receivedAt: data.receivedAt,
     createdAt: FieldValue.serverTimestamp(),
     updatedAt: FieldValue.serverTimestamp(),
