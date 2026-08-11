@@ -45,9 +45,14 @@ describe("critical service contracts", () => {
     expect(document).toMatchObject({
       fullName: "Awa Ndiaye",
       email: "awa@example.com",
+      normalizedEmail: "awa@example.com",
       source: "landing_page",
+      sourceDetail: "landing_page",
       status: "new",
+      crmStatus: "NEW",
       consentAccepted: true,
+      contactConsent: true,
+      marketingConsent: false,
       receivedAt: 1_789_560_000_000,
       metadata: {
         ipAddress: "203.0.113.10",

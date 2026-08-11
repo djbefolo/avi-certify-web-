@@ -1,3 +1,8 @@
+import type {
+  CanonicalLead,
+  CanonicalLeadCrmStatus,
+} from "@/types/lead";
+
 export type AdminLeadCrmStatus =
   | "new"
   | "contacted"
@@ -7,22 +12,17 @@ export type AdminLeadCrmStatus =
 
 export type AdminLeadCrmPriority = "low" | "normal" | "high";
 
-export type AdminLead = {
-  id: string;
+export type AdminLead = Omit<
+  CanonicalLead,
+  "fullName" | "email" | "crmStatus" | "createdAt" | "updatedAt"
+> & {
   fullName: string;
   email: string;
-  phone: string | null;
+  canonicalCrmStatus: CanonicalLeadCrmStatus;
   country: string | null;
-  destinationCountry: string | null;
   serviceInterest: string | null;
-  projectHorizon: string | null;
-  source: string;
   origin: string | null;
   status: string | null;
-  marketingConsent: boolean;
-  utmSource: string | null;
-  utmMedium: string | null;
-  utmCampaign: string | null;
   referrer: string | null;
   guideRequested: boolean;
   guideDelivered: boolean;

@@ -77,6 +77,9 @@ describe("AdminLeadsStore", () => {
     expect(result.leads[0]).toMatchObject({
       id: "lead-1",
       email: "awa@example.com",
+      normalizedEmail: "awa@example.com",
+      source: "GUIDE_DOWNLOAD",
+      canonicalCrmStatus: "NEW",
       crmStatus: "new",
       crmPriority: "normal",
     });
@@ -84,6 +87,68 @@ describe("AdminLeadsStore", () => {
       total: 1,
       new: 1,
       guideSucceeded: 1,
+    });
+  });
+
+  it("serves canonical public and guide leads through the Admin CRM read path", async () => {
+    firestoreMocks.listGet.mockResolvedValueOnce({
+      docs: [
+        {
+          id: "36eHSNLiJUM6ct1oxiki",
+          data: () => ({
+            fullName: "NTALOULOU Arlodie Serge",
+            email: "toufinamaoumbam@gmail.com",
+            phone: "+242050542011",
+            residenceCountry: "congo",
+            destinationCountry: "france",
+            requestedService: "hebergement",
+            consentAccepted: true,
+            source: "landing_page",
+            status: "new",
+            createdAt: "2026-06-27T10:00:00.000Z",
+          }),
+        },
+        {
+          id: "guide-legacy",
+          data: () => ({
+            fullName: "Awa Ndiaye",
+            email: "awa@example.com",
+            country: "cameroun",
+            serviceInterest: "guide_france_2026",
+            marketingConsent: true,
+            source: "guide",
+            status: "NEW",
+            createdAt: "2026-06-26T10:00:00.000Z",
+          }),
+        },
+      ],
+    });
+
+    const result = await new AdminLeadsStore().listLeads();
+
+    expect(result.leads[0]).toMatchObject({
+      id: "36eHSNLiJUM6ct1oxiki",
+      residenceCountry: "congo",
+      country: "congo",
+      requestedService: "hebergement",
+      serviceInterest: "hebergement",
+      source: "PUBLIC_CONTACT_FORM",
+      canonicalCrmStatus: "NEW",
+      crmStatus: "new",
+      contactConsent: true,
+      marketingConsent: false,
+    });
+    expect(result.leads[1]).toMatchObject({
+      id: "guide-legacy",
+      residenceCountry: "cameroun",
+      country: "cameroun",
+      requestedService: "guide_france_2026",
+      serviceInterest: "guide_france_2026",
+      source: "GUIDE_DOWNLOAD",
+      canonicalCrmStatus: "NEW",
+      crmStatus: "new",
+      contactConsent: false,
+      marketingConsent: true,
     });
   });
 
@@ -132,6 +197,7 @@ describe("AdminLeadsStore", () => {
     });
 
     expect(result).toMatchObject({
+      canonicalCrmStatus: "CONTACTED",
       crmStatus: "contacted",
       crmPriority: "high",
       crmNotes: "Relance WhatsApp prévue.",

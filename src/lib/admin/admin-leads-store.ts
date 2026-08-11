@@ -1,4 +1,8 @@
 import { getAdminFirestore } from "@/lib/firebase/admin";
+import {
+  normalizeLead as normalizeCanonicalLead,
+  normalizeLeadStatus,
+} from "@/lib/leads/normalize-lead";
 import type {
   AdminLead,
   AdminLeadCrmPriority,
@@ -6,6 +10,7 @@ import type {
   AdminLeadStats,
   AdminLeadUpdateInput,
 } from "@/types/admin-crm";
+import type { CanonicalLeadCrmStatus } from "@/types/lead";
 
 const LEADS_COLLECTION = "leads";
 const DEFAULT_LIMIT = 50;
@@ -182,10 +187,10 @@ function toIsoString(value: unknown, fallback: string) {
   return fallback;
 }
 
-function normalizeCrmStatus(value: unknown): AdminLeadCrmStatus {
-  return crmStatusValues.includes(value as AdminLeadCrmStatus)
-    ? (value as AdminLeadCrmStatus)
-    : "new";
+function normalizeCrmStatus(
+  value: CanonicalLeadCrmStatus,
+): AdminLeadCrmStatus {
+  return value.toLowerCase() as AdminLeadCrmStatus;
 }
 
 function normalizeCrmPriority(value: unknown): AdminLeadCrmPriority {
@@ -194,27 +199,23 @@ function normalizeCrmPriority(value: unknown): AdminLeadCrmPriority {
     : "normal";
 }
 
-function normalizeLead(docId: string, raw: Record<string, unknown>): AdminLead {
+function normalizeAdminLead(
+  docId: string,
+  raw: Record<string, unknown>,
+): AdminLead {
   const timestamp = now();
-  const createdAt = toIsoString(raw.createdAt, timestamp);
-  const updatedAt = toIsoString(raw.updatedAt, createdAt);
+  const canonical = normalizeCanonicalLead(docId, raw);
+  const createdAt = canonical.createdAt ?? timestamp;
+  const updatedAt = canonical.updatedAt ?? createdAt;
 
   return {
-    id: toStringOrNull(raw.id) ?? docId,
-    fullName: toStringOrNull(raw.fullName) ?? "Prospect sans nom",
-    email: toStringOrNull(raw.email) ?? "",
-    phone: toStringOrNull(raw.phone),
-    country: toStringOrNull(raw.country),
-    destinationCountry: toStringOrNull(raw.destinationCountry),
-    serviceInterest: toStringOrNull(raw.serviceInterest),
-    projectHorizon: toStringOrNull(raw.projectHorizon),
-    source: toStringOrNull(raw.source) ?? "unknown",
+    ...canonical,
+    fullName: canonical.fullName ?? "Prospect sans nom",
+    email: canonical.email ?? "",
+    country: canonical.residenceCountry,
+    serviceInterest: canonical.requestedService,
     origin: toStringOrNull(raw.origin),
-    status: toStringOrNull(raw.status),
-    marketingConsent: toBoolean(raw.marketingConsent),
-    utmSource: toStringOrNull(raw.utmSource),
-    utmMedium: toStringOrNull(raw.utmMedium),
-    utmCampaign: toStringOrNull(raw.utmCampaign),
+    status: canonical.rawStatus,
     referrer: toStringOrNull(raw.referrer),
     guideRequested: toBoolean(raw.guideRequested),
     guideDelivered: toBoolean(raw.guideDelivered),
@@ -222,7 +223,8 @@ function normalizeLead(docId: string, raw: Record<string, unknown>): AdminLead {
     guideDeliveryChannel: toStringOrNull(raw.guideDeliveryChannel),
     guideEmailSent: toOptionalBoolean(raw.guideEmailSent),
     guideEmailStatus: toStringOrNull(raw.guideEmailStatus),
-    crmStatus: normalizeCrmStatus(raw.crmStatus),
+    canonicalCrmStatus: canonical.crmStatus,
+    crmStatus: normalizeCrmStatus(canonical.crmStatus),
     crmPriority: normalizeCrmPriority(raw.crmPriority),
     crmOwner: toStringOrNull(raw.crmOwner),
     crmNotes: toStringOrNull(raw.crmNotes),
@@ -337,11 +339,11 @@ export class AdminLeadsStore {
     const ref = leadsCollection();
     const rawLeads = ref
       ? (await ref.orderBy("createdAt", "desc").limit(limit).get()).docs.map((doc) =>
-          normalizeLead(doc.id, doc.data() as Record<string, unknown>),
+          normalizeAdminLead(doc.id, doc.data() as Record<string, unknown>),
         )
       : fallbackState.leads
           .map((lead) =>
-            normalizeLead(toStringOrNull(lead.id) ?? "lead_local", lead),
+            normalizeAdminLead(toStringOrNull(lead.id) ?? "lead_local", lead),
           )
           .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
           .slice(0, limit);
@@ -374,7 +376,7 @@ export class AdminLeadsStore {
     if (!ref) {
       const lead = fallbackState.leads.find((item) => item.id === leadId);
 
-      return lead ? normalizeLead(leadId, lead) : null;
+      return lead ? normalizeAdminLead(leadId, lead) : null;
     }
 
     const snapshot = await ref.doc(leadId).get();
@@ -383,7 +385,10 @@ export class AdminLeadsStore {
       return null;
     }
 
-    return normalizeLead(snapshot.id, snapshot.data() as Record<string, unknown>);
+    return normalizeAdminLead(
+      snapshot.id,
+      snapshot.data() as Record<string, unknown>,
+    );
   }
 
   async updateLeadCrm(leadId: string, input: Record<string, unknown>) {
@@ -413,6 +418,10 @@ export class AdminLeadsStore {
     return {
       ...current,
       ...enriched,
+      canonicalCrmStatus:
+        update.crmStatus === undefined
+          ? current.canonicalCrmStatus
+          : normalizeLeadStatus(update.crmStatus),
     } as AdminLead;
   }
 }
