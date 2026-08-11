@@ -113,10 +113,18 @@ describe("/api/admin/leads/[leadId]", () => {
         crmNotes: "Projet confirmé.",
       },
     });
-    expect(routeMocks.updateLeadCrm).toHaveBeenCalledWith("lead-1", {
-      crmStatus: "qualified",
-      crmNotes: "Projet confirmé.",
-    });
+    expect(routeMocks.updateLeadCrm).toHaveBeenCalledWith(
+      "lead-1",
+      {
+        crmStatus: "qualified",
+        crmNotes: "Projet confirmé.",
+      },
+      {
+        uid: "admin-1",
+        role: "admin",
+        authProvider: "firebase-session",
+      },
+    );
   });
 
   it("returns 400 when PATCH tries to mutate disallowed lead fields", async () => {
@@ -150,6 +158,9 @@ describe("/api/admin/leads/[leadId]", () => {
     const response = await PATCH(
       request("http://localhost/api/admin/leads/lead-1", {
         crmStatus: "contacted",
+        crmOwner: "admin-1",
+        crmPriority: "high",
+        nextAction: "CALL_PROSPECT",
       }),
       params,
     );

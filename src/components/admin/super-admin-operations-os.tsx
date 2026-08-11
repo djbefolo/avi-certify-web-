@@ -46,9 +46,15 @@ import type {
   AdminLead,
   AdminLeadCrmPriority,
   AdminLeadCrmStatus,
+  AdminLeadLostReason,
+  AdminLeadNextAction,
   AdminLeadStats,
   AdminLeadUpdateInput,
 } from "@/types/admin-crm";
+import {
+  canTransitionLeadCrmStatus,
+  isLeadNextActionOverdue,
+} from "@/lib/leads/crm-qualification";
 import type { HousingInventoryItem, HousingRequest } from "@/types/housing";
 
 type Props = {
@@ -326,6 +332,73 @@ function linkedUidLabel(uid: string | null) {
 
 function linkMethodLabel(method: string | null) {
   return method === "VERIFIED_EMAIL" ? "Verified email" : method ?? "-";
+}
+
+function qualificationReadinessLabel(
+  readiness: AdminLead["qualificationReadiness"],
+) {
+  return readiness === "READY_FOR_REVIEW"
+    ? "Prêt pour revue"
+    : "Données à compléter";
+}
+
+function profileReadinessLabel(readiness: AdminLead["profileReadiness"]) {
+  const labels: Record<AdminLead["profileReadiness"], string> = {
+    INCOMPLETE: "Profil incomplet",
+    SUFFICIENT_FOR_QUALIFICATION: "Suffisant pour qualification",
+    COMPLETE: "Profil complet",
+  };
+
+  return labels[readiness];
+}
+
+function nextActionLabel(action: AdminLeadNextAction) {
+  const labels: Record<AdminLeadNextAction, string> = {
+    NONE: "Aucune",
+    CALL_PROSPECT: "Appeler le prospect",
+    WHATSAPP_PROSPECT: "Contacter sur WhatsApp",
+    EMAIL_PROSPECT: "Envoyer un email",
+    REQUEST_INFORMATION: "Demander des informations",
+    REVIEW_PROFILE: "Revoir le profil",
+    REVIEW_AMBIGUOUS_LINK: "Revoir le rapprochement",
+    FOLLOW_UP: "Relancer",
+  };
+
+  return labels[action];
+}
+
+function qualificationReasonLabel(
+  reason: AdminLead["qualificationReasons"][number],
+) {
+  const labels: Record<
+    AdminLead["qualificationReasons"][number],
+    string
+  > = {
+    CONTACT_AVAILABLE: "Contact disponible",
+    PHONE_AVAILABLE: "Téléphone disponible",
+    DESTINATION_KNOWN: "Destination connue",
+    REQUESTED_SERVICE_KNOWN: "Service demandé connu",
+    PROJECT_HORIZON_KNOWN: "Horizon projet connu",
+    IDENTITY_LINKED: "Identité liée",
+  };
+
+  return labels[reason];
+}
+
+function toDateTimeLocal(value: string | null) {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const offset = date.getTimezoneOffset() * 60_000;
+
+  return new Date(date.getTime() - offset).toISOString().slice(0, 16);
 }
 
 function summarizeLeadsForUi(leads: AdminLead[]): AdminLeadStats {
@@ -1066,19 +1139,60 @@ function AdminLeadsPanel({
   onUpdateLead: (leadId: string, input: AdminLeadUpdateInput) => Promise<void>;
 }) {
   const [statusFilter, setStatusFilter] = useState<AdminLeadCrmStatus | "all">("all");
+  const [identityFilter, setIdentityFilter] = useState<
+    "all" | "linked" | "unlinked" | "needs-review"
+  >("all");
+  const [followUpFilter, setFollowUpFilter] = useState<
+    "all" | "needs-review" | "overdue"
+  >("all");
   const [search, setSearch] = useState("");
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
   const [crmStatus, setCrmStatus] = useState<AdminLeadCrmStatus>("new");
   const [crmPriority, setCrmPriority] = useState<AdminLeadCrmPriority>("normal");
   const [crmOwner, setCrmOwner] = useState("");
   const [crmNotes, setCrmNotes] = useState("");
-  const [lostReason, setLostReason] = useState("");
+  const [lostReason, setLostReason] = useState<AdminLeadLostReason | "">("");
+  const [nextAction, setNextAction] = useState<AdminLeadNextAction>("NONE");
+  const [nextActionDueAt, setNextActionDueAt] = useState("");
+  const [followUpReason, setFollowUpReason] = useState("");
   const effectiveStats = stats ?? summarizeLeadsForUi(leads);
   const filteredLeads = useMemo(() => {
     const normalized = search.trim().toLowerCase();
 
     return leads.filter((lead) => {
       if (statusFilter !== "all" && lead.crmStatus !== statusFilter) {
+        return false;
+      }
+
+      if (
+        identityFilter === "linked" &&
+        lead.identityLinkStatus !== "LINKED"
+      ) {
+        return false;
+      }
+
+      if (
+        identityFilter === "unlinked" &&
+        lead.identityLinkStatus !== "UNLINKED"
+      ) {
+        return false;
+      }
+
+      if (
+        identityFilter === "needs-review" &&
+        !["AMBIGUOUS", "CONFLICT"].includes(lead.identityLinkStatus)
+      ) {
+        return false;
+      }
+
+      if (followUpFilter === "needs-review" && !lead.humanFollowUpRequired) {
+        return false;
+      }
+
+      if (
+        followUpFilter === "overdue" &&
+        !isLeadNextActionOverdue(lead.nextAction, lead.nextActionDueAt)
+      ) {
         return false;
       }
 
@@ -1091,7 +1205,7 @@ function AdminLeadsPanel({
 
       return true;
     });
-  }, [leads, search, statusFilter]);
+  }, [followUpFilter, identityFilter, leads, search, statusFilter]);
   const selectedLead =
     filteredLeads.find((lead) => lead.id === selectedLeadId) ??
     filteredLeads[0] ??
@@ -1117,7 +1231,21 @@ function AdminLeadsPanel({
     setCrmPriority(selectedLead.crmPriority);
     setCrmOwner(selectedLead.crmOwner ?? "");
     setCrmNotes(selectedLead.crmNotes ?? "");
-    setLostReason(selectedLead.lostReason ?? "");
+    setLostReason(
+      [
+        "NO_RESPONSE",
+        "NOT_INTERESTED",
+        "NOT_ELIGIBLE",
+        "DUPLICATE",
+        "OUT_OF_SCOPE",
+        "OTHER",
+      ].includes(selectedLead.lostReason ?? "")
+        ? (selectedLead.lostReason as AdminLeadLostReason)
+        : "",
+    );
+    setNextAction(selectedLead.nextAction);
+    setNextActionDueAt(toDateTimeLocal(selectedLead.nextActionDueAt));
+    setFollowUpReason(selectedLead.followUpReason ?? "");
   }, [selectedLead]);
 
   const saveLead = async () => {
@@ -1131,12 +1259,20 @@ function AdminLeadsPanel({
       crmOwner: crmOwner || null,
       crmNotes: crmNotes || null,
       lostReason: crmStatus === "lost" ? lostReason || null : null,
+      nextAction: crmStatus === "lost" ? "NONE" : nextAction,
+      nextActionDueAt:
+        crmStatus === "lost" || nextAction === "NONE"
+          ? null
+          : nextActionDueAt
+            ? new Date(nextActionDueAt).toISOString()
+            : null,
+      followUpReason: followUpReason || null,
     });
   };
 
   return (
     <section className="space-y-6" aria-labelledby="leads-title">
-      <div className="grid gap-3 lg:grid-cols-[1fr_auto] lg:items-end">
+      <div className="grid gap-3 xl:grid-cols-[minmax(260px,1fr)_auto] xl:items-end">
         <div>
           <h2 id="leads-title" className="text-xl font-semibold">
             Prospects CRM
@@ -1146,7 +1282,7 @@ function AdminLeadsPanel({
             opérationnel n'est créé depuis cette section.
           </p>
         </div>
-        <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-[18rem_auto_auto_auto]">
           <label className="relative block">
             <Search
               className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
@@ -1174,6 +1310,33 @@ function AdminLeadsPanel({
             <option value="converted">Convertis</option>
             <option value="lost">Perdus</option>
           </select>
+          <select
+            aria-label="Filtrer par identité"
+            className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm"
+            onChange={(event) =>
+              setIdentityFilter(
+                event.target.value as typeof identityFilter,
+              )
+            }
+            value={identityFilter}
+          >
+            <option value="all">Toutes identités</option>
+            <option value="linked">Comptes liés</option>
+            <option value="unlinked">Non rapprochés</option>
+            <option value="needs-review">Liens à revoir</option>
+          </select>
+          <select
+            aria-label="Filtrer par suivi"
+            className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm"
+            onChange={(event) =>
+              setFollowUpFilter(event.target.value as typeof followUpFilter)
+            }
+            value={followUpFilter}
+          >
+            <option value="all">Tous suivis</option>
+            <option value="needs-review">Intervention requise</option>
+            <option value="overdue">Actions en retard</option>
+          </select>
         </div>
       </div>
 
@@ -1195,13 +1358,15 @@ function AdminLeadsPanel({
       ) : (
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,0.8fr)]">
           <section className="overflow-x-auto rounded-lg border bg-white shadow-sm">
-            <table className="w-full min-w-[980px] text-left text-sm">
+            <table className="w-full min-w-[1260px] text-left text-sm">
               <thead className="bg-slate-50 text-xs uppercase text-slate-500">
                 <tr>
                   <th className="px-4 py-3">Prospect</th>
                   <th className="px-4 py-3">Projet</th>
+                  <th className="px-4 py-3">Identité / profil</th>
                   <th className="px-4 py-3">Attribution</th>
                   <th className="px-4 py-3">Guide</th>
+                  <th className="px-4 py-3">Suivi</th>
                   <th className="px-4 py-3">CRM</th>
                   <th className="px-4 py-3">Action</th>
                 </tr>
@@ -1224,6 +1389,17 @@ function AdminLeadsPanel({
                       </p>
                     </td>
                     <td className="px-4 py-3">
+                      <p className="font-medium">
+                        {identityLinkStatusLabel(lead.identityLinkStatus)}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {profileReadinessLabel(lead.profileReadiness)}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {qualificationReadinessLabel(lead.qualificationReadiness)}
+                      </p>
+                    </td>
+                    <td className="px-4 py-3">
                       <p>{lead.source}</p>
                       <p className="text-xs text-slate-500">
                         {lead.utmSource ?? "-"} / {lead.utmMedium ?? "-"} / {lead.utmCampaign ?? "-"}
@@ -1232,6 +1408,28 @@ function AdminLeadsPanel({
                     <td className="px-4 py-3">
                       <p>{lead.guideDeliveryStatus ?? "-"}</p>
                       <p className="text-xs text-slate-500">{lead.guideEmailStatus ?? "email guide non tracé"}</p>
+                    </td>
+                    <td className="px-4 py-3">
+                      <p>{nextActionLabel(lead.nextAction)}</p>
+                      <p
+                        className={
+                          isLeadNextActionOverdue(
+                            lead.nextAction,
+                            lead.nextActionDueAt,
+                          )
+                            ? "text-xs font-semibold text-red-700"
+                            : "text-xs text-slate-500"
+                        }
+                      >
+                        {lead.nextActionDueAt
+                          ? formatDate(lead.nextActionDueAt)
+                          : "Sans échéance"}
+                      </p>
+                      {lead.humanFollowUpRequired ? (
+                        <p className="mt-1 text-xs font-semibold text-amber-700">
+                          Revue humaine
+                        </p>
+                      ) : null}
                     </td>
                     <td className="px-4 py-3">
                       <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold">
@@ -1289,6 +1487,72 @@ function AdminLeadsPanel({
                   label="Méthode"
                   value={linkMethodLabel(selectedLead.linkMethod)}
                 />
+                <StatusBadge
+                  label="Email vérifié"
+                  value={
+                    selectedLead.linkedAccountEmailVerified == null
+                      ? "Non disponible"
+                      : selectedLead.linkedAccountEmailVerified
+                        ? "Oui"
+                        : "Non"
+                  }
+                />
+                <StatusBadge
+                  label="Profil"
+                  value={profileReadinessLabel(selectedLead.profileReadiness)}
+                />
+                <StatusBadge
+                  label="Données qualification"
+                  value={qualificationReadinessLabel(
+                    selectedLead.qualificationReadiness,
+                  )}
+                />
+                <StatusBadge
+                  label="Complétude profil"
+                  value={
+                    selectedLead.profileCompletionPercent == null
+                      ? "Non disponible"
+                      : `${selectedLead.profileCompletionPercent} %`
+                  }
+                />
+              </div>
+
+              {selectedLead.humanFollowUpRequired ? (
+                <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+                  <p className="font-semibold">Intervention humaine requise</p>
+                  <p className="mt-1 text-amber-800">
+                    {selectedLead.identityLinkStatus === "AMBIGUOUS" ||
+                    selectedLead.identityLinkStatus === "CONFLICT"
+                      ? "Le rapprochement d’identité doit être revu avant toute décision commerciale."
+                      : "Les données permettent une revue commerciale, mais le prospect n’a pas encore été contacté."}
+                  </p>
+                </div>
+              ) : null}
+
+              <div className="mt-5 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm">
+                <p className="font-semibold">Lecture de qualification</p>
+                {selectedLead.qualificationMissingFields.length ? (
+                  <p className="mt-2 text-slate-600">
+                    À compléter : {selectedLead.qualificationMissingFields.join(", ")}.
+                  </p>
+                ) : (
+                  <p className="mt-2 text-slate-600">
+                    Nom, email, téléphone, destination et service sont disponibles.
+                    La qualification reste une décision humaine.
+                  </p>
+                )}
+                {selectedLead.qualificationReasons.length ? (
+                  <ul className="mt-3 flex flex-wrap gap-2">
+                    {selectedLead.qualificationReasons.map((reason) => (
+                      <li
+                        className="rounded-full bg-white px-2 py-1 text-xs font-medium text-slate-700 ring-1 ring-slate-200"
+                        key={reason}
+                      >
+                        {qualificationReasonLabel(reason)}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
               </div>
 
               <div className="mt-5 rounded-lg bg-slate-50 p-4 text-sm">
@@ -1317,16 +1581,38 @@ function AdminLeadsPanel({
                 <label className="grid gap-2 text-sm font-medium">
                   Statut CRM
                   <select
+                    aria-label="Statut CRM"
                     className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm"
                     onChange={(event) => setCrmStatus(event.target.value as AdminLeadCrmStatus)}
                     value={crmStatus}
                   >
-                    <option value="new">Nouveau</option>
-                    <option value="contacted">Contacté</option>
-                    <option value="qualified">Qualifié</option>
-                    <option value="converted">Converti</option>
-                    <option value="lost">Perdu</option>
+                    {(
+                      [
+                        ["new", "Nouveau"],
+                        ["contacted", "Contacté"],
+                        ["qualified", "Qualifié"],
+                        ["converted", "Converti (hors Phase 2C)"],
+                        ["lost", "Perdu"],
+                      ] as const
+                    ).map(([value, label]) => (
+                      <option
+                        disabled={
+                          !canTransitionLeadCrmStatus(
+                            selectedLead.crmStatus,
+                            value,
+                          )
+                        }
+                        key={value}
+                        value={value}
+                      >
+                        {label}
+                      </option>
+                    ))}
                   </select>
+                  <span className="text-xs font-normal text-slate-500">
+                    La qualification reste une décision admin explicite. Aucun
+                    statut client n’est créé ici.
+                  </span>
                 </label>
 
                 <label className="grid gap-2 text-sm font-medium">
@@ -1364,15 +1650,72 @@ function AdminLeadsPanel({
                 {crmStatus === "lost" ? (
                   <label className="grid gap-2 text-sm font-medium">
                     Raison de perte
-                    <Input
-                      onChange={(event) => setLostReason(event.target.value)}
-                      placeholder="Budget, hors cible, délai..."
+                    <select
+                      className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm"
+                      onChange={(event) =>
+                        setLostReason(
+                          event.target.value as AdminLeadLostReason | "",
+                        )
+                      }
                       value={lostReason}
-                    />
+                    >
+                      <option value="">Sélectionner une raison</option>
+                      <option value="NO_RESPONSE">Aucune réponse</option>
+                      <option value="NOT_INTERESTED">Non intéressé</option>
+                      <option value="NOT_ELIGIBLE">Non éligible</option>
+                      <option value="DUPLICATE">Doublon</option>
+                      <option value="OUT_OF_SCOPE">Hors périmètre</option>
+                      <option value="OTHER">Autre</option>
+                    </select>
                   </label>
                 ) : null}
 
-                <Button disabled={isBusy} onClick={saveLead} type="button" variant="cta">
+                <label className="grid gap-2 text-sm font-medium">
+                  Prochaine action
+                  <select
+                    className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm"
+                    disabled={crmStatus === "lost"}
+                    onChange={(event) =>
+                      setNextAction(event.target.value as AdminLeadNextAction)
+                    }
+                    value={crmStatus === "lost" ? "NONE" : nextAction}
+                  >
+                    <option value="NONE">Aucune</option>
+                    <option value="CALL_PROSPECT">Appeler le prospect</option>
+                    <option value="WHATSAPP_PROSPECT">WhatsApp</option>
+                    <option value="EMAIL_PROSPECT">Email</option>
+                    <option value="REQUEST_INFORMATION">Demander des informations</option>
+                    <option value="REVIEW_PROFILE">Revoir le profil</option>
+                    <option value="REVIEW_AMBIGUOUS_LINK">Revoir le rapprochement</option>
+                    <option value="FOLLOW_UP">Relancer</option>
+                  </select>
+                </label>
+
+                <label className="grid gap-2 text-sm font-medium">
+                  Échéance
+                  <Input
+                    disabled={crmStatus === "lost" || nextAction === "NONE"}
+                    onChange={(event) => setNextActionDueAt(event.target.value)}
+                    type="datetime-local"
+                    value={nextActionDueAt}
+                  />
+                </label>
+
+                <label className="grid gap-2 text-sm font-medium">
+                  Motif de suivi
+                  <Input
+                    onChange={(event) => setFollowUpReason(event.target.value)}
+                    placeholder="Contexte court pour la prochaine action"
+                    value={followUpReason}
+                  />
+                </label>
+
+                <Button
+                  disabled={isBusy || (crmStatus === "lost" && !lostReason)}
+                  onClick={saveLead}
+                  type="button"
+                  variant="cta"
+                >
                   Sauvegarder CRM
                 </Button>
               </div>

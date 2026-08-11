@@ -177,8 +177,19 @@ const lead: AdminLead = {
   crmNotes: null,
   lastContactedAt: null,
   qualifiedAt: null,
+  qualifiedBy: null,
+  qualificationReasons: [],
   convertedAt: null,
   lostReason: null,
+  nextAction: "NONE",
+  nextActionDueAt: null,
+  followUpReason: null,
+  qualificationReadiness: "READY_FOR_REVIEW",
+  qualificationMissingFields: [],
+  profileReadiness: "SUFFICIENT_FOR_QUALIFICATION",
+  profileCompletionPercent: 62,
+  linkedAccountEmailVerified: true,
+  humanFollowUpRequired: true,
   linkedUid: "firebase-user-linked-1",
   linkedAt: "2026-06-27T10:05:00.000Z",
   linkMethod: "VERIFIED_EMAIL",
@@ -577,6 +588,10 @@ describe("SuperAdminOperationsOS", () => {
     expect(screen.getAllByText("Compte lié").length).toBeGreaterThan(0);
     expect(screen.getByText("firebase…ed-1")).toBeInTheDocument();
     expect(screen.getByText("Verified email")).toBeInTheDocument();
+    expect(
+      screen.getAllByText("Suffisant pour qualification").length,
+    ).toBeGreaterThan(0);
+    expect(screen.getByText("Intervention humaine requise")).toBeInTheDocument();
     await user.selectOptions(screen.getByLabelText("Statut CRM"), "contacted");
     await user.selectOptions(screen.getByLabelText("Priorité"), "high");
     await user.type(screen.getByLabelText("Notes internes"), "Relance effectuée.");
@@ -593,6 +608,9 @@ describe("SuperAdminOperationsOS", () => {
             crmOwner: null,
             crmNotes: "Relance effectuée.",
             lostReason: null,
+            nextAction: "NONE",
+            nextActionDueAt: null,
+            followUpReason: null,
           }),
         }),
       );
