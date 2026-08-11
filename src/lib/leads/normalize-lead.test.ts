@@ -34,6 +34,8 @@ describe("normalizeLead", () => {
       marketingConsent: false,
       source: "PUBLIC_CONTACT_FORM",
       linkedUid: null,
+      identityLinkStatus: "UNLINKED",
+      linkConflictReason: null,
     });
     expect(lead).not.toHaveProperty("unknownHistoricalField");
   });
@@ -93,6 +95,35 @@ describe("normalizeLead", () => {
 
     expect(lead.contactConsent).toBe(true);
     expect(lead.marketingConsent).toBe(false);
+  });
+
+  it("normalizes identity linking independently from CRM status", () => {
+    expect(
+      normalizeLead("linked-lead", {
+        linkedUid: "firebase-user-1",
+        linkedAt: "2026-08-11T00:00:00.000Z",
+        linkMethod: "VERIFIED_EMAIL",
+        identityLinkStatus: "linked",
+        crmStatus: "NEW",
+      }),
+    ).toMatchObject({
+      linkedUid: "firebase-user-1",
+      linkedAt: "2026-08-11T00:00:00.000Z",
+      linkMethod: "VERIFIED_EMAIL",
+      identityLinkStatus: "LINKED",
+      crmStatus: "NEW",
+    });
+  });
+
+  it("derives LINKED for legacy linked leads without rewriting them", () => {
+    expect(
+      normalizeLead("legacy-linked", {
+        linkedUid: "firebase-user-legacy",
+      }),
+    ).toMatchObject({
+      linkedUid: "firebase-user-legacy",
+      identityLinkStatus: "LINKED",
+    });
   });
 
   it("trims and lowercases email while preserving plus aliases", () => {

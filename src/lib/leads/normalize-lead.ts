@@ -2,6 +2,7 @@ import type {
   CanonicalLead,
   CanonicalLeadCrmStatus,
   CanonicalLeadSource,
+  LeadIdentityLinkStatus,
 } from "@/types/lead";
 
 const canonicalStatuses = new Set<CanonicalLeadCrmStatus>([
@@ -19,6 +20,13 @@ const canonicalSources = new Set<CanonicalLeadSource>([
   "SIGNUP",
   "PROFILE",
   "UNKNOWN",
+]);
+
+const identityLinkStatuses = new Set<LeadIdentityLinkStatus>([
+  "UNLINKED",
+  "LINKED",
+  "AMBIGUOUS",
+  "CONFLICT",
 ]);
 
 function stringOrNull(value: unknown) {
@@ -109,6 +117,17 @@ export function normalizeLead(
   const email = stringOrNull(raw.email);
   const explicitContactConsent = explicitBoolean(raw.contactConsent);
   const legacyContactConsent = explicitBoolean(raw.consentAccepted);
+  const linkedUid = stringOrNull(raw.linkedUid);
+  const rawIdentityLinkStatus = stringOrNull(
+    raw.identityLinkStatus,
+  )?.toUpperCase();
+  const identityLinkStatus = identityLinkStatuses.has(
+    rawIdentityLinkStatus as LeadIdentityLinkStatus,
+  )
+    ? (rawIdentityLinkStatus as LeadIdentityLinkStatus)
+    : linkedUid
+      ? "LINKED"
+      : "UNLINKED";
 
   return {
     id: stringOrNull(raw.id) ?? documentId,
@@ -138,9 +157,11 @@ export function normalizeLead(
       explicitContactConsent ?? legacyContactConsent ?? false,
     createdAt: isoStringOrNull(raw.createdAt),
     updatedAt: isoStringOrNull(raw.updatedAt),
-    linkedUid: stringOrNull(raw.linkedUid),
+    linkedUid,
     linkedAt: isoStringOrNull(raw.linkedAt),
     linkMethod: stringOrNull(raw.linkMethod),
+    identityLinkStatus,
+    linkConflictReason: stringOrNull(raw.linkConflictReason),
     rawSource,
     rawStatus,
   };

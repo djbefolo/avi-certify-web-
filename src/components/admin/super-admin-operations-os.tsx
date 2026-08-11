@@ -305,6 +305,29 @@ function crmPriorityLabel(priority: AdminLeadCrmPriority) {
   return labels[priority];
 }
 
+function identityLinkStatusLabel(status: AdminLead["identityLinkStatus"]) {
+  const labels: Record<AdminLead["identityLinkStatus"], string> = {
+    UNLINKED: "Non rapproché",
+    LINKED: "Compte lié",
+    AMBIGUOUS: "Revue requise",
+    CONFLICT: "Conflit",
+  };
+
+  return labels[status];
+}
+
+function linkedUidLabel(uid: string | null) {
+  if (!uid) {
+    return "-";
+  }
+
+  return uid.length > 16 ? `${uid.slice(0, 8)}…${uid.slice(-4)}` : uid;
+}
+
+function linkMethodLabel(method: string | null) {
+  return method === "VERIFIED_EMAIL" ? "Verified email" : method ?? "-";
+}
+
 function summarizeLeadsForUi(leads: AdminLead[]): AdminLeadStats {
   return {
     total: leads.length,
@@ -1254,6 +1277,18 @@ function AdminLeadsPanel({
                 <StatusBadge label="Consentement marketing" value={selectedLead.marketingConsent ? "Oui" : "Non"} />
                 <StatusBadge label="Pays" value={selectedLead.country ?? "-"} />
                 <StatusBadge label="Destination" value={selectedLead.destinationCountry ?? "-"} />
+                <StatusBadge
+                  label="Rapprochement"
+                  value={identityLinkStatusLabel(selectedLead.identityLinkStatus)}
+                />
+                <StatusBadge
+                  label="Compte lié"
+                  value={linkedUidLabel(selectedLead.linkedUid)}
+                />
+                <StatusBadge
+                  label="Méthode"
+                  value={linkMethodLabel(selectedLead.linkMethod)}
+                />
               </div>
 
               <div className="mt-5 rounded-lg bg-slate-50 p-4 text-sm">

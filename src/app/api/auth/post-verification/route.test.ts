@@ -61,6 +61,7 @@ describe("POST /api/auth/post-verification", () => {
       emailVerifiedTransitionCreated: true,
       welcomeStatus: "SENT",
       welcomeSent: true,
+      leadLinkStatus: "NO_MATCH",
     });
 
     const response = await POST(request("verified-token"));
@@ -69,6 +70,7 @@ describe("POST /api/auth/post-verification", () => {
     expect(routeMocks.completePostVerification).toHaveBeenCalledWith({
       uid: "user-1",
       email: "AWA@EXAMPLE.COM",
+      emailVerified: true,
     });
     await expect(response.json()).resolves.toMatchObject({
       emailVerifiedTransitionCreated: true,
