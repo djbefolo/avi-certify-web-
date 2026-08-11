@@ -166,10 +166,12 @@ export type CommunicationLog = {
   recipient: string | null;
   status:
     | "PENDING"
+    | "PROCESSING"
     | "QUEUED"
     | "SENT"
     | "DELIVERED"
     | "FAILED"
+    | "CANCELLED"
     | "NOT_SENT";
   provider: "resend" | "internal" | "system";
   messageId: string | null;
@@ -177,8 +179,12 @@ export type CommunicationLog = {
   idempotencyKey?: string | null;
   attemptCount?: number;
   lastAttemptAt?: string | null;
+  dueAt?: string | null;
+  nextAttemptAt?: string | null;
   sentAt?: string | null;
   failedAt?: string | null;
+  cancelledAt?: string | null;
+  cancellationReason?: string | null;
   updatedAt?: string;
   error?: {
     code: string;
