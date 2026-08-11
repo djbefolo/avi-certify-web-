@@ -11,6 +11,10 @@ import {
   linkLeadToVerifiedUser,
   type LeadUserLinkingStatus,
 } from "@/lib/server/lead-user-linking.service";
+import {
+  buildProfileReminderSchedule,
+  profileReminderCommunicationId,
+} from "@/lib/server/onboarding-profile-reminder.model";
 
 const USERS_COLLECTION = "users";
 const COMMUNICATIONS_COLLECTION = "communication_logs";
@@ -34,6 +38,8 @@ export type CompletePostVerificationResult = {
   welcomeStatus: WelcomeState;
   welcomeSent: boolean;
   leadLinkStatus: LeadUserLinkingStatus | "ERROR";
+  profileReminderScheduled: boolean;
+  profileReminderDueAt: string | null;
 };
 
 function normalizeEmail(email: string) {
@@ -146,15 +152,19 @@ export async function completePostVerification(
   const communicationRef = db
     .collection(COMMUNICATIONS_COLLECTION)
     .doc(communicationId);
+  const reminderRef = db
+    .collection(COMMUNICATIONS_COLLECTION)
+    .doc(profileReminderCommunicationId(input.uid));
   const email = normalizeEmail(input.email);
   const idempotencyKey = authWelcomeIdempotencyKey(input.uid);
   const leaseId = randomUUID();
   const now = new Date();
 
   const claim = await db.runTransaction(async (transaction) => {
-    const [userSnapshot, communicationSnapshot] = await Promise.all([
+    const [userSnapshot, communicationSnapshot, reminderSnapshot] = await Promise.all([
       transaction.get(userRef),
       transaction.get(communicationRef),
+      transaction.get(reminderRef),
     ]);
     const userData = userSnapshot.exists
       ? (userSnapshot.data() as Record<string, unknown>)
@@ -163,6 +173,11 @@ export async function completePostVerification(
       ? (communicationSnapshot.data() as Record<string, unknown>)
       : null;
     const transitionCreated = !userData?.emailVerifiedAt;
+    const existingReminderData = reminderSnapshot.exists
+      ? (reminderSnapshot.data() as Record<string, unknown>)
+      : null;
+    let profileReminderScheduled = false;
+    let profileReminderDueAtMillis = toMillis(existingReminderData?.dueAt);
 
     if (userData) {
       if (transitionCreated) {
@@ -187,6 +202,25 @@ export async function completePostVerification(
       });
     }
 
+    if (transitionCreated && !reminderSnapshot.exists) {
+      const schedule = buildProfileReminderSchedule({
+        uid: input.uid,
+        email,
+        emailVerifiedAt: now,
+        user: userData,
+      });
+
+      if (schedule) {
+        transaction.create(reminderRef, {
+          ...schedule,
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+        profileReminderScheduled = true;
+        profileReminderDueAtMillis = schedule.dueAt.getTime();
+      }
+    }
+
     if (communicationData?.status === "SENT") {
       return {
         acquired: false,
@@ -194,6 +228,8 @@ export async function completePostVerification(
         transitionCreated,
         fullName: fullNameFromProfile(userData ?? {}),
         status: "SENT" as const,
+        profileReminderScheduled,
+        profileReminderDueAtMillis,
       };
     }
 
@@ -208,6 +244,8 @@ export async function completePostVerification(
         transitionCreated,
         fullName: fullNameFromProfile(userData ?? {}),
         status: "PENDING" as const,
+        profileReminderScheduled,
+        profileReminderDueAtMillis,
       };
     }
 
@@ -252,6 +290,8 @@ export async function completePostVerification(
       transitionCreated,
       fullName: fullNameFromProfile(userData ?? {}),
       status: "PENDING" as const,
+      profileReminderScheduled,
+      profileReminderDueAtMillis,
     };
   });
   const leadLinkStatus = await attemptLeadIdentityLinking(input);
@@ -264,6 +304,10 @@ export async function completePostVerification(
       welcomeStatus: claim.status,
       welcomeSent: claim.status === "SENT",
       leadLinkStatus,
+      profileReminderScheduled: claim.profileReminderScheduled,
+      profileReminderDueAt: claim.profileReminderDueAtMillis
+        ? new Date(claim.profileReminderDueAtMillis).toISOString()
+        : null,
     };
   }
 
@@ -314,5 +358,9 @@ export async function completePostVerification(
     welcomeStatus,
     welcomeSent: emailResult.sent,
     leadLinkStatus,
+    profileReminderScheduled: claim.profileReminderScheduled,
+    profileReminderDueAt: claim.profileReminderDueAtMillis
+      ? new Date(claim.profileReminderDueAtMillis).toISOString()
+      : null,
   };
 }

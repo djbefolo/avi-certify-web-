@@ -16,7 +16,10 @@ vi.mock("@/lib/email/resend.client", () => ({
   getResendClient: () => ({ emails: { send: emailMocks.send } }),
 }));
 
-import { sendWelcomeEmailWithResult } from "@/lib/server/email.service";
+import {
+  sendProfileReminderEmailWithResult,
+  sendWelcomeEmailWithResult,
+} from "@/lib/server/email.service";
 
 beforeEach(() => {
   emailMocks.send.mockReset();
@@ -45,6 +48,31 @@ describe("welcome email delivery", () => {
         subject: "Bienvenue dans votre espace AVI CERTIFY",
       }),
       { idempotencyKey: "auth_welcome:user-1" },
+    );
+  });
+
+  it("passes the stable profile reminder key to Resend", async () => {
+    emailMocks.send.mockResolvedValue({
+      data: { id: "resend-reminder-1" },
+      error: null,
+    });
+
+    const result = await sendProfileReminderEmailWithResult(
+      { email: "awa@example.com", fullName: "Awa Ndiaye" },
+      "onboarding_profile_reminder:user-1:24h",
+    );
+
+    expect(result).toMatchObject({
+      sent: true,
+      messageId: "resend-reminder-1",
+      status: "SENT",
+    });
+    expect(emailMocks.send).toHaveBeenCalledWith(
+      expect.objectContaining({
+        to: "awa@example.com",
+        subject: "Complétez votre profil AVI CERTIFY",
+      }),
+      { idempotencyKey: "onboarding_profile_reminder:user-1:24h" },
     );
   });
 });

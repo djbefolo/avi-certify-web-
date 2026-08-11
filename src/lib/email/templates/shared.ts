@@ -17,10 +17,12 @@ export function renderEmailLayout({
   title,
   preview,
   children,
+  footer,
 }: {
   title: string;
   preview: string;
   children: string;
+  footer?: string;
 }) {
   return `<!doctype html>
 <html lang="fr">
@@ -47,7 +49,10 @@ export function renderEmailLayout({
             </tr>
             <tr>
               <td style="padding:18px 24px;border-top:1px solid #e6edf5;color:#6b7280;font-size:12px;line-height:20px;">
-                AVI CERTIFY accompagne les etudiants dans leurs demarches AVI, hebergement, prefinancement et visa.
+                ${escapeHtml(
+                  footer ??
+                    "AVI CERTIFY accompagne les etudiants dans leurs demarches AVI, hebergement, prefinancement et visa.",
+                )}
               </td>
             </tr>
           </table>

@@ -97,6 +97,11 @@ import {
   authWelcomeIdempotencyKey,
   completePostVerification,
 } from "@/lib/server/onboarding.service";
+import {
+  PROFILE_REMINDER_DELAY_MS,
+  profileReminderCommunicationId,
+  profileReminderIdempotencyKey,
+} from "@/lib/server/onboarding-profile-reminder.model";
 
 function sentResult(messageId = "resend-message-1") {
   return {
@@ -155,6 +160,9 @@ describe("post-verification onboarding transition", () => {
       emailVerifiedTransitionCreated: false,
       welcomeStatus: "SENT",
     });
+    expect(first.profileReminderScheduled).toBe(true);
+    expect(second.profileReminderScheduled).toBe(false);
+    expect(second.profileReminderDueAt).toBe(first.profileReminderDueAt);
     expect(onboardingMocks.sendWelcomeEmailWithResult).toHaveBeenCalledTimes(1);
     expect(onboardingMocks.sendWelcomeEmailWithResult).toHaveBeenCalledWith(
       { email: "awa@example.com", fullName: "Awa Ndiaye" },
@@ -164,6 +172,23 @@ describe("post-verification onboarding transition", () => {
       customProfileField: "preserved",
       emailVerifiedAt: verifiedAt,
     });
+
+    const reminderPath =
+      `communication_logs/${profileReminderCommunicationId("user-1")}`;
+    const reminderAfterFirstTransition = onboardingMocks.documents.get(reminderPath);
+    expect(reminderAfterFirstTransition).toMatchObject({
+      status: "PENDING",
+      recipient: "awa@example.com",
+      idempotencyKey: profileReminderIdempotencyKey("user-1"),
+      attemptCount: 0,
+    });
+    expect(
+      (reminderAfterFirstTransition?.dueAt as Date).getTime() -
+        PROFILE_REMINDER_DELAY_MS,
+    ).toBeLessThanOrEqual(Date.now());
+    expect(onboardingMocks.documents.get(reminderPath)?.dueAt).toBe(
+      reminderAfterFirstTransition?.dueAt,
+    );
 
     const communication = onboardingMocks.documents.get(
       `communication_logs/${authWelcomeCommunicationId("user-1")}`,
@@ -281,6 +306,65 @@ describe("post-verification onboarding transition", () => {
       messageId: "resend-message-3",
       error: null,
     });
+  });
+
+  it("does not schedule a reminder when the canonical profile is already complete", async () => {
+    onboardingMocks.documents.set("users/complete-user", {
+      uid: "complete-user",
+      email: "complete@example.com",
+      status: "active",
+      firstName: "Awa",
+      lastName: "Ndiaye",
+      birthDate: "1998-05-06",
+      birthCountry: "SN",
+      nationality: "Sénégalaise",
+      countryOfResidence: "SN",
+      destinationCountry: "FR",
+      destinationCity: "Paris",
+      targetSchoolName: "Université",
+      intendedProgram: "Master",
+      intendedAcademicYear: "2026-2027",
+      intendedArrivalDate: "2026-09-01",
+      selectedService: "avi",
+    });
+
+    const result = await completePostVerification({
+      uid: "complete-user",
+      email: "complete@example.com",
+      emailVerified: true,
+    });
+
+    expect(result.profileReminderScheduled).toBe(false);
+    expect(result.profileReminderDueAt).toBeNull();
+    expect(
+      onboardingMocks.documents.has(
+        `communication_logs/${profileReminderCommunicationId("complete-user")}`,
+      ),
+    ).toBe(false);
+  });
+
+  it("does not backfill an old verified user without an existing reminder", async () => {
+    onboardingMocks.documents.set("users/old-verified", {
+      uid: "old-verified",
+      email: "old@example.com",
+      role: "student",
+      status: "active",
+      emailVerifiedAt: new Date("2026-07-01T10:00:00.000Z"),
+    });
+
+    const result = await completePostVerification({
+      uid: "old-verified",
+      email: "old@example.com",
+      emailVerified: true,
+    });
+
+    expect(result.emailVerifiedTransitionCreated).toBe(false);
+    expect(result.profileReminderScheduled).toBe(false);
+    expect(
+      onboardingMocks.documents.has(
+        `communication_logs/${profileReminderCommunicationId("old-verified")}`,
+      ),
+    ).toBe(false);
   });
 
   it("keeps verification and welcome non-blocking when lead linking fails", async () => {

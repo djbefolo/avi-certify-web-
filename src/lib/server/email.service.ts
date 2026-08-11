@@ -37,6 +37,10 @@ import {
   renderQuoteReadyEmail,
   type QuoteReadyEmailInput,
 } from "@/lib/email/templates/quote-ready";
+import {
+  renderProfileIncompleteReminderEmail,
+  type ProfileIncompleteReminderEmailInput,
+} from "@/lib/email/templates/profile-incomplete-reminder";
 import type { EmailTemplate } from "@/lib/email/templates/shared";
 import type { LeadFormValues } from "@/lib/validations/lead";
 import type { UserDocument } from "@/types/document";
@@ -177,6 +181,18 @@ export async function sendWelcomeEmailWithResult(
     to: user.email,
     template: renderAuthWelcomeEmail(user),
     context: "auth welcome",
+    idempotencyKey,
+  });
+}
+
+export async function sendProfileReminderEmailWithResult(
+  user: ProfileIncompleteReminderEmailInput,
+  idempotencyKey: string,
+): Promise<SendEmailResult> {
+  return sendEmailWithResult({
+    to: user.email,
+    template: renderProfileIncompleteReminderEmail(user),
+    context: "onboarding profile reminder",
     idempotencyKey,
   });
 }
