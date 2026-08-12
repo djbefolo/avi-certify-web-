@@ -5,6 +5,7 @@ import {
   getAdminLeadsStore,
 } from "@/lib/admin/admin-leads-store";
 import { adminErrorResponse, requireAdmin } from "@/lib/admin/admin-auth";
+import { getAdminProspect360 } from "@/lib/admin/admin-prospect-360";
 
 function leadErrorResponse(error: AdminLeadValidationError) {
   return adminOpsJson(
@@ -22,15 +23,15 @@ export async function GET(
   try {
     await requireAdmin(request);
     const { leadId } = await params;
-    const lead = await getAdminLeadsStore().getLead(leadId);
+    const prospect = await getAdminProspect360(leadId);
 
-    if (!lead) {
+    if (!prospect) {
       return leadErrorResponse(
         new AdminLeadValidationError("Lead not found.", 404),
       );
     }
 
-    return adminOpsJson({ lead });
+    return adminOpsJson({ lead: prospect.lead, prospect });
   } catch (error) {
     if (error instanceof AdminLeadValidationError) {
       return leadErrorResponse(error);
@@ -48,6 +49,11 @@ export async function PATCH(
     const actor = await requireAdmin(request);
     const { leadId } = await params;
     const body = await readAdminJson(request);
+    if (body.crmStatus === "converted") {
+      throw new AdminLeadValidationError(
+        "Client conversion is not available from Prospect 360.",
+      );
+    }
     const lead = await getAdminLeadsStore().updateLeadCrm(
       leadId,
       body,

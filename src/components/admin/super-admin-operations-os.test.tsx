@@ -10,7 +10,7 @@ import type {
   ClientDocument,
   ClientFinancialFile,
 } from "@/types/admin-ops";
-import type { AdminLead, AdminLeadStats } from "@/types/admin-crm";
+import type { AdminLead, AdminLeadStats, AdminProspect360 } from "@/types/admin-crm";
 
 vi.mock("@/components/admin/fintech-command-center", () => ({
   FintechCommandCenter: ({
@@ -212,6 +212,34 @@ const leadStats: AdminLeadStats = {
   guideSucceeded: 1,
   guideEmailFailures: 0,
 };
+
+const prospect360: AdminProspect360 = {
+  lead,
+  account: {
+    uidMasked: "firebase…ed-1",
+    status: "ACTIVE",
+    createdAt: "2026-06-27T10:01:00.000Z",
+    emailVerifiedAt: "2026-06-27T10:03:00.000Z",
+  },
+  onboarding: {
+    accountCreatedAt: "2026-06-27T10:01:00.000Z",
+    emailVerifiedAt: "2026-06-27T10:03:00.000Z",
+    welcomeEmailStatus: "SENT",
+    welcomeEmailAt: "2026-06-27T10:04:00.000Z",
+    profileReminderStatus: "SENT",
+    profileReminderAt: "2026-06-28T10:03:00.000Z",
+    profileReminderDueAt: "2026-06-28T10:03:00.000Z",
+    reminderAttemptCount: 1,
+    humanFollowUpStatus: "ACTIVE",
+    humanFollowUpDueAt: "2026-07-01T10:03:00.000Z",
+    humanFollowUpCreatedAt: "2026-07-01T10:03:00.000Z",
+    humanFollowUpResolvedAt: null,
+  },
+  communications: [{ id: "comm-welcome", channel: "EMAIL", label: "Email de bienvenue", status: "SENT", occurredAt: "2026-06-27T10:04:00.000Z" }],
+  documents: [{ id: "doc-lead", fileName: "identite.pdf", documentType: "passport", status: "UPLOADED", uploadedAt: "2026-06-27T10:10:00.000Z", previewUrl: "/api/admin/documents/doc-lead/preview" }],
+  notes: [],
+  timeline: [{ id: "timeline-lead", kind: "LEAD", label: "Prospect créé", occurredAt: "2026-06-27T10:00:00.000Z", actor: null }],
+};
 function jsonResponse(body: unknown) {
   return {
     ok: true,
@@ -278,6 +306,7 @@ function mockOperationsFetch({
     }
     if (url.includes("/api/admin/leads/lead-1")) {
       return jsonResponse({
+        prospect: prospect360,
         lead: {
           ...lead,
           crmStatus: "contacted",
@@ -417,6 +446,23 @@ function mockOperationsFetch({
   });
 
   vi.stubGlobal("fetch", fetchMock);
+  return fetchMock;
+}
+
+function mockProspectDetailFailure(message = "Prospect 360 indisponible") {
+  const fetchMock = mockOperationsFetch();
+  const implementation = fetchMock.getMockImplementation();
+  fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (String(input).includes("/api/admin/leads/lead-1") && (!init?.method || init.method === "GET")) {
+      return {
+        ok: false,
+        status: 503,
+        statusText: "Service Unavailable",
+        json: async () => ({ error: message }),
+      } as Response;
+    }
+    return implementation!(input);
+  });
   return fetchMock;
 }
 
@@ -589,18 +635,19 @@ describe("SuperAdminOperationsOS", () => {
     expect(screen.queryByRole("button", { name: /créer dossier/i })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Ouvrir CRM" }));
-    expect(screen.getByText("Rapprochement")).toBeInTheDocument();
-    expect(screen.getAllByText("Compte lié").length).toBeGreaterThan(0);
-    expect(screen.getByText("firebase…ed-1")).toBeInTheDocument();
-    expect(screen.getByText("Verified email")).toBeInTheDocument();
-    expect(
-      screen.getAllByText("Suffisant pour qualification").length,
-    ).toBeGreaterThan(0);
-    expect(screen.getByText("Intervention humaine requise")).toBeInTheDocument();
-    await user.selectOptions(screen.getByLabelText("Statut CRM"), "contacted");
-    await user.selectOptions(screen.getByLabelText("Priorité"), "high");
-    await user.type(screen.getByLabelText("Notes internes"), "Relance effectuée.");
-    await user.click(screen.getByRole("button", { name: "Sauvegarder CRM" }));
+    expect(await screen.findByRole("dialog", { name: "Prospect 360" })).toBeInTheDocument();
+    expect(screen.getByText("Identité et projet")).toBeInTheDocument();
+    expect(screen.getByText("Compte et onboarding")).toBeInTheDocument();
+    expect(screen.getAllByText("firebase…ed-1").length).toBeGreaterThan(0);
+    expect(screen.getByText("Décision humaine requise")).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Prospect 360" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Appeler" })).toHaveAttribute("href", "tel:+237600000000");
+    expect(screen.getByRole("link", { name: "WhatsApp" })).toHaveAttribute("href", "https://wa.me/237600000000");
+    expect(screen.getByRole("link", { name: "Email" })).toHaveAttribute("href", "mailto:awa@example.com");
+    expect(screen.getByLabelText("Statut CRM Prospect 360").querySelector('option[value="converted"]')).toBeNull();
+    await user.selectOptions(screen.getByLabelText("Statut CRM Prospect 360"), "contacted");
+    await user.selectOptions(screen.getAllByLabelText("Priorité").at(-1)!, "high");
+    await user.click(screen.getByRole("button", { name: "Sauvegarder le pilotage CRM" }));
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
@@ -611,7 +658,6 @@ describe("SuperAdminOperationsOS", () => {
             crmStatus: "contacted",
             crmPriority: "high",
             crmOwner: null,
-            crmNotes: "Relance effectuée.",
             lostReason: null,
             nextAction: "NONE",
             nextActionDueAt: null,
@@ -657,6 +703,44 @@ describe("SuperAdminOperationsOS", () => {
       screen.getAllByText("Système - profil incomplet après relance").length,
     ).toBeGreaterThan(0);
     expect(screen.getAllByText("Nouveau").length).toBeGreaterThan(0);
+  });
+
+  it("shows a Prospect 360 loading state while the Admin DTO is pending", async () => {
+    const fetchMock = mockOperationsFetch();
+    const implementation = fetchMock.getMockImplementation();
+    fetchMock.mockImplementation(async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).includes("/api/admin/leads/lead-1") && (!init?.method || init.method === "GET")) {
+        return new Promise<Response>(() => undefined);
+      }
+      return implementation!(input);
+    });
+    const user = userEvent.setup();
+    render(<SuperAdminOperationsOS adminRole="super_admin" />);
+    await screen.findByText("AVI CERTIFY Super Admin Operations OS");
+    await user.click(screen.getAllByRole("button", { name: "Prospects" })[0]);
+    await user.click(screen.getByRole("button", { name: "Ouvrir CRM" }));
+    expect(screen.getByRole("dialog", { name: "Prospect 360" })).toHaveTextContent("Chargement");
+  });
+
+  it("renders a safe Prospect 360 error without closing the drawer", async () => {
+    mockProspectDetailFailure();
+    const user = userEvent.setup();
+    render(<SuperAdminOperationsOS adminRole="super_admin" />);
+    await screen.findByText("AVI CERTIFY Super Admin Operations OS");
+    await user.click(screen.getAllByRole("button", { name: "Prospects" })[0]);
+    await user.click(screen.getByRole("button", { name: "Ouvrir CRM" }));
+    expect(await screen.findByText(/503 Prospect 360 indisponible/)).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Prospect 360" })).toBeInTheDocument();
+  });
+
+  it("uses a full-width mobile drawer capped at 860px on larger screens", async () => {
+    mockOperationsFetch();
+    const user = userEvent.setup();
+    render(<SuperAdminOperationsOS adminRole="super_admin" />);
+    await screen.findByText("AVI CERTIFY Super Admin Operations OS");
+    await user.click(screen.getAllByRole("button", { name: "Prospects" })[0]);
+    await user.click(screen.getByRole("button", { name: "Ouvrir CRM" }));
+    expect(await screen.findByRole("dialog", { name: "Prospect 360" })).toHaveClass("w-full", "sm:max-w-[860px]");
   });
 
   it("shows the super-admin Firebase sync action and calls the protected API", async () => {
