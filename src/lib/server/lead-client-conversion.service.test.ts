@@ -118,6 +118,7 @@ function linkedLead(id = "lead-1", overrides: StoredDocument = {}) {
     phone: "+237600000000",
     residenceCountry: "Cameroun",
     destinationCountry: "France",
+    requestedService: "hebergement",
     marketingConsent: false,
     ...overrides,
   });
@@ -188,7 +189,7 @@ describe("canonical lead to client conversion", () => {
 
   it("reuses an existing client for a later valid service payment", async () => {
     payment("payment-2", { serviceType: "visa_support" });
-    linkedLead();
+    linkedLead("lead-visa", { requestedService: "accompagnement-visa" });
     setDocument("admin_client_profiles/uid-1", {
       uid: "uid-1",
       source: "user_profile",
@@ -241,6 +242,74 @@ describe("canonical lead to client conversion", () => {
     await expect(convert()).resolves.toMatchObject({ status: "AMBIGUOUS_IDENTITY" });
     expect(firestoreMocks.documents.get("leads/lead-1")).toMatchObject({ crmStatus: "QUALIFIED" });
     expect(firestoreMocks.documents.get("leads/lead-2")).toMatchObject({ crmStatus: "QUALIFIED" });
+  });
+
+  it("selects only the lead matching the canonical paid service for the same UID", async () => {
+    payment("payment-visa", { serviceType: "visa_support" });
+    linkedLead("lead-housing", { requestedService: "hebergement" });
+    linkedLead("lead-visa", { requestedService: "accompagnement-visa" });
+
+    await expect(
+      convertLeadFromConfirmedPayment({
+        paymentId: "payment-visa",
+        ownerId: "uid-1",
+        serviceType: "visa_support",
+      }),
+    ).resolves.toMatchObject({ status: "CONVERTED", leadId: "lead-visa" });
+
+    expect(firestoreMocks.documents.get("leads/lead-housing")).toMatchObject({
+      crmStatus: "QUALIFIED",
+    });
+    expect(firestoreMocks.documents.get("leads/lead-visa")).toMatchObject({
+      crmStatus: "CONVERTED",
+    });
+  });
+
+  it("blocks multiple leads for the same UID and service instead of selecting by query order", async () => {
+    payment("payment-1");
+    linkedLead("lead-1");
+    linkedLead("lead-2", { requestedService: "attestation_hebergement" });
+
+    await expect(convert()).resolves.toMatchObject({
+      status: "AMBIGUOUS_IDENTITY",
+      notificationId: expect.stringMatching(/^lead_conversion_review_/),
+    });
+    expect(firestoreMocks.documents.get("leads/lead-1")).toMatchObject({
+      crmStatus: "QUALIFIED",
+    });
+    expect(firestoreMocks.documents.get("leads/lead-2")).toMatchObject({
+      crmStatus: "QUALIFIED",
+    });
+  });
+
+  it("blocks when the paid service has no matching business lead", async () => {
+    payment("payment-visa", { serviceType: "visa_support" });
+    linkedLead("lead-housing", { requestedService: "hebergement" });
+
+    await expect(
+      convertLeadFromConfirmedPayment({
+        paymentId: "payment-visa",
+        ownerId: "uid-1",
+        serviceType: "visa_support",
+      }),
+    ).resolves.toMatchObject({
+      status: "MISSING_SERVICE_MATCH",
+      notificationId: expect.stringMatching(/^lead_conversion_review_/),
+    });
+    expect(firestoreMocks.documents.get("leads/lead-housing")).toMatchObject({
+      crmStatus: "QUALIFIED",
+    });
+  });
+
+  it("allows a LOST lead to convert after a later valid payment", async () => {
+    payment("payment-1");
+    linkedLead("lead-1", { crmStatus: "LOST" });
+
+    await expect(convert()).resolves.toMatchObject({ status: "CONVERTED" });
+    expect(firestoreMocks.documents.get("leads/lead-1")).toMatchObject({
+      crmStatus: "CONVERTED",
+      marketingConsent: false,
+    });
   });
 
   it("blocks an explicit identity conflict even when a payment is paid", async () => {

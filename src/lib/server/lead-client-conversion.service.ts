@@ -17,13 +17,16 @@ const PAYMENTS_COLLECTION = "payments";
 const CLIENTS_COLLECTION = "admin_client_profiles";
 const EVENTS_COLLECTION = "admin_case_events";
 const NOTIFICATIONS_COLLECTION = "admin_notifications";
-const CANDIDATE_LIMIT = 3;
+// Reaching this bound is treated as ambiguous: a partial candidate set must
+// never select a lead accidentally.
+const CANDIDATE_LIMIT = 25;
 
 export type LeadClientConversionStatus =
   | "CONVERTED"
   | "ALREADY_CONVERTED"
   | "INVALID_TRIGGER"
   | "MISSING_LINKED_LEAD"
+  | "MISSING_SERVICE_MATCH"
   | "AMBIGUOUS_IDENTITY"
   | "IDENTITY_CONFLICT";
 
@@ -79,6 +82,52 @@ function identityStatus(lead: CandidateLead) {
   return text(lead.data.identityLinkStatus)?.toUpperCase() ?? "UNLINKED";
 }
 
+function normalizeService(value: unknown) {
+  const raw = text(value);
+
+  return raw
+    ? raw
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[_\s]+/g, "-")
+    : null;
+}
+
+const leadServiceAliases: Record<PaymentServiceType, readonly string[]> = {
+  avi_support: ["avi-support", "avi", "attestation-de-virement-irreversible"],
+  accommodation_certificate: [
+    "accommodation-certificate",
+    "hebergement",
+    "attestation-hebergement",
+  ],
+  student_prefinancing: [
+    "student-prefinancing",
+    "prefinancement",
+    "prefinancement-etudiant",
+  ],
+  visa_support: ["visa-support", "accompagnement-visa"],
+  // No public form currently emits this value. It therefore requires an
+  // explicit canonical service value rather than a broad textual guess.
+  full_package: ["full-package"],
+};
+
+function leadMatchesPaymentService(
+  lead: CandidateLead,
+  serviceType: PaymentServiceType,
+) {
+  const aliases = new Set(leadServiceAliases[serviceType]);
+
+  return [
+    lead.data.paymentServiceType,
+    lead.data.requestedService,
+    lead.data.serviceInterest,
+  ].some((value) => {
+    const service = normalizeService(value);
+    return service != null && aliases.has(service);
+  });
+}
+
 function result(
   status: LeadClientConversionStatus,
   input: Partial<LeadClientConversionResult> = {},
@@ -112,7 +161,10 @@ async function persistBlockedConversion(
   input: ConvertLeadFromConfirmedPaymentInput,
   status: Extract<
     LeadClientConversionStatus,
-    "MISSING_LINKED_LEAD" | "AMBIGUOUS_IDENTITY" | "IDENTITY_CONFLICT"
+    | "MISSING_LINKED_LEAD"
+    | "MISSING_SERVICE_MATCH"
+    | "AMBIGUOUS_IDENTITY"
+    | "IDENTITY_CONFLICT"
   >,
   candidateLeadIds: string[],
   existingNotification: { exists: boolean },
@@ -211,22 +263,48 @@ export async function convertLeadFromConfirmedPayment(
       });
     }
 
-    if (candidates.length !== 1) {
+    if (candidates.length === 0) {
       const notificationId = await persistBlockedConversion(
         transaction,
         db,
         { ...input, paymentId, ownerId },
-        candidates.length ? "AMBIGUOUS_IDENTITY" : "MISSING_LINKED_LEAD",
-        candidates.map((lead) => lead.id),
+        "MISSING_LINKED_LEAD",
+        [],
         notificationSnapshot,
       );
-      return result(candidates.length ? "AMBIGUOUS_IDENTITY" : "MISSING_LINKED_LEAD", {
+      return result("MISSING_LINKED_LEAD", {
         caseId: input.caseId ?? null,
         notificationId,
       });
     }
 
-    const lead = candidates[0];
+    // UID establishes the person; the explicitly captured service establishes
+    // the business engagement. Email, amount, timestamp, and query order are
+    // never used as conversion selectors.
+    const serviceCandidates = candidates.filter((lead) =>
+      leadMatchesPaymentService(lead, input.serviceType),
+    );
+
+    if (candidates.length === CANDIDATE_LIMIT || serviceCandidates.length !== 1) {
+      const status =
+        serviceCandidates.length === 0
+          ? "MISSING_SERVICE_MATCH"
+          : "AMBIGUOUS_IDENTITY";
+      const notificationId = await persistBlockedConversion(
+        transaction,
+        db,
+        { ...input, paymentId, ownerId },
+        status,
+        candidates.map((lead) => lead.id),
+        notificationSnapshot,
+      );
+      return result(status, {
+        caseId: input.caseId ?? null,
+        notificationId,
+      });
+    }
+
+    const lead = serviceCandidates[0];
     if (
       identityStatus(lead) !== "LINKED" ||
       text(lead.data.linkedUid) !== ownerId
