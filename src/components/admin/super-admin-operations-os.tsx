@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Activity,
+  AlertTriangle,
   Bell,
   Building2,
   BriefcaseBusiness,
@@ -14,18 +16,24 @@ import {
   FileText,
   Landmark,
   LogOut,
+  Mail,
+  MessageCircle,
+  Phone,
   RefreshCw,
   Search,
   Settings,
   ShieldCheck,
+  StickyNote,
   UserRound,
   UsersRound,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { FintechCommandCenter } from "@/components/admin/fintech-command-center";
+import { prospectDocumentStatusLabel } from "@/components/admin/prospect-360-labels";
 import type { AdminRole } from "@/lib/admin/admin-auth";
 import {
   documentTypeLabels,
@@ -44,6 +52,7 @@ import type {
 } from "@/types/admin-ops";
 import type {
   AdminLead,
+  AdminProspect360,
   AdminLeadCrmPriority,
   AdminLeadCrmStatus,
   AdminLeadLostReason,
@@ -322,18 +331,6 @@ function identityLinkStatusLabel(status: AdminLead["identityLinkStatus"]) {
   return labels[status];
 }
 
-function linkedUidLabel(uid: string | null) {
-  if (!uid) {
-    return "-";
-  }
-
-  return uid.length > 16 ? `${uid.slice(0, 8)}…${uid.slice(-4)}` : uid;
-}
-
-function linkMethodLabel(method: string | null) {
-  return method === "VERIFIED_EMAIL" ? "Verified email" : method ?? "-";
-}
-
 function qualificationReadinessLabel(
   readiness: AdminLead["qualificationReadiness"],
 ) {
@@ -379,22 +376,98 @@ function nextActionSourceLabel(source: AdminLead["nextActionSource"]) {
   return "Non renseignée";
 }
 
-function qualificationReasonLabel(
-  reason: AdminLead["qualificationReasons"][number],
-) {
-  const labels: Record<
-    AdminLead["qualificationReasons"][number],
-    string
-  > = {
-    CONTACT_AVAILABLE: "Contact disponible",
-    PHONE_AVAILABLE: "Téléphone disponible",
-    DESTINATION_KNOWN: "Destination connue",
-    REQUESTED_SERVICE_KNOWN: "Service demandé connu",
-    PROJECT_HORIZON_KNOWN: "Horizon projet connu",
-    IDENTITY_LINKED: "Identité liée",
+function leadSourceLabel(source: AdminLead["source"]) {
+  const labels: Record<AdminLead["source"], string> = {
+    PUBLIC_CONTACT_FORM: "Formulaire public",
+    GUIDE_DOWNLOAD: "Téléchargement guide",
+    PRICING: "Page tarifs",
+    SIGNUP: "Création de compte",
+    PROFILE: "Profil AVI CERTIFY",
+    UNKNOWN: "Source non précisée",
+  };
+  return labels[source];
+}
+
+function humanizeTechnicalValue(value: string | null | undefined) {
+  if (!value) return "-";
+  if (!/^[A-Za-z0-9_-]+$/.test(value)) return value;
+
+  const normalized = value.replace(/[_-]+/g, " ").toLocaleLowerCase("fr-FR");
+  return normalized.charAt(0).toLocaleUpperCase("fr-FR") + normalized.slice(1);
+}
+
+function prospectServiceLabel(service: string | null | undefined) {
+  const labels: Record<string, string> = {
+    avi: "Attestation de virement irrévocable",
+    hebergement: "Attestation d’hébergement",
+    accommodation_certificate: "Attestation d’hébergement",
+    prefinancement: "Préfinancement étudiant",
+    "accompagnement-visa": "Accompagnement visa",
+    guide_france_2026: "Guide France 2026",
+    autre: "Service à préciser",
   };
 
-  return labels[reason];
+  return service ? labels[service] ?? humanizeTechnicalValue(service) : "Service non précisé";
+}
+
+function guideStatusLabel(status: string | null | undefined) {
+  const labels: Record<string, string> = {
+    READY: "Guide disponible",
+    PENDING: "Préparation en cours",
+    SENT: "Email envoyé",
+    DELIVERED: "Guide livré",
+    SEND_FAILED: "Échec d’envoi",
+    RECIPIENT_MISSING: "Destinataire manquant",
+    NOT_SENT: "Email non envoyé",
+  };
+
+  return status ? labels[status] ?? humanizeTechnicalValue(status) : "Non tracé";
+}
+
+function followUpReasonLabel(reason: string | null | undefined) {
+  if (!reason) return "-";
+  if (reason === "PROFILE_INCOMPLETE_AFTER_REMINDER") {
+    return "Profil incomplet après relance";
+  }
+
+  return humanizeTechnicalValue(reason);
+}
+
+function qualificationMissingFieldLabel(field: string) {
+  const labels: Record<string, string> = {
+    phone: "téléphone",
+    destinationCountry: "destination",
+    requestedService: "service recherché",
+    projectHorizon: "horizon du projet",
+  };
+
+  return labels[field] ?? humanizeTechnicalValue(field);
+}
+
+function communicationStatusLabel(status: string | null) {
+  const labels: Record<string, string> = {
+    PENDING: "Planifiée",
+    PROCESSING: "En cours",
+    QUEUED: "En file",
+    SENT: "Envoyée",
+    DELIVERED: "Délivrée",
+    FAILED: "Échec",
+    CANCELLED: "Annulée",
+    NOT_SENT: "Non envoyée",
+    ACTIVE: "Active",
+    RESOLVED: "Résolue",
+  };
+  return status ? labels[status] ?? humanizeTechnicalValue(status) : "Non tracée";
+}
+
+function documentLabel(type: string) {
+  const labels: Record<string, string> = {
+    passport: "Passeport",
+    admission_letter: "Lettre d’admission",
+    proof_of_address: "Justificatif de domicile",
+    accommodation_certificate: "Attestation d’hébergement",
+  };
+  return labels[type] ?? documentTypeLabels[type as keyof typeof documentTypeLabels] ?? "Autre document";
 }
 
 function toDateTimeLocal(value: string | null) {
@@ -696,12 +769,14 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
         };
       });
       setNotice("Prospect CRM mis à jour.");
+      return response.lead;
     } catch (leadError) {
       setError(
         leadError instanceof Error
           ? leadError.message
           : "Mise à jour CRM prospect impossible.",
       );
+      throw leadError;
     } finally {
       setIsBusy(false);
     }
@@ -1148,7 +1223,7 @@ function AdminLeadsPanel({
   leads: AdminLead[];
   stats: AdminLeadStats | null;
   isBusy: boolean;
-  onUpdateLead: (leadId: string, input: AdminLeadUpdateInput) => Promise<void>;
+  onUpdateLead: (leadId: string, input: AdminLeadUpdateInput) => Promise<AdminLead>;
 }) {
   const [statusFilter, setStatusFilter] = useState<AdminLeadCrmStatus | "all">("all");
   const [identityFilter, setIdentityFilter] = useState<
@@ -1159,14 +1234,10 @@ function AdminLeadsPanel({
   >("all");
   const [search, setSearch] = useState("");
   const [selectedLeadId, setSelectedLeadId] = useState<string | null>(null);
-  const [crmStatus, setCrmStatus] = useState<AdminLeadCrmStatus>("new");
-  const [crmPriority, setCrmPriority] = useState<AdminLeadCrmPriority>("normal");
-  const [crmOwner, setCrmOwner] = useState("");
-  const [crmNotes, setCrmNotes] = useState("");
-  const [lostReason, setLostReason] = useState<AdminLeadLostReason | "">("");
-  const [nextAction, setNextAction] = useState<AdminLeadNextAction>("NONE");
-  const [nextActionDueAt, setNextActionDueAt] = useState("");
-  const [followUpReason, setFollowUpReason] = useState("");
+  const [prospect, setProspect] = useState<AdminProspect360 | null>(null);
+  const [isProspectOpen, setIsProspectOpen] = useState(false);
+  const [isProspectLoading, setIsProspectLoading] = useState(false);
+  const [prospectError, setProspectError] = useState<string | null>(null);
   const effectiveStats = stats ?? summarizeLeadsForUi(leads);
   const filteredLeads = useMemo(() => {
     const normalized = search.trim().toLowerCase();
@@ -1244,52 +1315,31 @@ function AdminLeadsPanel({
     }
   }, [selectedLead, selectedLeadId]);
 
-  useEffect(() => {
-    if (!selectedLead) {
-      return;
+  const loadProspect = async (leadId: string) => {
+    setIsProspectLoading(true);
+    setProspectError(null);
+    try {
+      const response = await readApi<{ prospect: AdminProspect360 }>(
+        `/api/admin/leads/${encodeURIComponent(leadId)}`,
+      );
+      setProspect(response.prospect);
+    } catch (loadError) {
+      setProspectError(
+        loadError instanceof Error
+          ? loadError.message
+          : "Chargement du Prospect 360 impossible.",
+      );
+    } finally {
+      setIsProspectLoading(false);
     }
+  };
 
-    setCrmStatus(selectedLead.crmStatus);
-    setCrmPriority(selectedLead.crmPriority);
-    setCrmOwner(selectedLead.crmOwner ?? "");
-    setCrmNotes(selectedLead.crmNotes ?? "");
-    setLostReason(
-      [
-        "NO_RESPONSE",
-        "NOT_INTERESTED",
-        "NOT_ELIGIBLE",
-        "DUPLICATE",
-        "OUT_OF_SCOPE",
-        "OTHER",
-      ].includes(selectedLead.lostReason ?? "")
-        ? (selectedLead.lostReason as AdminLeadLostReason)
-        : "",
-    );
-    setNextAction(selectedLead.nextAction);
-    setNextActionDueAt(toDateTimeLocal(selectedLead.nextActionDueAt));
-    setFollowUpReason(selectedLead.followUpReason ?? "");
-  }, [selectedLead]);
-
-  const saveLead = async () => {
-    if (!selectedLead) {
-      return;
-    }
-
-    await onUpdateLead(selectedLead.id, {
-      crmStatus,
-      crmPriority,
-      crmOwner: crmOwner || null,
-      crmNotes: crmNotes || null,
-      lostReason: crmStatus === "lost" ? lostReason || null : null,
-      nextAction: crmStatus === "lost" ? "NONE" : nextAction,
-      nextActionDueAt:
-        crmStatus === "lost" || nextAction === "NONE"
-          ? null
-          : nextActionDueAt
-            ? new Date(nextActionDueAt).toISOString()
-            : null,
-      followUpReason: followUpReason || null,
-    });
+  const openProspect = (leadId: string) => {
+    setSelectedLeadId(leadId);
+    setProspect(null);
+    setProspectError(null);
+    setIsProspectOpen(true);
+    void loadProspect(leadId);
   };
 
   return (
@@ -1379,7 +1429,7 @@ function AdminLeadsPanel({
           text="Les demandes de guide apparaîtront ici après capture dans la collection leads."
         />
       ) : (
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,0.8fr)]">
+        <div className="space-y-6">
           <section className="overflow-x-auto rounded-lg border bg-white shadow-sm">
             <table className="w-full min-w-[1260px] text-left text-sm">
               <thead className="bg-slate-50 text-xs uppercase text-slate-500">
@@ -1406,7 +1456,7 @@ function AdminLeadsPanel({
                       <p className="text-xs text-slate-500">{lead.phone ?? "Téléphone non renseigné"}</p>
                     </td>
                     <td className="px-4 py-3">
-                      <p>{lead.serviceInterest ?? "Service non précisé"}</p>
+                      <p>{prospectServiceLabel(lead.serviceInterest)}</p>
                       <p className="text-xs text-slate-500">
                         {lead.destinationCountry ?? "Destination non précisée"} · {lead.projectHorizon ?? "horizon libre"}
                       </p>
@@ -1423,14 +1473,14 @@ function AdminLeadsPanel({
                       </p>
                     </td>
                     <td className="px-4 py-3">
-                      <p>{lead.source}</p>
+                      <p>{leadSourceLabel(lead.source)}</p>
                       <p className="text-xs text-slate-500">
                         {lead.utmSource ?? "-"} / {lead.utmMedium ?? "-"} / {lead.utmCampaign ?? "-"}
                       </p>
                     </td>
                     <td className="px-4 py-3">
-                      <p>{lead.guideDeliveryStatus ?? "-"}</p>
-                      <p className="text-xs text-slate-500">{lead.guideEmailStatus ?? "email guide non tracé"}</p>
+                      <p>{guideStatusLabel(lead.guideDeliveryStatus)}</p>
+                      <p className="text-xs text-slate-500">{guideStatusLabel(lead.guideEmailStatus)}</p>
                     </td>
                     <td className="px-4 py-3">
                       <p>{nextActionLabel(lead.nextAction)}</p>
@@ -1470,7 +1520,7 @@ function AdminLeadsPanel({
                     </td>
                     <td className="px-4 py-3">
                       <Button
-                        onClick={() => setSelectedLeadId(lead.id)}
+                        onClick={() => openProspect(lead.id)}
                         size="sm"
                         type="button"
                         variant="outline"
@@ -1484,282 +1534,274 @@ function AdminLeadsPanel({
             </table>
           </section>
 
-          {selectedLead ? (
-            <aside className="rounded-lg border bg-white p-5 shadow-sm" aria-label="Détail prospect CRM">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase text-emerald-700">
-                    Prospect marketing
-                  </p>
-                  <h3 className="mt-1 text-lg font-semibold">{selectedLead.fullName}</h3>
-                  <p className="text-sm text-slate-600">{selectedLead.email}</p>
+        </div>
+      )}
+      <Prospect360Drawer
+        error={prospectError}
+        isBusy={isBusy}
+        isLoading={isProspectLoading}
+        isOpen={isProspectOpen}
+        onClose={() => setIsProspectOpen(false)}
+        onReload={loadProspect}
+        onUpdateLead={onUpdateLead}
+        prospect={prospect}
+      />
+    </section>
+  );
+}
+
+function Prospect360Section({
+  icon: Icon,
+  title,
+  children,
+}: {
+  icon: typeof Activity;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="border-t border-slate-200 px-5 py-6 sm:px-7">
+      <div className="mb-4 flex items-center gap-2">
+        <span className="grid h-8 w-8 place-items-center rounded-full bg-emerald-50 text-emerald-700">
+          <Icon className="h-4 w-4" aria-hidden="true" />
+        </span>
+        <h4 className="font-semibold text-slate-950">{title}</h4>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="grid grid-cols-1 gap-1 border-b border-slate-100 py-2.5 text-sm last:border-0 sm:grid-cols-[minmax(120px,0.8fr)_minmax(0,1.2fr)] sm:gap-4">
+      <dt className="text-slate-500">{label}</dt>
+      <dd className="min-w-0 break-words font-medium text-slate-900 sm:text-right">{value || "-"}</dd>
+    </div>
+  );
+}
+
+function Prospect360Drawer({
+  error,
+  isBusy,
+  isLoading,
+  isOpen,
+  onClose,
+  onReload,
+  onUpdateLead,
+  prospect,
+}: {
+  error: string | null;
+  isBusy: boolean;
+  isLoading: boolean;
+  isOpen: boolean;
+  onClose: () => void;
+  onReload: (leadId: string) => Promise<void>;
+  onUpdateLead: (leadId: string, input: AdminLeadUpdateInput) => Promise<AdminLead>;
+  prospect: AdminProspect360 | null;
+}) {
+  const lead = prospect?.lead ?? null;
+  const [crmStatus, setCrmStatus] = useState<Exclude<AdminLeadCrmStatus, "converted">>("new");
+  const [crmPriority, setCrmPriority] = useState<AdminLeadCrmPriority>("normal");
+  const [crmOwner, setCrmOwner] = useState("");
+  const [lostReason, setLostReason] = useState<AdminLeadLostReason | "">("");
+  const [nextAction, setNextAction] = useState<AdminLeadNextAction>("NONE");
+  const [nextActionDueAt, setNextActionDueAt] = useState("");
+  const [followUpReason, setFollowUpReason] = useState("");
+  const [newNote, setNewNote] = useState("");
+  const [localError, setLocalError] = useState<string | null>(null);
+  const [localNotice, setLocalNotice] = useState<string | null>(null);
+  const previousLeadId = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!lead) return;
+    const changedLead = previousLeadId.current !== lead.id;
+    previousLeadId.current = lead.id;
+    setCrmStatus(lead.crmStatus === "converted" ? "qualified" : lead.crmStatus);
+    setCrmPriority(lead.crmPriority);
+    setCrmOwner(lead.crmOwner ?? "");
+    setLostReason(
+      ["NO_RESPONSE", "NOT_INTERESTED", "NOT_ELIGIBLE", "DUPLICATE", "OUT_OF_SCOPE", "OTHER"].includes(lead.lostReason ?? "")
+        ? (lead.lostReason as AdminLeadLostReason)
+        : "",
+    );
+    setNextAction(lead.nextAction);
+    setNextActionDueAt(toDateTimeLocal(lead.nextActionDueAt));
+    setFollowUpReason(lead.followUpReason ?? "");
+    if (changedLead) {
+      setLocalError(null);
+      setLocalNotice(null);
+      setNewNote("");
+    }
+  }, [lead]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
+
+  const phone = lead?.phone?.trim() ?? "";
+  const telHref = phone ? `tel:${phone.replace(/[^+\d]/g, "")}` : null;
+  const whatsappNumber = phone.replace(/\D/g, "");
+  const whatsappHref = whatsappNumber ? `https://wa.me/${whatsappNumber}` : null;
+
+  const saveCrm = async (requestedStatus?: Exclude<AdminLeadCrmStatus, "converted">) => {
+    if (!lead || lead.crmStatus === "converted") return;
+    const effectiveStatus = requestedStatus ?? crmStatus;
+    setLocalError(null);
+    setLocalNotice(null);
+    try {
+      await onUpdateLead(lead.id, {
+        crmStatus: effectiveStatus,
+        crmPriority,
+        crmOwner: crmOwner.trim() || null,
+        lostReason: effectiveStatus === "lost" ? lostReason || null : null,
+        nextAction: effectiveStatus === "lost" ? "NONE" : nextAction,
+        nextActionDueAt:
+          effectiveStatus === "lost" || nextAction === "NONE" || !nextActionDueAt
+            ? null
+            : new Date(nextActionDueAt).toISOString(),
+        followUpReason: followUpReason.trim() || null,
+      });
+      await onReload(lead.id);
+      setLocalNotice("Pilotage CRM mis à jour.");
+    } catch (saveError) {
+      setLocalError(saveError instanceof Error ? saveError.message : "Mise à jour CRM impossible.");
+    }
+  };
+
+  const appendNote = async () => {
+    if (!lead || !newNote.trim()) return;
+    setLocalError(null);
+    setLocalNotice(null);
+    try {
+      await writeApi(`/api/admin/leads/${encodeURIComponent(lead.id)}/notes`, { note: newNote.trim() });
+      setNewNote("");
+      await onReload(lead.id);
+      setLocalNotice("Note interne ajoutée à l’historique.");
+    } catch (noteError) {
+      setLocalError(noteError instanceof Error ? noteError.message : "Ajout de note impossible.");
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50" role="presentation">
+      <button aria-label="Fermer Prospect 360" className="absolute inset-0 bg-slate-950/35 backdrop-blur-[1px]" onClick={onClose} type="button" />
+      <aside
+        aria-label="Prospect 360"
+        aria-modal="true"
+        className="absolute inset-y-0 right-0 flex w-full flex-col bg-white shadow-2xl sm:max-w-[860px]"
+        role="dialog"
+      >
+        <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 px-5 py-4 backdrop-blur sm:px-7">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-emerald-700">Prospect 360</p>
+              <h3 className="mt-1 truncate text-xl font-semibold text-slate-950">{lead?.fullName ?? "Chargement…"}</h3>
+              <p className="truncate text-sm text-slate-500">{lead?.email ?? "Vue opérationnelle CRM"}</p>
+            </div>
+            <Button aria-label="Fermer" onClick={onClose} size="icon" type="button" variant="ghost">
+              <X className="h-5 w-5" aria-hidden="true" />
+            </Button>
+          </div>
+        </header>
+
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          {isLoading && !prospect ? <div className="space-y-4 p-7"><div className="h-24 animate-pulse rounded-xl bg-slate-100" /><div className="h-64 animate-pulse rounded-xl bg-slate-100" /></div> : null}
+          {error ? <div className="m-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</div> : null}
+          {prospect && lead ? (
+            <>
+              <section className="px-5 py-6 sm:px-7">
+                <div className="flex flex-wrap gap-2">
+                  <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-800">Prospect</span>
+                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${lead.crmStatus === "qualified" ? "bg-emerald-50 text-emerald-800" : lead.crmStatus === "lost" ? "bg-red-50 text-red-800" : "bg-blue-50 text-blue-800"}`}>{crmStatusLabel(lead.crmStatus)}</span>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">{profileReadinessLabel(lead.profileReadiness)}</span>
+                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${lead.identityLinkStatus === "LINKED" ? "bg-emerald-50 text-emerald-800" : lead.identityLinkStatus === "CONFLICT" ? "bg-red-50 text-red-800" : "bg-amber-50 text-amber-800"}`}>{identityLinkStatusLabel(lead.identityLinkStatus)}</span>
+                  {lead.humanFollowUpRequired ? <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">Intervention requise</span> : null}
+                  <span className="rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-800">Priorité {crmPriorityLabel(lead.crmPriority).toLowerCase()}</span>
                 </div>
-                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold">
-                  {selectedLead.source}
-                </span>
-              </div>
+                <div className="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  <a aria-disabled={!telHref} className={`inline-flex h-11 items-center justify-center gap-2 rounded-lg border text-sm font-semibold ${telHref ? "border-slate-300 text-slate-800 hover:bg-slate-50" : "pointer-events-none border-slate-200 text-slate-300"}`} href={telHref ?? undefined}><Phone className="h-4 w-4" />Appeler</a>
+                  <a aria-disabled={!whatsappHref} className={`inline-flex h-11 items-center justify-center gap-2 rounded-lg border text-sm font-semibold ${whatsappHref ? "border-emerald-300 text-emerald-800 hover:bg-emerald-50" : "pointer-events-none border-slate-200 text-slate-300"}`} href={whatsappHref ?? undefined} rel="noreferrer" target="_blank"><MessageCircle className="h-4 w-4" />WhatsApp</a>
+                  <a className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-slate-300 text-sm font-semibold text-slate-800 hover:bg-slate-50" href={`mailto:${lead.email}`}><Mail className="h-4 w-4" />Email</a>
+                </div>
+                <p className="mt-3 text-xs text-slate-500">Ces raccourcis ouvrent votre outil de contact. Aucun message n’est envoyé automatiquement.</p>
+              </section>
 
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                <StatusBadge label="Créé le" value={formatDate(selectedLead.createdAt)} />
-                <StatusBadge label="Consentement marketing" value={selectedLead.marketingConsent ? "Oui" : "Non"} />
-                <StatusBadge label="Pays" value={selectedLead.country ?? "-"} />
-                <StatusBadge label="Destination" value={selectedLead.destinationCountry ?? "-"} />
-                <StatusBadge
-                  label="Rapprochement"
-                  value={identityLinkStatusLabel(selectedLead.identityLinkStatus)}
-                />
-                <StatusBadge
-                  label="Compte lié"
-                  value={linkedUidLabel(selectedLead.linkedUid)}
-                />
-                <StatusBadge
-                  label="Méthode"
-                  value={linkMethodLabel(selectedLead.linkMethod)}
-                />
-                <StatusBadge
-                  label="Email vérifié"
-                  value={
-                    selectedLead.linkedAccountEmailVerified == null
-                      ? "Non disponible"
-                      : selectedLead.linkedAccountEmailVerified
-                        ? "Oui"
-                        : "Non"
-                  }
-                />
-                <StatusBadge
-                  label="Profil"
-                  value={profileReadinessLabel(selectedLead.profileReadiness)}
-                />
-                <StatusBadge
-                  label="Données qualification"
-                  value={qualificationReadinessLabel(
-                    selectedLead.qualificationReadiness,
-                  )}
-                />
-                <StatusBadge
-                  label="Complétude profil"
-                  value={
-                    selectedLead.profileCompletionPercent == null
-                      ? "Non disponible"
-                      : `${selectedLead.profileCompletionPercent} %`
-                  }
-                />
-                <StatusBadge
-                  label="Source action"
-                  value={nextActionSourceLabel(selectedLead.nextActionSource)}
-                />
-              </div>
-
-              {selectedLead.humanFollowUpRequired ? (
-                <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
-                  <p className="font-semibold">Intervention humaine requise</p>
-                  <p className="mt-1 text-amber-800">
-                    {selectedLead.followUpReason ===
-                    "PROFILE_INCOMPLETE_AFTER_REMINDER"
-                      ? "Le profil reste incomplet 72 h après la relance automatique. Un opérateur doit reprendre le suivi."
-                      : selectedLead.identityLinkStatus === "AMBIGUOUS" ||
-                    selectedLead.identityLinkStatus === "CONFLICT"
-                      ? "Le rapprochement d’identité doit être revu avant toute décision commerciale."
-                      : "Les données permettent une revue commerciale, mais le prospect n’a pas encore été contacté."}
-                  </p>
+              {(lead.humanFollowUpRequired || lead.qualificationMissingFields.length > 0 || ["AMBIGUOUS", "CONFLICT"].includes(lead.identityLinkStatus)) ? (
+                <div className="mx-5 mb-1 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950 sm:mx-7">
+                  <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" aria-hidden="true" />
+                  <div><p className="font-semibold">Décision humaine requise</p><p className="mt-1 text-amber-800">{lead.qualificationMissingFields.length ? `Informations à compléter : ${lead.qualificationMissingFields.map(qualificationMissingFieldLabel).join(", ")}.` : lead.identityLinkStatus === "LINKED" ? "Le suivi automatique est terminé ; une reprise opérateur est attendue." : "Le rapprochement d’identité doit être vérifié avant toute décision."}</p></div>
                 </div>
               ) : null}
 
-              <div className="mt-5 rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm">
-                <p className="font-semibold">Lecture de qualification</p>
-                {selectedLead.qualificationMissingFields.length ? (
-                  <p className="mt-2 text-slate-600">
-                    À compléter : {selectedLead.qualificationMissingFields.join(", ")}.
-                  </p>
-                ) : (
-                  <p className="mt-2 text-slate-600">
-                    Nom, email, téléphone, destination et service sont disponibles.
-                    La qualification reste une décision humaine.
-                  </p>
-                )}
-                {selectedLead.qualificationReasons.length ? (
-                  <ul className="mt-3 flex flex-wrap gap-2">
-                    {selectedLead.qualificationReasons.map((reason) => (
-                      <li
-                        className="rounded-full bg-white px-2 py-1 text-xs font-medium text-slate-700 ring-1 ring-slate-200"
-                        key={reason}
-                      >
-                        {qualificationReasonLabel(reason)}
-                      </li>
-                    ))}
-                  </ul>
-                ) : null}
-              </div>
+              {localError ? <div className="mx-5 mt-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-800 sm:mx-7" role="alert">{localError}</div> : null}
+              {localNotice ? <div className="mx-5 mt-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-900 sm:mx-7" role="status">{localNotice}</div> : null}
 
-              <div className="mt-5 rounded-lg bg-slate-50 p-4 text-sm">
-                <p className="font-semibold">Attribution marketing</p>
-                <dl className="mt-3 grid gap-2 text-slate-700">
-                  <div className="flex justify-between gap-3">
-                    <dt>UTM source</dt>
-                    <dd>{selectedLead.utmSource ?? "-"}</dd>
-                  </div>
-                  <div className="flex justify-between gap-3">
-                    <dt>UTM medium</dt>
-                    <dd>{selectedLead.utmMedium ?? "-"}</dd>
-                  </div>
-                  <div className="flex justify-between gap-3">
-                    <dt>UTM campaign</dt>
-                    <dd>{selectedLead.utmCampaign ?? "-"}</dd>
-                  </div>
-                  <div className="flex justify-between gap-3">
-                    <dt>Referrer</dt>
-                    <dd className="max-w-56 truncate">{selectedLead.referrer ?? "-"}</dd>
-                  </div>
-                </dl>
-              </div>
+              <Prospect360Section icon={BriefcaseBusiness} title="Projet">
+                <dl><DetailRow label="Service" value={prospectServiceLabel(lead.serviceInterest)} /><DetailRow label="Destination" value={lead.destinationCountry ?? "-"} /><DetailRow label="Pays de résidence" value={lead.residenceCountry ?? lead.country ?? "-"} /><DetailRow label="Horizon" value={humanizeTechnicalValue(lead.projectHorizon)} /><DetailRow label="Source" value={leadSourceLabel(lead.source)} /><DetailRow label="Entrée du lead" value={formatDate(lead.createdAt)} /><DetailRow label="Attribution UTM" value={`${lead.utmSource ?? "-"} / ${lead.utmMedium ?? "-"} / ${lead.utmCampaign ?? "-"}`} /></dl>
+              </Prospect360Section>
 
-              <div className="mt-5 grid gap-4">
-                <label className="grid gap-2 text-sm font-medium">
-                  Statut CRM
-                  <select
-                    aria-label="Statut CRM"
-                    className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm"
-                    onChange={(event) => setCrmStatus(event.target.value as AdminLeadCrmStatus)}
-                    value={crmStatus}
-                  >
-                    {(
-                      [
-                        ["new", "Nouveau"],
-                        ["contacted", "Contacté"],
-                        ["qualified", "Qualifié"],
-                        ["converted", "Converti (hors Phase 2C)"],
-                        ["lost", "Perdu"],
-                      ] as const
-                    ).map(([value, label]) => (
-                      <option
-                        disabled={
-                          !canTransitionLeadCrmStatus(
-                            selectedLead.crmStatus,
-                            value,
-                          )
-                        }
-                        key={value}
-                        value={value}
-                      >
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                  <span className="text-xs font-normal text-slate-500">
-                    La qualification reste une décision admin explicite. Aucun
-                    statut client n’est créé ici.
-                  </span>
-                </label>
+              <Prospect360Section icon={UserRound} title="Contact et compte AVI">
+                <dl><DetailRow label="Lead ID" value={<span className="break-all font-mono text-xs">{lead.id}</span>} /><DetailRow label="Email" value={<span className="break-all">{lead.email}</span>} /><DetailRow label="Téléphone" value={lead.phone ?? "Non renseigné"} /><DetailRow label="WhatsApp" value={whatsappNumber || "Non disponible"} /><DetailRow label="Compte AVI" value={prospect.account.status === "ACTIVE" ? "Actif" : prospect.account.status === "DISABLED" ? "Désactivé" : prospect.account.status === "NOT_LINKED" ? "Non lié" : "Inconnu"} /><DetailRow label="Email vérifié" value={prospect.onboarding.emailVerifiedAt ? "Oui" : lead.linkedAccountEmailVerified === false ? "Non" : "Non tracé"} /><DetailRow label="UID" value={<span className="break-all font-mono text-xs">{prospect.account.uidMasked ?? "Non lié"}</span>} /></dl>
+              </Prospect360Section>
 
-                <label className="grid gap-2 text-sm font-medium">
-                  Priorité
-                  <select
-                    className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm"
-                    onChange={(event) => setCrmPriority(event.target.value as AdminLeadCrmPriority)}
-                    value={crmPriority}
-                  >
-                    <option value="low">Basse</option>
-                    <option value="normal">Normale</option>
-                    <option value="high">Haute</option>
-                  </select>
-                </label>
+              <Prospect360Section icon={ClipboardCheck} title="Qualification">
+                {lead.crmStatus === "converted" ? <div className="mb-4 rounded-lg bg-slate-100 p-3 text-sm text-slate-700">Ce prospect est déjà converti. Prospect 360 est en lecture seule pour son statut.</div> : null}
+                <dl className="mb-5 rounded-lg bg-slate-50 px-3"><DetailRow label="Statut CRM" value={crmStatusLabel(lead.crmStatus)} /><DetailRow label="Qualification" value={qualificationReadinessLabel(lead.qualificationReadiness)} /><DetailRow label="Profil" value={profileReadinessLabel(lead.profileReadiness)} /><DetailRow label="Priorité" value={crmPriorityLabel(lead.crmPriority)} /><DetailRow label="Responsable" value={lead.crmOwner ?? "Non attribué"} /></dl>
+                {lead.crmStatus !== "converted" ? <div className="mb-5 grid gap-2 sm:grid-cols-3"><Button disabled={isBusy || !canTransitionLeadCrmStatus(lead.crmStatus, "contacted")} onClick={() => void saveCrm("contacted")} type="button" variant="outline">Marquer contacté</Button><Button disabled={isBusy || !canTransitionLeadCrmStatus(lead.crmStatus, "qualified")} onClick={() => void saveCrm("qualified")} type="button" variant="outline">Qualifier</Button><Button disabled={isBusy || !canTransitionLeadCrmStatus(lead.crmStatus, "lost")} onClick={() => setCrmStatus("lost")} type="button" variant="outline">Marquer perdu</Button></div> : null}
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="grid gap-2 text-sm font-medium">Statut CRM<select aria-label="Statut CRM Prospect 360" className="h-10 rounded-md border border-slate-300 bg-white px-3" disabled={lead.crmStatus === "converted"} onChange={(event) => setCrmStatus(event.target.value as Exclude<AdminLeadCrmStatus, "converted">)} value={crmStatus}>{(["new", "contacted", "qualified", "lost"] as const).map((value) => <option disabled={!canTransitionLeadCrmStatus(lead.crmStatus, value)} key={value} value={value}>{crmStatusLabel(value)}</option>)}</select></label>
+                  <label className="grid gap-2 text-sm font-medium">Priorité<select className="h-10 rounded-md border border-slate-300 bg-white px-3" onChange={(event) => setCrmPriority(event.target.value as AdminLeadCrmPriority)} value={crmPriority}><option value="low">Basse</option><option value="normal">Normale</option><option value="high">Haute</option></select></label>
+                  <label className="grid gap-2 text-sm font-medium sm:col-span-2">Responsable CRM<Input onChange={(event) => setCrmOwner(event.target.value)} placeholder="Administrateur responsable" value={crmOwner} /></label>
+                  {crmStatus === "lost" ? <label className="grid gap-2 text-sm font-medium sm:col-span-2">Motif de perte<select className="h-10 rounded-md border border-slate-300 bg-white px-3" onChange={(event) => setLostReason(event.target.value as AdminLeadLostReason | "")} value={lostReason}><option value="">Sélectionner</option><option value="NO_RESPONSE">Aucune réponse</option><option value="NOT_INTERESTED">Non intéressé</option><option value="NOT_ELIGIBLE">Non éligible</option><option value="DUPLICATE">Doublon</option><option value="OUT_OF_SCOPE">Hors périmètre</option><option value="OTHER">Autre</option></select></label> : null}
+                  {crmStatus === "lost" && lostReason === "OTHER" ? <label className="grid gap-2 text-sm font-medium sm:col-span-2">Précision<Input onChange={(event) => setFollowUpReason(event.target.value)} placeholder="Préciser le motif de perte" value={followUpReason} /></label> : null}
+                </div>
+              </Prospect360Section>
 
-                <label className="grid gap-2 text-sm font-medium">
-                  Owner CRM
-                  <Input
-                    onChange={(event) => setCrmOwner(event.target.value)}
-                    placeholder="Admin responsable"
-                    value={crmOwner}
-                  />
-                </label>
+              <Prospect360Section icon={Settings} title="Suivi">
+                <dl className="mb-5 rounded-lg bg-slate-50 px-3"><DetailRow label="Action actuelle" value={nextActionLabel(lead.nextAction)} /><DetailRow label="Source de l’action" value={nextActionSourceLabel(lead.nextActionSource)} /><DetailRow label="Échéance actuelle" value={formatDate(lead.nextActionDueAt)} /><DetailRow label="Motif" value={followUpReasonLabel(lead.followUpReason)} /><DetailRow label="Responsable" value={lead.crmOwner ?? "Non attribué"} /><DetailRow label="Intervention requise" value={lead.humanFollowUpRequired ? "Oui" : "Non"} /></dl>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="grid gap-2 text-sm font-medium">Prochaine action<select className="h-10 rounded-md border border-slate-300 bg-white px-3" disabled={crmStatus === "lost"} onChange={(event) => setNextAction(event.target.value as AdminLeadNextAction)} value={crmStatus === "lost" ? "NONE" : nextAction}><option value="NONE">Aucune</option><option value="CALL_PROSPECT">Appeler</option><option value="WHATSAPP_PROSPECT">WhatsApp</option><option value="EMAIL_PROSPECT">Email</option><option value="REQUEST_INFORMATION">Demander des informations</option><option value="REVIEW_PROFILE">Revoir le profil</option><option value="REVIEW_AMBIGUOUS_LINK">Revoir le rapprochement</option><option value="FOLLOW_UP">Relancer</option></select></label>
+                  <label className="grid gap-2 text-sm font-medium">Échéance<Input disabled={crmStatus === "lost" || nextAction === "NONE"} onChange={(event) => setNextActionDueAt(event.target.value)} type="datetime-local" value={nextActionDueAt} /></label>
+                  <label className="grid gap-2 text-sm font-medium sm:col-span-2">Motif de suivi<Input onChange={(event) => setFollowUpReason(event.target.value)} placeholder="Contexte opérationnel" value={followUpReason} /></label>
+                </div>
+                <Button className="mt-5 w-full sm:w-auto" disabled={isBusy || lead.crmStatus === "converted" || (crmStatus === "lost" && !lostReason)} onClick={() => void saveCrm()} type="button" variant="cta">Sauvegarder le pilotage CRM</Button>
+                <p className="mt-3 text-xs text-slate-500">Qualifier ne convertit pas le prospect et ne crée aucun dossier, paiement ou service.</p>
+              </Prospect360Section>
 
-                <label className="grid gap-2 text-sm font-medium">
-                  Notes internes
-                  <textarea
-                    className="min-h-24 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
-                    onChange={(event) => setCrmNotes(event.target.value)}
-                    placeholder="Notes commerciales internes, sans créer de dossier"
-                    value={crmNotes}
-                  />
-                </label>
+              <Prospect360Section icon={ShieldCheck} title="Onboarding">
+                <dl><DetailRow label="Compte créé" value={formatDate(prospect.onboarding.accountCreatedAt)} /><DetailRow label="Email vérifié" value={formatDate(prospect.onboarding.emailVerifiedAt)} /><DetailRow label="Bienvenue" value={communicationStatusLabel(prospect.onboarding.welcomeEmailStatus)} /><DetailRow label="Bienvenue envoyée" value={formatDate(prospect.onboarding.welcomeEmailAt)} /><DetailRow label="Relance profil" value={communicationStatusLabel(prospect.onboarding.profileReminderStatus)} /><DetailRow label="Relance prévue" value={formatDate(prospect.onboarding.profileReminderDueAt)} /><DetailRow label="Relance envoyée" value={formatDate(prospect.onboarding.profileReminderAt)} /><DetailRow label="Tentatives" value={prospect.onboarding.reminderAttemptCount ?? "-"} /><DetailRow label="Suivi humain" value={communicationStatusLabel(prospect.onboarding.humanFollowUpStatus ?? (lead.humanFollowUpRequired ? "ACTIVE" : null))} /><DetailRow label="Motif du suivi" value={followUpReasonLabel(lead.followUpReason)} /><DetailRow label="Suivi requis le" value={formatDate(prospect.onboarding.humanFollowUpCreatedAt)} /><DetailRow label="Suivi attendu" value={formatDate(prospect.onboarding.humanFollowUpDueAt)} /><DetailRow label="Suivi résolu" value={formatDate(prospect.onboarding.humanFollowUpResolvedAt)} /></dl>
+              </Prospect360Section>
 
-                {crmStatus === "lost" ? (
-                  <label className="grid gap-2 text-sm font-medium">
-                    Raison de perte
-                    <select
-                      className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm"
-                      onChange={(event) =>
-                        setLostReason(
-                          event.target.value as AdminLeadLostReason | "",
-                        )
-                      }
-                      value={lostReason}
-                    >
-                      <option value="">Sélectionner une raison</option>
-                      <option value="NO_RESPONSE">Aucune réponse</option>
-                      <option value="NOT_INTERESTED">Non intéressé</option>
-                      <option value="NOT_ELIGIBLE">Non éligible</option>
-                      <option value="DUPLICATE">Doublon</option>
-                      <option value="OUT_OF_SCOPE">Hors périmètre</option>
-                      <option value="OTHER">Autre</option>
-                    </select>
-                  </label>
-                ) : null}
+              <Prospect360Section icon={StickyNote} title="Notes internes">
+                <div className="space-y-3">{prospect.notes.length ? prospect.notes.map((note) => <article className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm" key={note.id}><p className="whitespace-pre-wrap text-slate-800">{note.note}</p><p className="mt-2 text-xs text-slate-500">{formatDate(note.createdAt)} · {note.createdBy ? "Administrateur" : "Source historique"}</p></article>) : <p className="text-sm text-slate-500">Aucune note interne.</p>}</div>
+                <label className="mt-4 grid gap-2 text-sm font-medium">Ajouter une note append-only<Textarea maxLength={2000} onChange={(event) => setNewNote(event.target.value)} placeholder="Observation interne factuelle" value={newNote} /></label>
+                <Button className="mt-3" disabled={isBusy || !newNote.trim()} onClick={appendNote} type="button" variant="outline">Ajouter la note</Button>
+              </Prospect360Section>
 
-                <label className="grid gap-2 text-sm font-medium">
-                  Prochaine action
-                  <select
-                    className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm"
-                    disabled={crmStatus === "lost"}
-                    onChange={(event) =>
-                      setNextAction(event.target.value as AdminLeadNextAction)
-                    }
-                    value={crmStatus === "lost" ? "NONE" : nextAction}
-                  >
-                    <option value="NONE">Aucune</option>
-                    <option value="CALL_PROSPECT">Appeler le prospect</option>
-                    <option value="WHATSAPP_PROSPECT">WhatsApp</option>
-                    <option value="EMAIL_PROSPECT">Email</option>
-                    <option value="REQUEST_INFORMATION">Demander des informations</option>
-                    <option value="REVIEW_PROFILE">Revoir le profil</option>
-                    <option value="REVIEW_AMBIGUOUS_LINK">Revoir le rapprochement</option>
-                    <option value="FOLLOW_UP">Relancer</option>
-                  </select>
-                </label>
+              <Prospect360Section icon={FileArchive} title="Documents">
+                {prospect.documents.length ? <div className="space-y-2">{prospect.documents.map((document) => <article className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 p-3" key={document.id}><div className="min-w-0"><p className="truncate text-sm font-semibold">{document.fileName}</p><p className="text-xs text-slate-500">{documentLabel(document.documentType)} · {prospectDocumentStatusLabel(document.status)} · {formatDate(document.uploadedAt)}</p></div><Button asChild size="sm" variant="outline"><a href={document.previewUrl} rel="noreferrer" target="_blank"><Eye className="mr-1 h-4 w-4" />Voir</a></Button></article>)}</div> : <p className="text-sm text-slate-500">Aucun document rattaché de façon sûre.</p>}
+              </Prospect360Section>
 
-                <label className="grid gap-2 text-sm font-medium">
-                  Échéance
-                  <Input
-                    disabled={crmStatus === "lost" || nextAction === "NONE"}
-                    onChange={(event) => setNextActionDueAt(event.target.value)}
-                    type="datetime-local"
-                    value={nextActionDueAt}
-                  />
-                </label>
+              <Prospect360Section icon={Activity} title="Historique unifié">
+                {prospect.timeline.length ? <ol className="space-y-4">{prospect.timeline.map((item) => <li className="relative border-l border-slate-200 pl-4" key={item.id}><span className="absolute -left-1.5 top-1.5 h-3 w-3 rounded-full border-2 border-white bg-emerald-600" /><p className="text-sm font-medium text-slate-900">{item.label}</p><p className="text-xs text-slate-500">{formatDate(item.occurredAt)}{item.actor ? ` · ${item.actor}` : ""}</p></li>)}</ol> : <p className="text-sm text-slate-500">Aucune activité disponible.</p>}
+              </Prospect360Section>
 
-                <label className="grid gap-2 text-sm font-medium">
-                  Motif de suivi
-                  <Input
-                    onChange={(event) => setFollowUpReason(event.target.value)}
-                    placeholder="Contexte court pour la prochaine action"
-                    value={followUpReason}
-                  />
-                </label>
-
-                <Button
-                  disabled={isBusy || (crmStatus === "lost" && !lostReason)}
-                  onClick={saveLead}
-                  type="button"
-                  variant="cta"
-                >
-                  Sauvegarder CRM
-                </Button>
-              </div>
-            </aside>
+              <Prospect360Section icon={Bell} title="Communications">
+                {prospect.communications.length ? <div className="space-y-2">{prospect.communications.map((communication) => <div className="flex items-center justify-between gap-4 rounded-lg bg-slate-50 p-3 text-sm" key={communication.id}><div><p className="font-medium">{communication.label}</p><p className="text-xs text-slate-500">{communication.channel === "EMAIL" ? "Email" : communication.channel === "DOCUMENT_REQUEST" ? "Demande de document" : communication.channel === "ADMIN_NOTIFICATION" ? "Notification administrative" : "Système"} · {formatDate(communication.occurredAt)}</p></div><span className="rounded-full bg-white px-2 py-1 text-xs font-semibold ring-1 ring-slate-200">{communicationStatusLabel(communication.status)}</span></div>)}</div> : <p className="text-sm text-slate-500">Aucune communication transactionnelle liée.</p>}
+              </Prospect360Section>
+            </>
           ) : null}
         </div>
-      )}
-    </section>
+      </aside>
+    </div>
   );
 }
 

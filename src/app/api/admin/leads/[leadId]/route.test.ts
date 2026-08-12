@@ -17,7 +17,7 @@ const routeMocks = vi.hoisted(() => {
 
   return {
     AdminLeadValidationError: MockAdminLeadValidationError,
-    getLead: vi.fn(),
+    getAdminProspect360: vi.fn(),
     requireAdmin: vi.fn(),
     updateLeadCrm: vi.fn(),
   };
@@ -38,9 +38,12 @@ vi.mock("@/lib/admin/admin-auth", () => ({
 vi.mock("@/lib/admin/admin-leads-store", () => ({
   AdminLeadValidationError: routeMocks.AdminLeadValidationError,
   getAdminLeadsStore: () => ({
-    getLead: routeMocks.getLead,
     updateLeadCrm: routeMocks.updateLeadCrm,
   }),
+}));
+
+vi.mock("@/lib/admin/admin-prospect-360", () => ({
+  getAdminProspect360: routeMocks.getAdminProspect360,
 }));
 
 function request(path = "http://localhost/api/admin/leads/lead-1", body?: unknown) {
@@ -56,7 +59,7 @@ const params = { params: Promise.resolve({ leadId: "lead-1" }) };
 describe("/api/admin/leads/[leadId]", () => {
   beforeEach(() => {
     routeMocks.requireAdmin.mockReset();
-    routeMocks.getLead.mockReset();
+    routeMocks.getAdminProspect360.mockReset();
     routeMocks.updateLeadCrm.mockReset();
   });
 
@@ -66,10 +69,9 @@ describe("/api/admin/leads/[leadId]", () => {
       role: "admin",
       authProvider: "firebase-session",
     });
-    routeMocks.getLead.mockResolvedValueOnce({
-      id: "lead-1",
-      email: "awa@example.com",
-      crmStatus: "new",
+    routeMocks.getAdminProspect360.mockResolvedValueOnce({
+      lead: { id: "lead-1", email: "awa@example.com", crmStatus: "new" },
+      account: { status: "NOT_LINKED" },
     });
 
     const response = await GET(request(), params);
@@ -81,8 +83,16 @@ describe("/api/admin/leads/[leadId]", () => {
         email: "awa@example.com",
         crmStatus: "new",
       },
+      prospect: {
+        lead: {
+          id: "lead-1",
+          email: "awa@example.com",
+          crmStatus: "new",
+        },
+        account: { status: "NOT_LINKED" },
+      },
     });
-    expect(routeMocks.getLead).toHaveBeenCalledWith("lead-1");
+    expect(routeMocks.getAdminProspect360).toHaveBeenCalledWith("lead-1");
   });
 
   it("updates CRM fields through PATCH", async () => {
@@ -148,6 +158,13 @@ describe("/api/admin/leads/[leadId]", () => {
     expect(await response.json()).toEqual({
       error: "Unsupported CRM lead fields: email.",
     });
+  });
+
+  it("rejects conversion from Prospect 360 before calling the store", async () => {
+    routeMocks.requireAdmin.mockResolvedValueOnce({ uid: "admin-1", role: "admin" });
+    const response = await PATCH(request("http://localhost/api/admin/leads/lead-1", { crmStatus: "converted" }), params);
+    expect(response.status).toBe(400);
+    expect(routeMocks.updateLeadCrm).not.toHaveBeenCalled();
   });
 
   it("does not call the store without admin authentication", async () => {

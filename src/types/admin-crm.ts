@@ -117,3 +117,67 @@ export type AdminLeadUpdateInput = {
   nextActionDueAt?: string | null;
   followUpReason?: string | null;
 };
+
+export type AdminProspect360Account = {
+  uidMasked: string | null;
+  status: "ACTIVE" | "DISABLED" | "UNKNOWN" | "NOT_LINKED";
+  createdAt: string | null;
+  emailVerifiedAt: string | null;
+};
+
+export type AdminProspect360Communication = {
+  id: string;
+  channel: "EMAIL" | "SYSTEM" | "ADMIN_NOTIFICATION" | "DOCUMENT_REQUEST";
+  label: string;
+  status: string;
+  occurredAt: string;
+};
+
+export type AdminProspect360Document = {
+  id: string;
+  fileName: string;
+  documentType: string;
+  status: string;
+  uploadedAt: string | null;
+  previewUrl: string;
+};
+
+export type AdminProspect360Note = {
+  id: string;
+  note: string;
+  createdAt: string;
+  createdBy: string | null;
+};
+
+export type AdminProspect360TimelineItem = {
+  id: string;
+  kind: "LEAD" | "ACCOUNT" | "COMMUNICATION" | "DOCUMENT" | "CRM" | "SYSTEM";
+  label: string;
+  occurredAt: string;
+  actor: string | null;
+};
+
+export type AdminProspect360Onboarding = {
+  accountCreatedAt: string | null;
+  emailVerifiedAt: string | null;
+  welcomeEmailStatus: string | null;
+  welcomeEmailAt: string | null;
+  profileReminderStatus: string | null;
+  profileReminderAt: string | null;
+  profileReminderDueAt: string | null;
+  reminderAttemptCount: number | null;
+  humanFollowUpStatus: string | null;
+  humanFollowUpDueAt: string | null;
+  humanFollowUpCreatedAt: string | null;
+  humanFollowUpResolvedAt: string | null;
+};
+
+export type AdminProspect360 = {
+  lead: AdminLead;
+  account: AdminProspect360Account;
+  onboarding: AdminProspect360Onboarding;
+  communications: AdminProspect360Communication[];
+  documents: AdminProspect360Document[];
+  notes: AdminProspect360Note[];
+  timeline: AdminProspect360TimelineItem[];
+};
