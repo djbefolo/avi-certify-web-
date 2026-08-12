@@ -34,6 +34,12 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { FintechCommandCenter } from "@/components/admin/fintech-command-center";
 import { prospectDocumentStatusLabel } from "@/components/admin/prospect-360-labels";
+import {
+  AdminPageHeader,
+  AdminSidebar,
+  AdminTopbar,
+  type AdminNavigationKey,
+} from "@/components/admin/admin-experience-v2";
 import type { AdminRole } from "@/lib/admin/admin-auth";
 import {
   documentTypeLabels,
@@ -157,7 +163,7 @@ const tabs = [
   ["Paramètres admin", "settings", Settings],
 ] as const;
 
-type TabKey = (typeof tabs)[number][1];
+type TabKey = AdminNavigationKey;
 type ManualAviFormState = {
   studentFullName: string;
   studentDateOfBirth: string;
@@ -551,19 +557,27 @@ function normalizeActionNotice(success: string) {
 
 function EmptyState({ title, text }: { title: string; text: string }) {
   return (
-    <div className="rounded-lg border border-dashed border-slate-300 bg-white p-8 text-center">
-      <p className="font-semibold text-slate-950">{title}</p>
-      <p className="mt-2 text-sm text-slate-600">{text}</p>
+    <div className="rounded-2xl border border-dashed border-slate-300 bg-white/80 p-8 text-center shadow-sm">
+      <span className="mx-auto grid h-10 w-10 place-items-center rounded-xl bg-slate-100 text-slate-500"><FileArchive className="h-5 w-5" aria-hidden="true" /></span>
+      <p className="mt-4 font-semibold text-slate-950">{title}</p>
+      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-600">{text}</p>
     </div>
   );
 }
 
-function MetricCard({ label, value, detail }: { label: string; value: string | number; detail: string }) {
+function MetricCard({ label, value, detail, tone = "blue" }: { label: string; value: string | number; detail: string; tone?: "blue" | "green" | "amber" | "red" | "slate" }) {
+  const toneClass = {
+    blue: "border-blue-100 bg-blue-50/55 text-blue-700",
+    green: "border-emerald-100 bg-emerald-50/60 text-emerald-700",
+    amber: "border-amber-100 bg-amber-50/60 text-amber-800",
+    red: "border-red-100 bg-red-50/60 text-red-700",
+    slate: "border-slate-200 bg-white text-slate-700",
+  }[tone];
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-      <p className="text-xs font-semibold uppercase text-slate-500">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-slate-950">{value}</p>
-      <p className="mt-2 text-sm text-slate-600">{detail}</p>
+    <div className={`rounded-2xl border p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md ${toneClass}`}>
+      <p className="text-[11px] font-bold uppercase tracking-[0.12em] opacity-80">{label}</p>
+      <p className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">{value}</p>
+      <p className="mt-2 text-sm leading-5 text-slate-600">{detail}</p>
     </div>
   );
 }
@@ -579,6 +593,8 @@ function StatusBadge({ label, value }: { label: string; value: string }) {
 
 export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
   const [active, setActive] = useState<TabKey>("overview");
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [selectedUid, setSelectedUid] = useState<string | null>(null);
   const [selectedClient, setSelectedClient] = useState<AdminClient360 | null>(null);
@@ -992,39 +1008,27 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
   const selectedCommunications = selectedClient?.communications ?? [];
 
   return (
-    <main className="min-h-screen bg-slate-100 text-slate-950">
+    <main className="min-h-screen bg-[#f4f7f8] text-slate-950">
       <div className="flex min-h-screen">
-        <aside className="hidden w-72 border-r border-white/10 bg-[hsl(222,75%,8%)] text-white xl:block">
-          <div className="p-6">
-            <div className="flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-300">
-                <ShieldCheck className="h-5 w-5" aria-hidden="true" />
-              </span>
-              <div>
-                <p className="text-sm font-semibold">AVI CERTIFY</p>
-                <p className="text-xs text-slate-300">Super Admin OS</p>
-              </div>
-            </div>
-            <nav className="mt-8 space-y-1" aria-label="Super admin navigation">
-              {tabs.map(([label, key, Icon]) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setActive(key)}
-                  className={`flex w-full items-center gap-3 rounded-md px-3 py-2 text-left text-sm font-medium transition ${
-                    active === key ? "bg-white text-slate-950" : "text-slate-300 hover:bg-white/10 hover:text-white"
-                  }`}
-                >
-                  <Icon className="h-4 w-4" aria-hidden="true" />
-                  {label}
-                </button>
-              ))}
-            </nav>
-          </div>
-        </aside>
-
+        <AdminSidebar
+          active={active}
+          collapsed={isSidebarCollapsed}
+          isMobileOpen={isMobileNavOpen}
+          onCloseMobile={() => setIsMobileNavOpen(false)}
+          onSelect={setActive}
+          onToggleCollapsed={() => setIsSidebarCollapsed((value) => !value)}
+        />
         <section className="min-w-0 flex-1">
-          <header className="border-b border-slate-200 bg-white">
+          <AdminTopbar
+            active={active}
+            adminEmail={adminEmail}
+            adminRole={adminRole}
+            isBusy={isBusy}
+            onLogout={logoutAdmin}
+            onOpenMobileNav={() => setIsMobileNavOpen(true)}
+            onRefresh={load}
+          />
+          <header className="hidden" aria-hidden="true">
             <div className="flex flex-col gap-4 px-4 py-4 lg:flex-row lg:items-center lg:justify-between lg:px-8">
               <div>
                 <p className="text-xs font-semibold uppercase text-emerald-700">
@@ -1067,7 +1071,7 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
             </div>
           </header>
 
-          <div className="px-4 py-6 lg:px-8">
+          <div className="mx-auto max-w-[1680px] px-4 py-6 sm:px-6 lg:px-8">
             {error ? <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-800">{error}</div> : null}
             {notice ? <div role="status" className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm font-medium text-emerald-900">{notice}</div> : null}
 
@@ -1190,7 +1194,16 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
 function OverviewPanel({ data }: { data: OperationsData }) {
   return (
     <section className="space-y-6" aria-labelledby="overview-title">
-      <div>
+      <AdminPageHeader
+        eyebrow="Business pulse"
+        title="Vue d’ensemble"
+        subtitle="Un cockpit clair pour repérer les priorités, suivre les opérations et garder le bon niveau de contrôle."
+      />
+      <div className="grid gap-3 rounded-2xl border border-amber-100 bg-amber-50/70 p-4 sm:grid-cols-[auto_1fr] sm:items-center">
+        <span className="grid h-10 w-10 place-items-center rounded-xl bg-amber-100 text-amber-800"><AlertTriangle className="h-5 w-5" aria-hidden="true" /></span>
+        <div><p className="font-semibold text-amber-950">Attention requise</p><p className="text-sm leading-6 text-amber-900">Les éléments en attente, bloqués ou non lus restent visibles en priorité dans les indicateurs et le suivi ci-dessous.</p></div>
+      </div>
+      <div className="sr-only">
         <h2 id="overview-title" className="text-xl font-semibold">Vue d'ensemble opérations</h2>
         <p className="mt-1 text-sm text-slate-600">
           Données issues des APIs admin protégées. Aucune donnée client n'est lue via le SDK public.
@@ -1344,8 +1357,13 @@ function AdminLeadsPanel({
 
   return (
     <section className="space-y-6" aria-labelledby="leads-title">
+      <AdminPageHeader
+        eyebrow="Commercial"
+        title="Prospects et opportunités commerciales"
+        subtitle="Centralisez les demandes, qualifiez les prospects et pilotez les prochaines actions commerciales."
+      />
       <div className="grid gap-3 xl:grid-cols-[minmax(260px,1fr)_auto] xl:items-end">
-        <div>
+        <div className="sr-only">
           <h2 id="leads-title" className="text-xl font-semibold">
             Prospects CRM
           </h2>
@@ -1430,9 +1448,9 @@ function AdminLeadsPanel({
         />
       ) : (
         <div className="space-y-6">
-          <section className="overflow-x-auto rounded-lg border bg-white shadow-sm">
+          <section className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
             <table className="w-full min-w-[1260px] text-left text-sm">
-              <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+              <thead className="bg-slate-50 text-xs font-bold uppercase tracking-[0.08em] text-slate-500">
                 <tr>
                   <th className="px-4 py-3">Prospect</th>
                   <th className="px-4 py-3">Projet</th>
@@ -1447,7 +1465,7 @@ function AdminLeadsPanel({
               <tbody className="divide-y">
                 {filteredLeads.map((lead) => (
                   <tr
-                    className={lead.id === selectedLead?.id ? "bg-emerald-50/60" : undefined}
+                    className={`transition hover:bg-slate-50 ${lead.id === selectedLead?.id ? "bg-emerald-50/60" : ""}`}
                     key={lead.id}
                   >
                     <td className="px-4 py-3">
@@ -2468,11 +2486,11 @@ function CommunicationsSummary({ communications }: { communications: Communicati
 function CasesPanel({ cases, clientByUid }: { cases: ClientCase[]; clientByUid: Map<string, AdminClientProfile> }) {
   return (
     <section className="space-y-4" aria-labelledby="cases-title">
-      <h2 id="cases-title" className="text-xl font-semibold">Dossiers</h2>
+      <div id="cases-title"><AdminPageHeader eyebrow="Opérations" title="Dossiers" subtitle="Suivez les services en cours, leurs pièces, leurs paiements et la prochaine action utile." /></div>
       {cases.length ? (
-        <div className="overflow-x-auto rounded-lg border bg-white shadow-sm">
+        <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
           <table className="w-full min-w-[1180px] text-left text-sm">
-            <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+            <thead className="bg-slate-50 text-xs font-bold uppercase tracking-[0.08em] text-slate-500">
               <tr>
                 {["Dossier", "Client", "Produit", "Statut", "Documents", "Paiement", "Finance", "Attestation", "Priorité", "Action suivante", "Mis à jour"].map((header) => (
                   <th key={header} className="px-4 py-3">{header}</th>
@@ -2483,7 +2501,7 @@ function CasesPanel({ cases, clientByUid }: { cases: ClientCase[]; clientByUid: 
               {cases.map((clientCase) => {
                 const client = clientByUid.get(clientCase.uid);
                 return (
-                  <tr key={clientCase.id} className="border-t">
+                  <tr key={clientCase.id} className="border-t transition hover:bg-slate-50">
                     <td className="px-4 py-3 font-mono text-xs">{clientCase.caseNumber}</td>
                     <td className="px-4 py-3">{client ? displayClientName(client) : clientCase.clientName ?? clientCase.clientEmail ?? "Client à identifier"}</td>
                     <td className="px-4 py-3">{productLabel(clientCase.productType)}</td>
@@ -2585,9 +2603,9 @@ function HousingInventoryPanel({
           text="Exécutez d'abord l'import contrôlé après validation du projet Firebase. Aucun classeur n'est lu par le navigateur."
         />
       ) : (
-        <div className="overflow-x-auto rounded-lg border bg-white shadow-sm">
+        <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
           <table className="w-full min-w-[1050px] text-left text-sm">
-            <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+            <thead className="bg-slate-50 text-xs font-bold uppercase tracking-[0.08em] text-slate-500">
               <tr>
                 {[
                   "Référence",
@@ -2606,7 +2624,7 @@ function HousingInventoryPanel({
             </thead>
             <tbody>
               {inventory.map((item) => (
-                <tr key={item.id} className="border-t align-top">
+                <tr key={item.id} className="border-t align-top transition hover:bg-slate-50">
                   <td className="px-4 py-3 font-mono text-xs">{item.internalReference}</td>
                   <td className="px-4 py-3">
                     <p className="font-semibold">{item.residenceName}</p>
@@ -2859,9 +2877,9 @@ function CertificatesPanel({
       </div>
       <ManualAviGeneratorPanel />
       {certificates.length ? (
-        <div className="overflow-x-auto rounded-lg border bg-white shadow-sm">
+        <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
           <table className="w-full min-w-[860px] text-left text-sm">
-            <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+            <thead className="bg-slate-50 text-xs font-bold uppercase tracking-[0.08em] text-slate-500">
               <tr>
                 {["Client", "Email", "Dossier", "Type", "Fichier", "Statut", "Generee le"].map((header) => (
                   <th key={header} className="px-4 py-3">{header}</th>
@@ -2873,7 +2891,7 @@ function CertificatesPanel({
                 const client = clientByUid.get(certificate.uid);
 
                 return (
-                  <tr key={certificate.id} className="border-t">
+                  <tr key={certificate.id} className="border-t transition hover:bg-slate-50">
                     <td className="px-4 py-3 font-semibold">
                       {client ? displayClientName(client) : certificate.clientName ?? "Client a identifier"}
                     </td>
@@ -3131,11 +3149,11 @@ function DocumentsPanel({
 }) {
   return (
     <section className="space-y-4" aria-labelledby="documents-title">
-      <h2 id="documents-title" className="text-xl font-semibold">Documents</h2>
+      <div id="documents-title"><AdminPageHeader eyebrow="Opérations" title="Documents" subtitle="Identifiez rapidement les pièces reçues, les contrôles à effectuer et les accès sécurisés disponibles." /></div>
       {documents.length ? (
-        <div className="overflow-x-auto rounded-lg border bg-white shadow-sm">
+        <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
           <table className="w-full min-w-[980px] text-left text-sm">
-            <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+            <thead className="bg-slate-50 text-xs font-bold uppercase tracking-[0.08em] text-slate-500">
               <tr>
                 {["Client", "Email", "Type", "Fichier", "Upload", "Vérification", "Accès", "Actions"].map((header) => (
                   <th key={header} className="px-4 py-3">{header}</th>
@@ -3164,7 +3182,7 @@ function DocumentsPanel({
                   Boolean(document.storagePath) &&
                   ["UPLOADED", "UNDER_REVIEW", "APPROVED"].includes(document.verificationStatus);
                 return (
-                  <tr key={document.id} className="border-t">
+                  <tr key={document.id} className="border-t transition hover:bg-slate-50">
                     <td className="px-4 py-3">
                       <span className="font-semibold">{resolvedName ?? resolvedEmail ?? "Client à identifier"}</span>
                       {resolutionStatus ? (
@@ -3332,12 +3350,12 @@ function ClientActionModal({
 
 function NotificationsPanel({ notifications }: { notifications: AdminNotification[] }) {
   return (
-    <section className="rounded-lg border bg-white shadow-sm" aria-labelledby="notifications-title">
-      <div className="border-b p-5"><h2 id="notifications-title" className="text-lg font-semibold">Notifications admin</h2></div>
+    <section className="rounded-2xl border border-slate-200 bg-white shadow-sm" aria-labelledby="notifications-title">
+      <div className="border-b border-slate-100 p-5"><h2 id="notifications-title" className="text-lg font-semibold tracking-tight">Notifications admin</h2><p className="mt-1 text-sm text-slate-500">Alertes et signaux opérationnels récents.</p></div>
       {notifications.length ? (
         <div className="divide-y">
           {notifications.map((notification) => (
-            <div key={notification.id} className="flex gap-3 p-4">
+            <div key={notification.id} className="flex gap-3 p-4 transition hover:bg-slate-50">
               <CheckCircle2 className="mt-1 h-4 w-4 text-emerald-600" aria-hidden="true" />
               <div>
                 <p className="font-semibold">{notification.title}</p>
@@ -3356,12 +3374,12 @@ function NotificationsPanel({ notifications }: { notifications: AdminNotificatio
 
 function AuditPanel({ events }: { events: AdminCaseEvent[] }) {
   return (
-    <section className="rounded-lg border bg-white shadow-sm" aria-labelledby="audit-title">
+    <section className="rounded-2xl border border-slate-200 bg-white shadow-sm" aria-labelledby="audit-title">
       <div className="border-b p-5"><h2 id="audit-title" className="text-lg font-semibold">Audit opérations</h2></div>
       {events.length ? (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[760px] text-left text-sm">
-            <thead className="bg-slate-50 text-xs uppercase text-slate-500">
+            <thead className="bg-slate-50 text-xs font-bold uppercase tracking-[0.08em] text-slate-500">
               <tr>{["Date", "Acteur", "Événement", "Dossier", "Payload"].map((header) => <th key={header} className="px-4 py-3">{header}</th>)}</tr>
             </thead>
             <tbody>
@@ -3401,7 +3419,7 @@ function SettingsPanel({
         <h2 id="settings-title" className="text-xl font-semibold">Paramètres admin</h2>
         <p className="mt-1 text-sm text-slate-600">Outils de synchronisation et réconciliation réservés au super admin.</p>
       </div>
-      <div className="rounded-lg border bg-white p-5 shadow-sm">
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <h3 className="font-semibold">Synchroniser et réconcilier</h3>
