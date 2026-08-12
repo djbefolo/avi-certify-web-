@@ -16,6 +16,7 @@ import {
   sendProfileReminderEmailWithResult,
   type SendEmailResult,
 } from "@/lib/server/email.service";
+import { humanFollowUpDueAt } from "@/lib/server/onboarding-human-followup.model";
 
 const USERS_COLLECTION = "users";
 const COMMUNICATIONS_COLLECTION = "communication_logs";
@@ -368,6 +369,8 @@ async function processReminder(
     return "FAILED";
   }
 
+  const sentAt = new Date();
+
   await db.runTransaction(async (transaction) => {
     const communicationSnapshot = await transaction.get(communicationRef);
 
@@ -384,7 +387,9 @@ async function processReminder(
         status: "SENT",
         messageId: emailResult.messageId,
         providerMessageId: emailResult.messageId,
-        sentAt: FieldValue.serverTimestamp(),
+        sentAt,
+        humanFollowUpStatus: "PENDING",
+        humanFollowUpDueAt: humanFollowUpDueAt(sentAt),
         failedAt: null,
         nextAttemptAt: null,
         updatedAt: FieldValue.serverTimestamp(),

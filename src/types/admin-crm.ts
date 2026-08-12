@@ -31,6 +31,10 @@ export type AdminLeadNextAction =
   | "REVIEW_AMBIGUOUS_LINK"
   | "FOLLOW_UP";
 
+export type AdminLeadNextActionSource =
+  | "HUMAN_ADMIN"
+  | "SYSTEM_PROFILE_REMINDER";
+
 export type AdminLeadLostReason =
   | "NO_RESPONSE"
   | "NOT_INTERESTED"
@@ -78,6 +82,9 @@ export type AdminLead = Omit<
   nextAction: AdminLeadNextAction;
   nextActionDueAt: string | null;
   followUpReason: string | null;
+  nextActionSource: AdminLeadNextActionSource | null;
+  nextActionUpdatedAt: string | null;
+  nextActionUpdatedBy: string | null;
   qualificationReadiness: AdminLeadQualificationReadiness;
   qualificationMissingFields: string[];
   profileReadiness: AdminLeadProfileReadiness;

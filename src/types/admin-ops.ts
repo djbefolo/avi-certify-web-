@@ -182,6 +182,10 @@ export type CommunicationLog = {
   dueAt?: string | null;
   nextAttemptAt?: string | null;
   sentAt?: string | null;
+  humanFollowUpStatus?: "PENDING" | "ACTIVE" | "RESOLVED" | "CANCELLED";
+  humanFollowUpDueAt?: string | null;
+  humanFollowUpEscalatedAt?: string | null;
+  humanFollowUpResolvedAt?: string | null;
   failedAt?: string | null;
   cancelledAt?: string | null;
   cancellationReason?: string | null;
@@ -237,6 +241,9 @@ export type AdminNotification = {
   relatedUid: string | null;
   relatedCaseId: string | null;
   read: boolean;
+  resolved?: boolean;
+  resolvedAt?: string | null;
+  metadata?: Record<string, unknown>;
   createdAt: string;
 };
 
