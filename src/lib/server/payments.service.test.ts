@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   requireHousingRequest: vi.fn(),
   attachPayment: vi.fn(),
   evaluateCertificate: vi.fn(),
+  convertLead: vi.fn(),
 }));
 
 vi.mock("@/lib/firebase/admin", () => ({
@@ -39,6 +40,10 @@ vi.mock("@/lib/housing/housing-request.service", () => ({
   requireHousingRequestForCheckout: mocks.requireHousingRequest,
   attachPaymentToHousingRequest: mocks.attachPayment,
   evaluateHousingCertificateAfterPayment: mocks.evaluateCertificate,
+}));
+
+vi.mock("@/lib/server/lead-client-conversion.service", () => ({
+  convertLeadFromConfirmedPayment: mocks.convertLead,
 }));
 
 import {
@@ -80,6 +85,7 @@ describe("housing checkout", () => {
       job: null,
       automaticGenerationQueued: false,
     });
+    mocks.convertLead.mockResolvedValue({ status: "CONVERTED" });
   });
 
   it("queues one housing document job after a validated paid webhook", async () => {
@@ -113,6 +119,12 @@ describe("housing checkout", () => {
         stripeEventId: "evt-1",
       }),
     );
+    expect(mocks.convertLead).toHaveBeenCalledWith({
+      paymentId: "payment-1",
+      ownerId: "client-1",
+      serviceType: "accommodation_certificate",
+      caseId: null,
+    });
   });
 
   it("does not confirm or queue a manipulated amount", async () => {

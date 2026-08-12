@@ -411,9 +411,26 @@ function normalizeClient(raw: Record<string, unknown>, uid: string): AdminClient
     assignedAdminId:
       typeof raw.assignedAdminId === "string" ? raw.assignedAdminId : null,
     source:
-      raw.source === "user_profile" || raw.source === "admin_created"
+      raw.source === "user_profile" ||
+      raw.source === "admin_created" ||
+      raw.source === "client_conversion"
         ? raw.source
         : "firebase_auth_sync",
+    clientStatus: raw.clientStatus === "CLIENT" ? "CLIENT" : "PROSPECT",
+    convertedAt: isoDate(raw.convertedAt),
+    convertedBy: typeof raw.convertedBy === "string" ? raw.convertedBy : null,
+    conversionReason:
+      raw.conversionReason === "PAYMENT_CONFIRMED"
+        ? "PAYMENT_CONFIRMED"
+        : null,
+    conversionSource:
+      raw.conversionSource === "STRIPE_WEBHOOK" ? "STRIPE_WEBHOOK" : null,
+    conversionReference:
+      typeof raw.conversionReference === "string"
+        ? raw.conversionReference
+        : null,
+    originLeadId:
+      typeof raw.originLeadId === "string" ? raw.originLeadId : null,
     updatedAt: typeof raw.updatedAt === "string" ? raw.updatedAt : timestamp,
   };
 }

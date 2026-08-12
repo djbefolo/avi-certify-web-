@@ -78,6 +78,10 @@ export type AdminLead = Omit<
   qualifiedBy: string | null;
   qualificationReasons: AdminLeadQualificationReason[];
   convertedAt: string | null;
+  clientId?: string | null;
+  conversionReason?: "PAYMENT_CONFIRMED" | null;
+  conversionSource?: "STRIPE_WEBHOOK" | null;
+  conversionReference?: string | null;
   lostReason: string | null;
   nextAction: AdminLeadNextAction;
   nextActionDueAt: string | null;

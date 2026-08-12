@@ -8,6 +8,7 @@ import {
   evaluateHousingCertificateAfterPayment,
   requireHousingRequestForCheckout,
 } from "@/lib/housing/housing-request.service";
+import { convertLeadFromConfirmedPayment } from "@/lib/server/lead-client-conversion.service";
 import { getStripeServerClient } from "@/lib/stripe/server";
 import type {
   CreateCheckoutSessionInput,
@@ -451,6 +452,17 @@ export async function markCheckoutSessionCompleted(
     { merge: true },
   );
 
+  // A paid Checkout is the only commercial conversion trigger currently
+  // implemented. The conversion service re-reads the payment in a Firestore
+  // transaction, refuses unsafe identities, and creates an idempotent Admin
+  // review notification instead of guessing a lead.
+  const conversion = await convertLeadFromConfirmedPayment({
+    paymentId,
+    ownerId,
+    serviceType,
+    caseId: getDocumentString(existingPayment.get("caseId")),
+  });
+
   let generationJobId: string | null = null;
   if (serviceType === "accommodation_certificate" && housingRequestId) {
     const fulfillment = await evaluateHousingCertificateAfterPayment({
@@ -475,6 +487,7 @@ export async function markCheckoutSessionCompleted(
     paymentIntentId,
     eventId: context.eventId,
     generationJobId,
+    conversionStatus: conversion.status,
   });
 
   return {
