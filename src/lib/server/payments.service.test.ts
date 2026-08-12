@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   requireHousingRequest: vi.fn(),
   attachPayment: vi.fn(),
   evaluateCertificate: vi.fn(),
+  convertLead: vi.fn(),
 }));
 
 vi.mock("@/lib/firebase/admin", () => ({
@@ -39,6 +40,10 @@ vi.mock("@/lib/housing/housing-request.service", () => ({
   requireHousingRequestForCheckout: mocks.requireHousingRequest,
   attachPaymentToHousingRequest: mocks.attachPayment,
   evaluateHousingCertificateAfterPayment: mocks.evaluateCertificate,
+}));
+
+vi.mock("@/lib/server/lead-client-conversion.service", () => ({
+  convertLeadFromConfirmedPayment: mocks.convertLead,
 }));
 
 import {
@@ -80,6 +85,7 @@ describe("housing checkout", () => {
       job: null,
       automaticGenerationQueued: false,
     });
+    mocks.convertLead.mockResolvedValue({ status: "CONVERTED" });
   });
 
   it("queues one housing document job after a validated paid webhook", async () => {
@@ -113,6 +119,12 @@ describe("housing checkout", () => {
         stripeEventId: "evt-1",
       }),
     );
+    expect(mocks.convertLead).toHaveBeenCalledWith({
+      paymentId: "payment-1",
+      ownerId: "client-1",
+      serviceType: "accommodation_certificate",
+      caseId: null,
+    });
   });
 
   it("does not confirm or queue a manipulated amount", async () => {
@@ -142,6 +154,37 @@ describe("housing checkout", () => {
       reason: "payment_amount_mismatch",
     });
     expect(mocks.paymentSet).not.toHaveBeenCalled();
+    expect(mocks.evaluateCertificate).not.toHaveBeenCalled();
+  });
+
+  it("keeps payment truth durable and lets the webhook retry a technical conversion failure", async () => {
+    mocks.convertLead.mockRejectedValueOnce(new Error("firestore transient failure"));
+    const session = {
+      id: "cs_test_1",
+      metadata: {
+        paymentId: "payment-1",
+        ownerId: "client-1",
+        serviceType: "accommodation_certificate",
+        housingRequestId: "housing-request-1",
+      },
+      payment_status: "paid",
+      payment_intent: "pi_test_1",
+      amount_total: 9900,
+      currency: "eur",
+    } as unknown as Stripe.Checkout.Session;
+
+    await expect(
+      markCheckoutSessionCompleted(session, {
+        eventId: "evt-retryable",
+        eventType: "checkout.session.completed",
+        eventCreated: 1_775_000_000,
+      }),
+    ).rejects.toThrow("firestore transient failure");
+
+    expect(mocks.paymentSet).toHaveBeenCalledWith(
+      expect.objectContaining({ status: "paid" }),
+      { merge: true },
+    );
     expect(mocks.evaluateCertificate).not.toHaveBeenCalled();
   });
 

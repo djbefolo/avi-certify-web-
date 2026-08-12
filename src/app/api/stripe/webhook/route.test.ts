@@ -82,6 +82,21 @@ describe("Stripe webhook route", () => {
     expect(mocks.failed).toHaveBeenCalledWith("evt-1", "payment_amount_mismatch");
   });
 
+  it("keeps an unexpected post-payment conversion failure retryable", async () => {
+    mocks.checkoutCompleted.mockRejectedValueOnce(
+      new Error("conversion transient failure"),
+    );
+
+    const response = await POST(request());
+
+    expect(response.status).toBe(500);
+    expect(mocks.processed).not.toHaveBeenCalled();
+    expect(mocks.failed).toHaveBeenCalledWith(
+      "evt-1",
+      "conversion transient failure",
+    );
+  });
+
   it("acknowledges a duplicate without running payment fulfillment", async () => {
     mocks.claim.mockResolvedValue({
       claimed: false,

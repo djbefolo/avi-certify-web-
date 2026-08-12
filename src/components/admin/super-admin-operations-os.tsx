@@ -1090,6 +1090,10 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
                 leads={data.leads}
                 stats={data.leadStats}
                 isBusy={isBusy}
+                onOpenClient={(uid) => {
+                  setActive("clients");
+                  void loadClient(uid);
+                }}
                 onUpdateLead={updateLeadCrm}
               />
             ) : null}
@@ -1231,11 +1235,13 @@ function AdminLeadsPanel({
   leads,
   stats,
   isBusy,
+  onOpenClient,
   onUpdateLead,
 }: {
   leads: AdminLead[];
   stats: AdminLeadStats | null;
   isBusy: boolean;
+  onOpenClient: (uid: string) => void;
   onUpdateLead: (leadId: string, input: AdminLeadUpdateInput) => Promise<AdminLead>;
 }) {
   const [statusFilter, setStatusFilter] = useState<AdminLeadCrmStatus | "all">("all");
@@ -1560,6 +1566,10 @@ function AdminLeadsPanel({
         isLoading={isProspectLoading}
         isOpen={isProspectOpen}
         onClose={() => setIsProspectOpen(false)}
+        onOpenClient={(uid) => {
+          setIsProspectOpen(false);
+          onOpenClient(uid);
+        }}
         onReload={loadProspect}
         onUpdateLead={onUpdateLead}
         prospect={prospect}
@@ -1605,6 +1615,7 @@ function Prospect360Drawer({
   isLoading,
   isOpen,
   onClose,
+  onOpenClient,
   onReload,
   onUpdateLead,
   prospect,
@@ -1614,6 +1625,7 @@ function Prospect360Drawer({
   isLoading: boolean;
   isOpen: boolean;
   onClose: () => void;
+  onOpenClient: (uid: string) => void;
   onReload: (leadId: string) => Promise<void>;
   onUpdateLead: (leadId: string, input: AdminLeadUpdateInput) => Promise<AdminLead>;
   prospect: AdminProspect360 | null;
@@ -1737,7 +1749,7 @@ function Prospect360Drawer({
             <>
               <section className="px-5 py-6 sm:px-7">
                 <div className="flex flex-wrap gap-2">
-                  <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-800">Prospect</span>
+                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${lead.crmStatus === "converted" ? "bg-emerald-50 text-emerald-800" : "bg-blue-50 text-blue-800"}`}>{lead.crmStatus === "converted" ? "Client" : "Prospect"}</span>
                   <span className={`rounded-full px-3 py-1 text-xs font-semibold ${lead.crmStatus === "qualified" ? "bg-emerald-50 text-emerald-800" : lead.crmStatus === "lost" ? "bg-red-50 text-red-800" : "bg-blue-50 text-blue-800"}`}>{crmStatusLabel(lead.crmStatus)}</span>
                   <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">{profileReadinessLabel(lead.profileReadiness)}</span>
                   <span className={`rounded-full px-3 py-1 text-xs font-semibold ${lead.identityLinkStatus === "LINKED" ? "bg-emerald-50 text-emerald-800" : lead.identityLinkStatus === "CONFLICT" ? "bg-red-50 text-red-800" : "bg-amber-50 text-amber-800"}`}>{identityLinkStatusLabel(lead.identityLinkStatus)}</span>
@@ -1782,6 +1794,18 @@ function Prospect360Drawer({
                   {crmStatus === "lost" && lostReason === "OTHER" ? <label className="grid gap-2 text-sm font-medium sm:col-span-2">Précision<Input onChange={(event) => setFollowUpReason(event.target.value)} placeholder="Préciser le motif de perte" value={followUpReason} /></label> : null}
                 </div>
               </Prospect360Section>
+
+              {lead.crmStatus === "converted" ? (
+                <Prospect360Section icon={CheckCircle2} title="Conversion commerciale">
+                  <dl className="rounded-lg bg-emerald-50/60 px-3">
+                    <DetailRow label="Statut" value="Converti en client" />
+                    <DetailRow label="Motif" value={lead.conversionReason === "PAYMENT_CONFIRMED" ? "Paiement confirmé" : "Traçabilité indisponible"} />
+                    <DetailRow label="Référence" value={lead.conversionReference ?? "Non tracée"} />
+                    <DetailRow label="Converti le" value={formatDate(lead.convertedAt)} />
+                  </dl>
+                  {lead.clientId ? <Button className="mt-4" onClick={() => onOpenClient(lead.clientId!)} type="button" variant="outline">Ouvrir Client 360</Button> : null}
+                </Prospect360Section>
+              ) : null}
 
               <Prospect360Section icon={Settings} title="Suivi">
                 <dl className="mb-5 rounded-lg bg-slate-50 px-3"><DetailRow label="Action actuelle" value={nextActionLabel(lead.nextAction)} /><DetailRow label="Source de l’action" value={nextActionSourceLabel(lead.nextActionSource)} /><DetailRow label="Échéance actuelle" value={formatDate(lead.nextActionDueAt)} /><DetailRow label="Motif" value={followUpReasonLabel(lead.followUpReason)} /><DetailRow label="Responsable" value={lead.crmOwner ?? "Non attribué"} /><DetailRow label="Intervention requise" value={lead.humanFollowUpRequired ? "Oui" : "Non"} /></dl>

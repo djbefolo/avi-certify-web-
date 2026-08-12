@@ -68,7 +68,22 @@ export type AdminClientProfile = {
   tags: string[];
   priority: "LOW" | "NORMAL" | "HIGH" | "URGENT";
   assignedAdminId: string | null;
-  source: "firebase_auth_sync" | "user_profile" | "admin_created";
+  source:
+    | "firebase_auth_sync"
+    | "user_profile"
+    | "admin_created"
+    | "client_conversion";
+  /**
+   * An authenticated account is not necessarily a commercial client. This
+   * field is set only by the server-side conversion workflow.
+   */
+  clientStatus?: "PROSPECT" | "CLIENT";
+  convertedAt?: string | null;
+  convertedBy?: string | null;
+  conversionReason?: "PAYMENT_CONFIRMED" | null;
+  conversionSource?: "STRIPE_WEBHOOK" | null;
+  conversionReference?: string | null;
+  originLeadId?: string | null;
   updatedAt: string;
 };
 

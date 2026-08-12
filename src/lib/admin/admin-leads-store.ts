@@ -323,6 +323,14 @@ function normalizeAdminLead(
       raw.qualificationReasons,
     ),
     convertedAt: toIsoString(raw.convertedAt, "") || null,
+    clientId: toStringOrNull(raw.clientId),
+    conversionReason:
+      raw.conversionReason === "PAYMENT_CONFIRMED"
+        ? "PAYMENT_CONFIRMED"
+        : null,
+    conversionSource:
+      raw.conversionSource === "STRIPE_WEBHOOK" ? "STRIPE_WEBHOOK" : null,
+    conversionReference: toStringOrNull(raw.conversionReference),
     lostReason: toStringOrNull(raw.lostReason),
     nextAction,
     nextActionDueAt: toIsoString(raw.nextActionDueAt, "") || null,
