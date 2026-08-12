@@ -121,6 +121,58 @@ function communicationLabel(log: CommunicationLog) {
   return "Communication système";
 }
 
+function communicationStatusLabel(status: string) {
+  const labels: Record<string, string> = {
+    PENDING: "Planifiée",
+    PROCESSING: "En cours",
+    QUEUED: "En file",
+    SENT: "Envoyée",
+    DELIVERED: "Délivrée",
+    FAILED: "Échec",
+    CANCELLED: "Annulée",
+    NOT_SENT: "Non envoyée",
+    ACTIVE: "Active",
+    RESOLVED: "Résolue",
+  };
+  return labels[status] ?? "Statut non précisé";
+}
+
+function documentTypeLabel(type: string) {
+  const labels: Record<string, string> = {
+    passport: "Passeport",
+    admission_letter: "Lettre d’admission",
+    proof_of_address: "Justificatif de domicile",
+    accommodation_certificate: "Attestation d’hébergement",
+  };
+  return labels[type] ?? "Document";
+}
+
+function caseStatusLabel(status: string) {
+  const labels: Record<string, string> = {
+    NEW: "Nouveau",
+    PROFILE_INCOMPLETE: "Profil incomplet",
+    DOCUMENTS_PENDING: "Documents attendus",
+    DOCUMENTS_SUBMITTED: "Documents soumis",
+    UNDER_REVIEW: "En revue",
+    PAYMENT_PENDING: "Paiement en attente",
+    PAYMENT_CONFIRMED: "Paiement confirmé",
+    COMPLETED: "Terminé",
+    BLOCKED: "Bloqué",
+  };
+  return labels[status] ?? "Statut non précisé";
+}
+
+function paymentStatusLabel(status: string) {
+  const labels: Record<string, string> = {
+    pending: "En attente",
+    paid: "Payé",
+    failed: "Échec",
+    cancelled: "Annulé",
+    refunded: "Remboursé",
+  };
+  return labels[status.toLowerCase()] ?? "Statut non précisé";
+}
+
 function mapCommunication(log: CommunicationLog): AdminProspect360Communication {
   return {
     id: log.id,
@@ -175,11 +227,11 @@ function createTimeline(source: Prospect360Source): AdminProspect360TimelineItem
 
   source.communications.forEach((log) => {
     const mapped = mapCommunication(log);
-    items.push({ id: `communication:${log.id}`, kind: "COMMUNICATION", label: `${mapped.label} · ${mapped.status}`, occurredAt: mapped.occurredAt, actor: null });
+    items.push({ id: `communication:${log.id}`, kind: "COMMUNICATION", label: `${mapped.label} · ${communicationStatusLabel(mapped.status)}`, occurredAt: mapped.occurredAt, actor: null });
   });
   source.documents.forEach((document) => {
     if (document.uploadedAt) {
-      items.push({ id: `document:${document.id}`, kind: "DOCUMENT", label: `Document reçu · ${document.documentType}`, occurredAt: document.uploadedAt, actor: null });
+      items.push({ id: `document:${document.id}`, kind: "DOCUMENT", label: `Document reçu · ${documentTypeLabel(document.documentType)}`, occurredAt: document.uploadedAt, actor: null });
     }
   });
   source.events.forEach((event) => {
@@ -189,13 +241,13 @@ function createTimeline(source: Prospect360Source): AdminProspect360TimelineItem
     items.push({ id: `notification:${notification.id}`, kind: "SYSTEM", label: notification.title, occurredAt: notification.createdAt, actor: null });
   });
   source.cases.forEach((clientCase) => {
-    items.push({ id: `case:${clientCase.id}`, kind: "SYSTEM", label: `Dossier lié · ${clientCase.status}`, occurredAt: clientCase.createdAt, actor: null });
+    items.push({ id: `case:${clientCase.id}`, kind: "SYSTEM", label: `Dossier lié · ${caseStatusLabel(clientCase.status)}`, occurredAt: clientCase.createdAt, actor: null });
   });
   source.payments.forEach((payment, index) => {
     const occurredAt = asIso(payment.createdAt) ?? asIso(payment.updatedAt);
     if (!occurredAt || (paymentCaseId(payment) && !caseIds.has(paymentCaseId(payment)!))) return;
     const status = typeof payment.status === "string" ? payment.status : "statut inconnu";
-    items.push({ id: `payment:${typeof payment.id === "string" ? payment.id : index}`, kind: "SYSTEM", label: `Paiement lié · ${status}`, occurredAt, actor: null });
+    items.push({ id: `payment:${typeof payment.id === "string" ? payment.id : index}`, kind: "SYSTEM", label: `Paiement lié · ${paymentStatusLabel(status)}`, occurredAt, actor: null });
   });
 
   return sortNewest(items);

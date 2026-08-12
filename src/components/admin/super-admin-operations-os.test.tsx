@@ -635,9 +635,15 @@ describe("SuperAdminOperationsOS", () => {
     expect(screen.queryByRole("button", { name: /créer dossier/i })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Ouvrir CRM" }));
-    expect(await screen.findByRole("dialog", { name: "Prospect 360" })).toBeInTheDocument();
-    expect(screen.getByText("Identité et projet")).toBeInTheDocument();
-    expect(screen.getByText("Compte et onboarding")).toBeInTheDocument();
+    const prospectDialog = await screen.findByRole("dialog", { name: "Prospect 360" });
+    expect(prospectDialog).toBeInTheDocument();
+    expect(prospectDialog).toHaveTextContent("Projet");
+    expect(prospectDialog).toHaveTextContent("Contact et compte AVI");
+    expect(prospectDialog).toHaveTextContent("Qualification");
+    expect(prospectDialog).toHaveTextContent("Suivi");
+    expect(prospectDialog).toHaveTextContent("Onboarding");
+    expect(prospectDialog).toHaveTextContent("Guide France 2026");
+    expect(prospectDialog).not.toHaveTextContent("guide_france_2026");
     expect(screen.getAllByText("firebase…ed-1").length).toBeGreaterThan(0);
     expect(screen.getByText("Décision humaine requise")).toBeInTheDocument();
     expect(screen.getByRole("dialog", { name: "Prospect 360" })).toBeInTheDocument();
@@ -666,6 +672,7 @@ describe("SuperAdminOperationsOS", () => {
         }),
       );
     });
+    expect(await screen.findByText("Pilotage CRM mis à jour.")).toBeInTheDocument();
   });
 
   it("shows and filters the system-owned profile follow-up without changing CRM status", async () => {
@@ -741,6 +748,20 @@ describe("SuperAdminOperationsOS", () => {
     await user.click(screen.getAllByRole("button", { name: "Prospects" })[0]);
     await user.click(screen.getByRole("button", { name: "Ouvrir CRM" }));
     expect(await screen.findByRole("dialog", { name: "Prospect 360" })).toHaveClass("w-full", "sm:max-w-[860px]");
+  });
+
+  it("keeps mobile contact actions and long-value rows structurally unclipped", async () => {
+    mockOperationsFetch();
+    const user = userEvent.setup();
+    render(<SuperAdminOperationsOS adminRole="super_admin" />);
+    await screen.findByText("AVI CERTIFY Super Admin Operations OS");
+    await user.click(screen.getAllByRole("button", { name: "Prospects" })[0]);
+    await user.click(screen.getByRole("button", { name: "Ouvrir CRM" }));
+    const dialog = await screen.findByRole("dialog", { name: "Prospect 360" });
+    const contactActions = screen.getByRole("link", { name: "Appeler" }).parentElement;
+    expect(contactActions).toHaveClass("grid-cols-1", "sm:grid-cols-3");
+    expect(dialog.querySelector("dd.break-words")).toBeTruthy();
+    expect(dialog.querySelector("span.break-all")).toBeTruthy();
   });
 
   it("shows the super-admin Firebase sync action and calls the protected API", async () => {

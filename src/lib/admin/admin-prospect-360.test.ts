@@ -1,5 +1,7 @@
-import { describe, expect, it } from "vitest";
-import { composeProspect360ReadModel, type Prospect360Source } from "@/lib/admin/admin-prospect-360";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { addProspectInternalNote, composeProspect360ReadModel, type Prospect360Source } from "@/lib/admin/admin-prospect-360";
+import { getAdminLeadsStore } from "@/lib/admin/admin-leads-store";
+import { getAdminOperationsStore } from "@/lib/admin/admin-ops-store";
 import type { AdminLead } from "@/types/admin-crm";
 
 function lead(overrides: Partial<AdminLead> = {}): AdminLead {
@@ -92,6 +94,10 @@ function source(overrides: Partial<Prospect360Source> = {}): Prospect360Source {
 }
 
 describe("composeProspect360ReadModel", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("builds onboarding, communication, document and append-only note views", () => {
     const result = composeProspect360ReadModel(source());
     expect(result.account).toMatchObject({ status: "ACTIVE", uidMasked: "user-123…7890" });
@@ -164,5 +170,54 @@ describe("composeProspect360ReadModel", () => {
     const result = composeProspect360ReadModel(source({ cases: [] }));
     expect(result.documents).toHaveLength(1);
     expect(result.documents[0].documentType).toBe("passport");
+  });
+
+  it("renders technical timeline states with human-readable labels", () => {
+    const result = composeProspect360ReadModel(source({
+      cases: [{ id: "case-1", uid: "user-1234567890", caseNumber: "AVI-1", productType: "TO_QUALIFY", status: "PAYMENT_PENDING", requestedAmount: null, requestedCurrency: null, destinationCountry: null, schoolName: null, intakeDate: null, notes: null, createdAt: "2026-08-12T10:00:00.000Z", updatedAt: "2026-08-12T10:00:00.000Z" }],
+      payments: [{ id: "payment-1", ownerId: "user-1234567890", caseId: "case-1", status: "paid", createdAt: "2026-08-12T10:01:00.000Z" }],
+    }));
+    expect(result.timeline.map((item) => item.label)).toEqual(expect.arrayContaining([
+      "Dossier lié · Paiement en attente",
+      "Paiement lié · Payé",
+      "Document reçu · Passeport",
+      "Email de bienvenue · Envoyée",
+    ]));
+    expect(JSON.stringify(result.timeline)).not.toContain("PAYMENT_PENDING");
+  });
+
+  it("appends a lead-scoped note with no client case or synthetic client", async () => {
+    vi.spyOn(getAdminLeadsStore(), "getLead").mockResolvedValueOnce(
+      lead({ identityLinkStatus: "UNLINKED", linkedUid: null }),
+    );
+    const createEvent = vi
+      .spyOn(getAdminOperationsStore(), "createEvent")
+      .mockResolvedValueOnce({
+        id: "case_evt_note-1",
+        caseId: null,
+        uid: null,
+        actorType: "admin",
+        actorId: "admin-1",
+        actorRole: "admin",
+        eventType: "lead_internal_note_added",
+        eventLabel: "Note interne prospect ajoutée",
+        eventPayload: { leadId: "lead-1", note: "Rappeler jeudi" },
+        createdAt: "2026-08-12T10:00:00.000Z",
+      });
+
+    const note = await addProspectInternalNote(
+      "lead-1",
+      "  Rappeler jeudi  ",
+      { uid: "admin-1", role: "admin", authProvider: "firebase-session" },
+    );
+
+    expect(createEvent).toHaveBeenCalledOnce();
+    expect(createEvent).toHaveBeenCalledWith(expect.objectContaining({
+      caseId: null,
+      uid: null,
+      eventType: "lead_internal_note_added",
+      eventPayload: { leadId: "lead-1", note: "Rappeler jeudi" },
+    }));
+    expect(note).toMatchObject({ id: "case_evt_note-1", note: "Rappeler jeudi" });
   });
 });
