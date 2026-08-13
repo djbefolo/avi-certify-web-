@@ -3470,7 +3470,7 @@ function HistoricalReconciliationPanel({
   onRun: () => void;
 }) {
   const labels: Record<keyof HistoricalReconciliationPlan["counts"], string> = {
-    ALREADY_CORRECT: "DéjÃ  cohérent",
+    ALREADY_CORRECT: "Déjà cohérent",
     SAFE_AUTO_RECONCILABLE: "Correction sûre",
     MANUAL_REVIEW: "À examiner",
     AMBIGUOUS: "Ambigu",
