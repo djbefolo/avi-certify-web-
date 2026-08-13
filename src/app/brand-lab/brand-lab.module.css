@@ -1,0 +1,279 @@
+.page {
+  --page-ink: #13213a;
+  --page-paper: #f3f1eb;
+  background: var(--page-paper);
+  color: var(--page-ink);
+  padding: clamp(2.5rem, 6vw, 6rem) 1.25rem 6rem;
+}
+
+.intro,
+.boards,
+.options {
+  margin-inline: auto;
+  max-width: 74rem;
+}
+
+.intro {
+  max-width: 48rem;
+}
+
+.kicker,
+.eyebrow,
+.systemLabel {
+  font-family: var(--font-ibm-plex-sans), sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.13em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.kicker {
+  color: #08795e;
+}
+
+.intro > h1,
+.options > h2 {
+  font-family: var(--font-newsreader), Georgia, serif;
+  font-size: clamp(2.7rem, 6vw, 5.5rem);
+  font-weight: 500;
+  letter-spacing: -0.055em;
+  line-height: 0.93;
+  margin: 0.8rem 0 1.25rem;
+  max-width: 13ch;
+}
+
+.intro > p {
+  color: #536078;
+  font-size: clamp(1rem, 1.6vw, 1.2rem);
+  line-height: 1.7;
+  max-width: 58ch;
+}
+
+.selectionNote {
+  align-items: start;
+  border-left: 2px solid #d8a72d;
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 2rem;
+  padding-left: 1rem;
+}
+
+.selectionNote span,
+.selectionNote a {
+  color: #596273;
+  font-family: var(--font-ibm-plex-sans), sans-serif;
+  font-size: 0.82rem;
+}
+
+.selectionNote strong {
+  font-family: var(--font-ibm-plex-sans), sans-serif;
+  font-size: 0.95rem;
+}
+
+.selectionNote a {
+  color: #08795e;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.boards {
+  display: grid;
+  gap: 4rem;
+  margin-top: clamp(3.5rem, 8vw, 7rem);
+}
+
+.board {
+  --navy: #07142b;
+  --ivory: #fcfaf5;
+  --white: #ffffff;
+  --green: #08795e;
+  --gold: #d8a72d;
+  --primary: #07142b;
+  --secondary: #596273;
+  --on-navy: #f7f5f0;
+  --ui: var(--font-source-sans-3);
+  --display: var(--font-source-serif-4);
+  background: var(--white);
+  box-shadow: 0 1.6rem 4rem rgb(7 20 43 / 0.12);
+  font-family: var(--ui), sans-serif;
+  overflow: hidden;
+}
+
+.systemA { --navy: #07142b; --ivory: #fcfaf5; --green: #08795e; --gold: #d8a72d; --primary: #07142b; --secondary: #596273; --on-navy: #f7f5f0; --ui: var(--font-source-sans-3); --display: var(--font-source-serif-4); }
+.systemB { --navy: #0b1b35; --ivory: #fbf9f4; --green: #087e60; --gold: #d2aa55; --primary: #10213b; --secondary: #5a626e; --on-navy: #f6f4ef; --ui: var(--font-manrope); --display: var(--font-manrope); }
+.systemC { --navy: #0f203c; --ivory: #f9f6f0; --green: #087b61; --gold: #c89e46; --primary: #15223a; --secondary: #606776; --on-navy: #faf8f2; --ui: var(--font-inter); --display: var(--font-newsreader); }
+
+.boardHeader,
+.miniNav,
+.hero,
+.editorial,
+.family,
+.closing,
+.boardFooter {
+  padding-inline: clamp(1.5rem, 5vw, 4.5rem);
+}
+
+.boardHeader {
+  align-items: center;
+  background: var(--primary);
+  color: var(--on-navy);
+  display: flex;
+  font-size: 0.75rem;
+  gap: 1rem;
+  justify-content: space-between;
+  padding-block: 0.85rem;
+}
+
+.boardHeader p { margin: 0; opacity: 0.76; }
+.boardHeader div { align-items: baseline; display: flex; gap: 0.5rem; text-align: right; }
+.boardHeader span { color: var(--gold); }
+
+.miniNav {
+  align-items: center;
+  background: var(--white);
+  display: flex;
+  font-size: 0.76rem;
+  justify-content: space-between;
+  padding-block: 1.25rem;
+}
+
+.wordmark { color: var(--primary); font-size: 0.9rem; font-weight: 800; letter-spacing: -0.025em; }
+.navItems { color: var(--secondary); }
+.navAction { color: var(--green); font-weight: 700; }
+
+.hero { padding-block: clamp(4rem, 9vw, 8.5rem) clamp(3.5rem, 7vw, 6.5rem); }
+.eyebrow { color: var(--green); margin: 0; }
+
+.hero h1,
+.editorial h2,
+.family h2,
+.closing h2 {
+  font-family: var(--display), Georgia, serif;
+  font-weight: 500;
+  letter-spacing: -0.045em;
+}
+
+.hero h1 {
+  color: var(--primary);
+  font-size: clamp(2.5rem, 6vw, 5.7rem);
+  line-height: 0.96;
+  margin: 0.8rem 0 1.5rem;
+  max-width: 11ch;
+}
+
+.introduction {
+  color: var(--secondary);
+  font-size: clamp(1rem, 1.45vw, 1.2rem);
+  line-height: 1.7;
+  margin: 0;
+  max-width: 56ch;
+}
+
+.primaryCta {
+  align-items: center;
+  background: var(--green);
+  color: #fff;
+  display: inline-flex;
+  font-size: 0.95rem;
+  font-weight: 700;
+  gap: 0.7rem;
+  margin-top: 2rem;
+  padding: 0.9rem 1.1rem;
+  text-decoration: none;
+  transition: background-color 180ms ease;
+}
+
+.primaryCta:hover,
+.primaryCta:focus-visible { background: var(--navy); }
+.microcopy { color: var(--secondary); font-size: 0.8rem; margin: 0.85rem 0 0; }
+
+.editorial {
+  background: var(--navy);
+  color: var(--on-navy);
+  display: grid;
+  gap: clamp(2rem, 5vw, 5rem);
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 0.8fr);
+  min-height: 31rem;
+  padding-block: clamp(3rem, 6vw, 5.5rem);
+}
+
+.editorialCopy { align-self: center; max-width: 34rem; }
+.editorial .eyebrow { color: var(--gold); }
+.editorial h2,
+.family h2,
+.closing h2 { font-size: clamp(2rem, 4vw, 3.75rem); line-height: 0.99; margin: 0.9rem 0 1.35rem; }
+.editorialCopy > p:not(.eyebrow) { color: var(--on-navy); line-height: 1.7; margin: 0; max-width: 48ch; opacity: 0.83; }
+.textLink { color: var(--gold); display: inline-block; font-size: 0.92rem; font-weight: 700; margin-top: 1.75rem; text-decoration: none; }
+.textLink:hover, .textLink:focus-visible { color: var(--on-navy); text-decoration: underline; text-underline-offset: 0.25em; }
+.editorialPhoto { min-height: 23rem; position: relative; }
+
+.family {
+  background: var(--ivory);
+  color: var(--primary);
+  display: grid;
+  gap: clamp(2rem, 6vw, 5.5rem);
+  grid-template-columns: minmax(16rem, 0.82fr) minmax(0, 1fr);
+  padding-block: clamp(3rem, 6vw, 5.5rem);
+}
+
+.familyPhoto { min-height: 22rem; position: relative; }
+.familyCopy { align-self: center; max-width: 33rem; }
+.familyCopy > p:not(.eyebrow) { color: var(--secondary); line-height: 1.7; margin: 0; max-width: 48ch; }
+
+.closing {
+  align-items: end;
+  background: var(--white);
+  color: var(--primary);
+  display: grid;
+  gap: 2rem;
+  grid-template-columns: 1fr minmax(16rem, 0.72fr);
+  padding-block: clamp(3rem, 6vw, 5.5rem);
+}
+
+.closing h2 { font-size: clamp(1.75rem, 3.2vw, 3.1rem); margin-bottom: 0; max-width: 14ch; }
+.closing > p { color: var(--secondary); line-height: 1.7; margin: 0; }
+
+.boardFooter {
+  align-items: center;
+  background: var(--primary);
+  color: var(--on-navy);
+  display: flex;
+  gap: 2rem;
+  justify-content: space-between;
+  padding-block: 1.5rem;
+}
+
+.systemLabel { color: var(--gold); margin: 0 0 0.35rem; }
+.boardFooter strong, .boardFooter span { display: block; font-size: 0.8rem; }
+.boardFooter span { color: var(--on-navy); margin-top: 0.2rem; opacity: 0.7; }
+.palette { display: flex; flex-wrap: wrap; gap: 1rem; margin: 0; }
+.swatchItem { align-items: center; display: flex; gap: 0.4rem; }
+.swatch { border: 1px solid rgb(255 255 255 / 0.35); height: 1.25rem; width: 1.25rem; }
+.swatchItem dt, .swatchItem dd { font-size: 0.67rem; line-height: 1.2; margin: 0; }
+.swatchItem dd { color: var(--on-navy); opacity: 0.7; }
+
+.options { margin-top: 6rem; }
+.options > h2 { font-size: clamp(2.25rem, 5vw, 4.5rem); max-width: 12ch; }
+.optionGrid { display: grid; gap: 1px; grid-template-columns: repeat(3, 1fr); background: #d9d6ce; margin-top: 2rem; }
+.optionGrid article { background: #fff; min-height: 13rem; padding: 1.5rem; }
+.optionGrid span { color: #08795e; font-family: var(--font-ibm-plex-sans), sans-serif; font-size: 0.73rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.optionGrid h3 { color: #13213a; font-family: var(--font-newsreader), Georgia, serif; font-size: clamp(1.5rem, 2.4vw, 2.25rem); font-weight: 500; letter-spacing: -0.04em; line-height: 1.05; margin: 2rem 0 0; }
+
+@media (max-width: 720px) {
+  .boardHeader { align-items: start; flex-direction: column; }
+  .boardHeader div { text-align: left; }
+  .navItems { display: none; }
+  .editorial, .family, .closing { grid-template-columns: 1fr; }
+  .editorial { padding-bottom: 0; }
+  .editorialPhoto { min-height: 18rem; }
+  .family { padding-top: 0; }
+  .familyPhoto { min-height: 18rem; order: 2; }
+  .familyCopy { padding-top: 3rem; }
+  .boardFooter { align-items: start; flex-direction: column; }
+  .optionGrid { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .primaryCta { transition: none; }
+}
