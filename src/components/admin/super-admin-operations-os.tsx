@@ -3470,13 +3470,13 @@ function HistoricalReconciliationPanel({
   onRun: () => void;
 }) {
   const labels: Record<keyof HistoricalReconciliationPlan["counts"], string> = {
-    ALREADY_CORRECT: "DÃ©jÃ  cohÃ©rent",
-    SAFE_AUTO_RECONCILABLE: "Correction sÃ»re",
-    MANUAL_REVIEW: "Ã€ examiner",
+    ALREADY_CORRECT: "DéjÃ  cohérent",
+    SAFE_AUTO_RECONCILABLE: "Correction sûre",
+    MANUAL_REVIEW: "À examiner",
     AMBIGUOUS: "Ambigu",
     CONFLICT: "Conflit",
-    INSUFFICIENT_DATA: "DonnÃ©es insuffisantes",
-    UNSUPPORTED_LEGACY: "HÃ©ritage non pris en charge",
+    INSUFFICIENT_DATA: "Données insuffisantes",
+    UNSUPPORTED_LEGACY: "Héritage non pris en charge",
   };
   const tones: Record<keyof HistoricalReconciliationPlan["counts"], "green" | "amber" | "red" | "slate"> = {
     ALREADY_CORRECT: "green",
@@ -3491,27 +3491,27 @@ function HistoricalReconciliationPanel({
   return (
     <section className="space-y-6" aria-labelledby="historical-reconciliation-title">
       <AdminPageHeader
-        eyebrow="ContrÃ´le de donnÃ©es"
-        title="RÃ©conciliation historique"
-        subtitle="Analyse bornÃ©e et strictement en lecture seule. Aucune liaison, conversion CRM, notification ou crÃ©ation de client ne peut Ãªtre dÃ©clenchÃ©e depuis cette page."
+        eyebrow="Contrôle de données"
+        title="Réconciliation historique"
+        subtitle="Analyse bornée et strictement en lecture seule. Aucune liaison, conversion CRM, notification ou création de client ne peut être déclenchée depuis cette page."
       />
       <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-6 text-amber-950">
         <p className="font-semibold">Dry-run uniquement</p>
-        <p className="mt-1">Les corrections sÃ»res restent des propositions. Le mode APPLY_SAFE_ONLY nâ€™est pas exposÃ© et nâ€™est pas exÃ©cutÃ© en Production.</p>
+        <p className="mt-1">Les corrections sûres restent des propositions. Le mode APPLY_SAFE_ONLY n’est pas exposé et n’est pas exécuté en Production.</p>
       </div>
       {adminRole === "super_admin" ? (
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <div><h2 id="historical-reconciliation-title" className="font-semibold">Analyser 25 leads maximum</h2><p className="mt-1 text-sm text-slate-600">Pagination bornÃ©e, aucune Ã©criture Firestore.</p></div>
-          <Button type="button" onClick={onRun} disabled={isLoading}>{isLoading ? "Analyse en coursâ€¦" : "Lancer le dry-run"}</Button>
+          <div><h2 id="historical-reconciliation-title" className="font-semibold">Analyser 25 leads maximum</h2><p className="mt-1 text-sm text-slate-600">Pagination bornée, aucune écriture Firestore.</p></div>
+          <Button type="button" onClick={onRun} disabled={isLoading}>{isLoading ? "Analyse en cours…" : "Lancer le dry-run"}</Button>
         </div>
-      ) : <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600">RÃ©servÃ© au super admin.</div>}
+      ) : <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600">Réservé au super admin.</div>}
       {plan ? (
         <>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {Object.entries(plan.counts).map(([key, value]) => <MetricCard key={key} label={labels[key as keyof typeof labels]} value={value} detail="Dans ce lot" tone={tones[key as keyof typeof tones]} />)}
           </div>
           <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-            <div className="border-b border-slate-100 p-5"><p className="font-semibold">RÃ©sultats du lot</p><p className="mt-1 text-sm text-slate-600">{plan.inspected} lead(s) inspectÃ©(s). Les identifiants sont conservÃ©s pour revue admin, sans exposer de documents complets.</p></div>
+            <div className="border-b border-slate-100 p-5"><p className="font-semibold">Résultats du lot</p><p className="mt-1 text-sm text-slate-600">{plan.inspected} lead(s) inspecté(s). Les identifiants sont conservés pour revue admin, sans exposer de documents complets.</p></div>
             <div className="divide-y">
               {plan.items.map((result) => <div key={result.entityId} className="p-5"><div className="flex flex-wrap items-center justify-between gap-2"><p className="font-mono text-sm font-semibold text-slate-900">{result.entityId}</p><span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700">{labels[result.classification]}</span></div><p className="mt-2 text-sm text-slate-600">{result.blockingReasons[0] ?? result.evidence.map((evidence) => evidence.detail).join(" ")}</p>{result.proposedChanges.length ? <p className="mt-2 text-xs text-emerald-800">Proposition : {result.proposedChanges.map((change) => change.field).join(", ")}</p> : null}</div>)}
             </div>

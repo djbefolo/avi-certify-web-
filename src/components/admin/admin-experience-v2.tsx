@@ -60,9 +60,9 @@ export const adminNavigation: readonly NavigationGroupDefinition[] = [
   },
   { group: "Système", items: [{ label: "Paramètres admin", key: "settings", icon: Settings }] },
   {
-    group: "ContrÃ´le",
+    group: "Contrôle",
     items: [
-      { label: "RÃ©conciliation", key: "reconciliation", icon: ShieldCheck },
+      { label: "Réconciliation", key: "reconciliation", icon: ShieldCheck },
     ],
   },
 ];
