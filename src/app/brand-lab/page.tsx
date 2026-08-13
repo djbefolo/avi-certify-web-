@@ -1,5 +1,12 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import {
+  Inter,
+  Manrope,
+  Newsreader,
+  Source_Sans_3,
+  Source_Serif_4,
+} from "next/font/google";
 import styles from "./brand-lab.module.css";
 
 export const metadata: Metadata = {
@@ -10,6 +17,36 @@ export const metadata: Metadata = {
     follow: false,
   },
 };
+
+const sourceSans3 = Source_Sans_3({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-source-sans-3",
+});
+
+const sourceSerif4 = Source_Serif_4({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-source-serif-4",
+});
+
+const manrope = Manrope({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-manrope",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
+});
+
+const newsreader = Newsreader({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-newsreader",
+});
 
 const systems = [
   {
@@ -28,7 +65,7 @@ const systems = [
   {
     id: "systemB",
     label: "B",
-    name: "Human Financial",
+    name: "Human Digital",
     typography: "Manrope",
     reading: "Direct, calme, contemporain",
     palette: [
@@ -161,7 +198,7 @@ function BrandBoard({ system }: { system: (typeof systems)[number] }) {
 
 export default function BrandLabPage() {
   return (
-    <main className={styles.page}>
+    <main className={`${styles.page} ${sourceSans3.variable} ${sourceSerif4.variable} ${manrope.variable} ${inter.variable} ${newsreader.variable}`}>
       <section className={styles.intro}>
         <p className={styles.kicker}>AVI CERTIFY / Preview-only lab</p>
         <h1>Choisir une voix avant de redessiner l&apos;accueil.</h1>

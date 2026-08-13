@@ -73,7 +73,7 @@ All candidates preserve dark navy as the dominant anchor, an ivory family moment
 | Candidate | Navy | Ivory | White | Green | Gold | Primary | Secondary | Text on navy | Perception and risk |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | A — Institutional Warmth | #07142B | #FCFAF5 | #FFFFFF | #08795E | #D8A72D | #07142B | #596273 | #F7F5F0 | The closest to a calm institutional benchmark. Risk: can feel conservative if gold is overused. |
-| B — Human Financial | #0B1B35 | #FBF9F4 | #FFFFFF | #087E60 | #D2AA55 | #10213B | #5A626E | #F6F4EF | Softer financial confidence and a warmer paper quality. Risk: needs enough dark navy to avoid appearing lifestyle-only. |
+| B — Human Digital | #0B1B35 | #FBF9F4 | #FFFFFF | #087E60 | #D2AA55 | #10213B | #5A626E | #F6F4EF | Softer financial confidence and a warmer paper quality. Risk: needs enough dark navy to avoid appearing lifestyle-only. |
 | C — Editorial International | #0F203C | #F9F6F0 | #FFFFFF | #087B61 | #C89E46 | #15223A | #606776 | #FAF8F2 | Most international and editorial. Risk: the cooler blue can feel less familial without the ivory/photo balance. |
 
 ## Image usage in the lab

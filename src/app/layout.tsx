@@ -6,50 +6,13 @@ import { JsonLd } from "@/components/seo/json-ld";
 import { defaultRobots, siteConfig } from "@/lib/seo/metadata";
 import { organizationJsonLd, websiteJsonLd } from "@/lib/seo/schema";
 import "./globals.css";
-import {
-  IBM_Plex_Sans,
-  Inter,
-  Manrope,
-  Newsreader,
-  Source_Sans_3,
-  Source_Serif_4,
-} from "next/font/google";
+import { IBM_Plex_Sans } from "next/font/google";
 
 const ibmPlexSans = IBM_Plex_Sans({
   weight: ["300", "400", "500", "600", "700"],
   subsets: ["latin"],
   display: "swap",
   variable: "--font-ibm-plex-sans",
-});
-
-const sourceSans3 = Source_Sans_3({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-source-sans-3",
-});
-
-const sourceSerif4 = Source_Serif_4({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-source-serif-4",
-});
-
-const manrope = Manrope({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-manrope",
-});
-
-const inter = Inter({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-inter",
-});
-
-const newsreader = Newsreader({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-newsreader",
 });
 
 export const metadata: Metadata = {
@@ -101,10 +64,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="fr"
-      className={`${ibmPlexSans.variable} ${sourceSans3.variable} ${sourceSerif4.variable} ${manrope.variable} ${inter.variable} ${newsreader.variable}`}
-    >
+    <html lang="fr" className={ibmPlexSans.variable}>
       <body>
         <JsonLd data={[organizationJsonLd(), websiteJsonLd()]} />
         <AuthProvider>
