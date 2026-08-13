@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
 
+const developmentUrl = (
+  process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"
+).replace(/\/$/, "");
+
 export const siteConfig = {
   name: "AVI CERTIFY",
-  url: (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(
-    /\/$/,
-    "",
-  ),
+  url:
+    process.env.NODE_ENV === "development"
+      ? developmentUrl
+      : "https://www.avicertify.fr",
   locale: "fr_FR",
   title: "AVI CERTIFY | AVI étudiant, visa et dossier financier",
   description:

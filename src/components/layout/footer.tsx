@@ -59,10 +59,10 @@ export function Footer() {
                 aria-hidden="true"
               />
               <a
-                href="mailto:contact@avicertify.com"
+                href="mailto:contact@avicertify.fr"
                 className="transition-colors hover:text-white"
               >
-                contact@avicertify.com
+                contact@avicertify.fr
               </a>
             </div>
           </div>
