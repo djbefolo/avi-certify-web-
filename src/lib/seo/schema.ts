@@ -17,7 +17,7 @@ export function organizationJsonLd() {
     name: siteConfig.name,
     url: getAbsoluteUrl("/"),
     description: siteConfig.description,
-    email: "contact@avicertify.com",
+    email: "contact@avicertify.fr",
   };
 }
 
@@ -65,4 +65,3 @@ export function serviceJsonLd(service: Service) {
     category: "Accompagnement étudiant international",
   };
 }
-

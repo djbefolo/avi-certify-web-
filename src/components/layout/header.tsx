@@ -20,9 +20,18 @@ import { Button } from "@/components/ui/button";
 const pricingMenuItems = [
   { href: "/prix#simulation-avi", label: "🧮 Simulation AVI" },
   { href: "/prix#tarifs-frais", label: "💰 Tarifs & frais" },
-  { href: "/prix#mobilite-canada-europe", label: "🇨🇦 Mobilité Canada / Europe" },
-  { href: "/prix#calcul-montants", label: "📘 Comment sont calculés les montants ?" },
-  { href: "/prix#garantie-remboursement", label: "🛡 Garantie & remboursement" },
+  {
+    href: "/prix#mobilite-canada-europe",
+    label: "🇨🇦 Mobilité Canada / Europe",
+  },
+  {
+    href: "/prix#calcul-montants",
+    label: "📘 Comment sont calculés les montants ?",
+  },
+  {
+    href: "/prix#garantie-remboursement",
+    label: "🛡 Garantie & remboursement",
+  },
   { href: "/prix#faq-financiere", label: "❓ FAQ financière" },
 ] as const;
 
@@ -43,9 +52,12 @@ export function Header() {
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-background/95 shadow-sm backdrop-blur">
       <div className="container flex h-[4.75rem] items-center justify-between gap-4">
-        <Link href="/" className="flex items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2">
+        <Link
+          href="/"
+          className="flex items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
+        >
           <Image
-            src="/assets/photos/logo_avi_certify.png"
+            src="/assets/photos/avi-certify-logo.png"
             alt="AVI CERTIFY"
             width={190}
             height={50}
@@ -158,7 +170,10 @@ export function Header() {
         ) : (
           <div className="hidden items-center gap-2 lg:flex">
             <div className="group relative">
-              <Button variant="ghost" className="text-primary hover:bg-primary/5">
+              <Button
+                variant="ghost"
+                className="text-primary hover:bg-primary/5"
+              >
                 Compte
               </Button>
               <div className="invisible absolute right-0 top-full z-50 mt-2 w-48 rounded-lg border bg-background py-2 shadow-lg opacity-0 transition-all duration-200 group-hover:visible group-hover:opacity-100">
@@ -319,7 +334,10 @@ export function Header() {
                   </Link>
                 </Button>
                 <Button variant="outline" asChild>
-                  <Link href="/dossier/documents" onClick={() => setIsOpen(false)}>
+                  <Link
+                    href="/dossier/documents"
+                    onClick={() => setIsOpen(false)}
+                  >
                     Documents
                   </Link>
                 </Button>
@@ -344,12 +362,18 @@ export function Header() {
                   </Link>
                 </Button>
                 <Button variant="outline" asChild>
-                  <Link href="/mot-de-passe-oublie" onClick={() => setIsOpen(false)}>
+                  <Link
+                    href="/mot-de-passe-oublie"
+                    onClick={() => setIsOpen(false)}
+                  >
                     Mot de passe oublié
                   </Link>
                 </Button>
                 <Button variant="outline" asChild>
-                  <Link href="/verification-email" onClick={() => setIsOpen(false)}>
+                  <Link
+                    href="/verification-email"
+                    onClick={() => setIsOpen(false)}
+                  >
                     Vérification email
                   </Link>
                 </Button>
