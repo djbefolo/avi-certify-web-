@@ -71,6 +71,7 @@ import {
   isLeadNextActionOverdue,
 } from "@/lib/leads/crm-qualification";
 import type { HousingInventoryItem, HousingRequest } from "@/types/housing";
+import type { HistoricalReconciliationPlan } from "@/types/historical-reconciliation";
 
 type Props = {
   adminRole: AdminRole;
@@ -626,6 +627,9 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [reconciliationPlan, setReconciliationPlan] =
+    useState<HistoricalReconciliationPlan | null>(null);
+  const [isReconciliationLoading, setIsReconciliationLoading] = useState(false);
 
   async function load() {
     setIsLoading(true);
@@ -826,6 +830,26 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
       setError(reconcileError instanceof Error ? reconcileError.message : "Réconciliation dossiers impossible.");
     } finally {
       setIsBusy(false);
+    }
+  }
+
+  async function loadHistoricalReconciliation() {
+    setIsReconciliationLoading(true);
+    setError(null);
+    try {
+      const response = await readApi<{ plan: HistoricalReconciliationPlan }>(
+        "/api/admin/reconciliation?limit=25",
+      );
+      setReconciliationPlan(response.plan);
+      setNotice("Analyse historique terminée en lecture seule.");
+    } catch (reconciliationError) {
+      setError(
+        reconciliationError instanceof Error
+          ? reconciliationError.message
+          : "Analyse historique impossible.",
+      );
+    } finally {
+      setIsReconciliationLoading(false);
     }
   }
 
@@ -1171,6 +1195,14 @@ export function SuperAdminOperationsOS({ adminRole, adminEmail }: Props) {
             ) : null}
             {!isLoading && active === "notifications" ? <NotificationsPanel notifications={data.notifications} /> : null}
             {!isLoading && active === "audit" ? <AuditPanel events={data.events} /> : null}
+            {!isLoading && active === "reconciliation" ? (
+              <HistoricalReconciliationPanel
+                adminRole={adminRole}
+                plan={reconciliationPlan}
+                isLoading={isReconciliationLoading}
+                onRun={loadHistoricalReconciliation}
+              />
+            ) : null}
             {!isLoading && active === "settings" ? (
               <SettingsPanel adminRole={adminRole} isBusy={isBusy} onSync={syncFirebaseUsers} onReconcile={reconcileCases} />
             ) : null}
@@ -3422,6 +3454,70 @@ function AuditPanel({ events }: { events: AdminCaseEvent[] }) {
       ) : (
         <div className="p-5"><EmptyState title="Aucune activité récente" text="Les événements de dossier et d'administration seront journalisés ici." /></div>
       )}
+    </section>
+  );
+}
+
+function HistoricalReconciliationPanel({
+  adminRole,
+  plan,
+  isLoading,
+  onRun,
+}: {
+  adminRole: AdminRole;
+  plan: HistoricalReconciliationPlan | null;
+  isLoading: boolean;
+  onRun: () => void;
+}) {
+  const labels: Record<keyof HistoricalReconciliationPlan["counts"], string> = {
+    ALREADY_CORRECT: "DÃ©jÃ  cohÃ©rent",
+    SAFE_AUTO_RECONCILABLE: "Correction sÃ»re",
+    MANUAL_REVIEW: "Ã€ examiner",
+    AMBIGUOUS: "Ambigu",
+    CONFLICT: "Conflit",
+    INSUFFICIENT_DATA: "DonnÃ©es insuffisantes",
+    UNSUPPORTED_LEGACY: "HÃ©ritage non pris en charge",
+  };
+  const tones: Record<keyof HistoricalReconciliationPlan["counts"], "green" | "amber" | "red" | "slate"> = {
+    ALREADY_CORRECT: "green",
+    SAFE_AUTO_RECONCILABLE: "green",
+    MANUAL_REVIEW: "amber",
+    AMBIGUOUS: "amber",
+    CONFLICT: "red",
+    INSUFFICIENT_DATA: "amber",
+    UNSUPPORTED_LEGACY: "slate",
+  };
+
+  return (
+    <section className="space-y-6" aria-labelledby="historical-reconciliation-title">
+      <AdminPageHeader
+        eyebrow="ContrÃ´le de donnÃ©es"
+        title="RÃ©conciliation historique"
+        subtitle="Analyse bornÃ©e et strictement en lecture seule. Aucune liaison, conversion CRM, notification ou crÃ©ation de client ne peut Ãªtre dÃ©clenchÃ©e depuis cette page."
+      />
+      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm leading-6 text-amber-950">
+        <p className="font-semibold">Dry-run uniquement</p>
+        <p className="mt-1">Les corrections sÃ»res restent des propositions. Le mode APPLY_SAFE_ONLY nâ€™est pas exposÃ© et nâ€™est pas exÃ©cutÃ© en Production.</p>
+      </div>
+      {adminRole === "super_admin" ? (
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div><h2 id="historical-reconciliation-title" className="font-semibold">Analyser 25 leads maximum</h2><p className="mt-1 text-sm text-slate-600">Pagination bornÃ©e, aucune Ã©criture Firestore.</p></div>
+          <Button type="button" onClick={onRun} disabled={isLoading}>{isLoading ? "Analyse en coursâ€¦" : "Lancer le dry-run"}</Button>
+        </div>
+      ) : <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600">RÃ©servÃ© au super admin.</div>}
+      {plan ? (
+        <>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {Object.entries(plan.counts).map(([key, value]) => <MetricCard key={key} label={labels[key as keyof typeof labels]} value={value} detail="Dans ce lot" tone={tones[key as keyof typeof tones]} />)}
+          </div>
+          <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <div className="border-b border-slate-100 p-5"><p className="font-semibold">RÃ©sultats du lot</p><p className="mt-1 text-sm text-slate-600">{plan.inspected} lead(s) inspectÃ©(s). Les identifiants sont conservÃ©s pour revue admin, sans exposer de documents complets.</p></div>
+            <div className="divide-y">
+              {plan.items.map((result) => <div key={result.entityId} className="p-5"><div className="flex flex-wrap items-center justify-between gap-2"><p className="font-mono text-sm font-semibold text-slate-900">{result.entityId}</p><span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700">{labels[result.classification]}</span></div><p className="mt-2 text-sm text-slate-600">{result.blockingReasons[0] ?? result.evidence.map((evidence) => evidence.detail).join(" ")}</p>{result.proposedChanges.length ? <p className="mt-2 text-xs text-emerald-800">Proposition : {result.proposedChanges.map((change) => change.field).join(", ")}</p> : null}</div>)}
+            </div>
+          </div>
+        </>
+      ) : null}
     </section>
   );
 }

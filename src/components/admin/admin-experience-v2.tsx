@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export type AdminNavigationKey = "overview" | "leads" | "clients" | "cases" | "documents" | "payments" | "finance" | "certificates" | "housing" | "notifications" | "audit" | "settings";
+export type AdminNavigationKey = "overview" | "leads" | "clients" | "cases" | "documents" | "payments" | "finance" | "certificates" | "housing" | "notifications" | "audit" | "reconciliation" | "settings";
 type NavigationItemDefinition = { label: string; key: AdminNavigationKey; icon: LucideIcon };
 type NavigationGroupDefinition = { group: string; items: readonly NavigationItemDefinition[] };
 
@@ -59,6 +59,12 @@ export const adminNavigation: readonly NavigationGroupDefinition[] = [
     ],
   },
   { group: "Système", items: [{ label: "Paramètres admin", key: "settings", icon: Settings }] },
+  {
+    group: "ContrÃ´le",
+    items: [
+      { label: "RÃ©conciliation", key: "reconciliation", icon: ShieldCheck },
+    ],
+  },
 ];
 
 type AdminSidebarProps = {
