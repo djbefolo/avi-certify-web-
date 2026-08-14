@@ -99,7 +99,7 @@ export default function CgvPage() {
           <h2>9. Contact</h2>
           <p>
             Pour toute question concernant ces conditions, contactez-nous à :{" "}
-            <a href="mailto:contact@avicertify.com">contact@avicertify.com</a>
+            <a href="mailto:contact@avicertify.fr">contact@avicertify.fr</a>
           </p>
         </div>
       </section>

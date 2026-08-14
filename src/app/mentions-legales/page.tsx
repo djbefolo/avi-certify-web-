@@ -46,7 +46,7 @@ export default function MentionsLegalesPage() {
           <h2>Contact</h2>
           <p>
             <strong>Email :</strong>{" "}
-            <a href="mailto:contact@avicertify.com">contact@avicertify.com</a>
+            <a href="mailto:contact@avicertify.fr">contact@avicertify.fr</a>
           </p>
 
           <h2>Hébergement</h2>

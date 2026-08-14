@@ -76,7 +76,7 @@ export default function ConfidentialitePage() {
           <p>
             Pour exercer vos droits ou pour toute question concernant vos
             données personnelles, contactez-nous à :{" "}
-            <a href="mailto:contact@avicertify.com">contact@avicertify.com</a>
+            <a href="mailto:contact@avicertify.fr">contact@avicertify.fr</a>
           </p>
         </div>
       </section>
