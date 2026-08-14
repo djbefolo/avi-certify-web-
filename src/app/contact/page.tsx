@@ -74,10 +74,10 @@ export default function ContactPage() {
             <Mail className="h-6 w-6 text-primary" aria-hidden="true" />
             <h2 className="mt-4 text-xl font-semibold">Email</h2>
             <a
-              href="mailto:contact@avicertify.com"
+              href="mailto:contact@avicertify.fr"
               className="mt-2 inline-block text-muted-foreground transition-colors hover:text-primary"
             >
-              contact@avicertify.com
+              contact@avicertify.fr
             </a>
           </div>
         </div>
