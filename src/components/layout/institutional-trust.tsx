@@ -59,7 +59,14 @@ export function InstitutionalTrust() {
               </div>
               <div className="space-y-4 text-sm leading-7 text-slate-100">
                 <p>
-                  AVI CERTIFY est une société de courtage financier régie par le Code Monétaire et Financier Français, immatriculée au registre des intermédiaires en opérations de banque et service de paiement sous le N°<strong className="text-white">25005516</strong> (peut être consulté sur le site de l'Orias, www.orias.fr) et ayant souscrit à une assurance Responsabilité Civile Professionnelle (police N°<strong className="text-white">BZIOB0001804</strong>) est une garantie financière (police N°<strong className="text-white">BZIOB001804</strong>) auprès de l'assureur Lloyd's Insurance Company S.A, représentée par +Simple (www.plusimple.fr), en application des articles L.519-3-4 et R.519-16-17 du Code Monétaire et Financier.
+                  AVI CERTIFY est une société de courtage financier régie par le Code Monétaire et Financier Français, immatriculée au registre des intermédiaires en opérations de banque et service de paiement sous le N°<strong className="text-white">25005516</strong> (peut être consulté sur le site de l'Orias, www.orias.fr) et ayant souscrit à une assurance Responsabilité Civile Professionnelle (police N°<strong className="text-white">BZIOB0001804</strong>, plafond <strong className="text-white">800 000 €</strong>) et une garantie financière (police N°<strong className="text-white">BZIOB001804</strong>, plafond <strong className="text-white">115 000 €</strong>) auprès de l'assureur Lloyd's Insurance Company S.A, représentée par +Simple (www.plusimple.fr), en application des articles L.519-3-4 et R.519-16-17 du Code Monétaire et Financier.
+                </p>
+                <p>
+                  Cette garantie couvre notamment l'engagement de remboursement intégral et sous 24 heures en cas de refus de visa (voir nos{" "}
+                  <a href="/cgv" className="underline decoration-white/30 underline-offset-2 hover:decoration-white">
+                    Conditions Générales de Vente
+                  </a>
+                  ).
                 </p>
                 <p>
                   AVI CERTIFY exerce ses activités sous le contrôle de l'ACPR-Autorité de Contrôle Prudentiel et de Résolution, 4 Place de Budapest, 75436 Paris Cedex 09.

@@ -1,5 +1,6 @@
 import {
   ArrowRight,
+  BadgeCheck,
   Building2,
   FileCheck2,
   ShieldCheck,
@@ -8,14 +9,13 @@ import {
   UserCheck,
   Linkedin,
   Facebook,
-  Instagram,
   Clock,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { TrackedCtaLink } from "@/components/analytics/tracked-cta-link";
 import { LeadFormSection } from "@/components/marketing/lead-form-section";
-import { ProcessSteps, StudentJourneyCards } from "@/components/marketing/landing-interactive";
+import { StudentJourneyCards } from "@/components/marketing/landing-interactive";
 import { SectionHeading } from "@/components/marketing/section-heading";
 import { ServiceCard } from "@/components/marketing/service-card";
 import { TestimonialsCarousel } from "@/components/marketing/testimonials-carousel";
@@ -27,7 +27,7 @@ import { createPageMetadata } from "@/lib/seo/metadata";
 export const metadata = createPageMetadata({
   title: "AVI étudiant, visa et dossier financier",
   description:
-    "Préparez votre AVI étudiant, votre attestation d'hébergement, votre préfinancement et votre dossier de visa avec un accompagnement structuré.",
+    "Préparez votre AVI étudiant, votre attestation d'hébergement, votre préfinancement et votre dossier de visa avec un accompagnement structuré. Remboursement garanti en cas de refus de visa.",
   path: "/",
 });
 
@@ -41,13 +41,16 @@ export default function HomePage() {
           <div className="relative z-10">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-accent/20 bg-accent/10 px-4 py-2 text-sm font-medium text-accent-dark">
               <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-              Société immatriculée • Documents vérifiables
+              Société immatriculée • Remboursement garanti si refus de visa
             </div>
             <h1 className="text-balance text-4xl font-semibold leading-tight tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-              Votre projet de mobilité mérite un accompagnement sérieux
+              Admis à l&apos;étranger. Maintenant, sécurisons votre dossier.
             </h1>
             <p className="mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-              AVI CERTIFY accompagne vos projets de mobilité en Europe et au Canada : AVI, preuve de fonds, virements internationaux, paiement de frais de scolarité, attestation de logement, visa et suivi documentaire humain.
+              Preuve de fonds, logement, financement et visa : AVI CERTIFY vous
+              accompagne à chaque étape de votre mobilité vers l&apos;Europe ou le
+              Canada. Si votre visa est refusé, vous êtes remboursé intégralement,
+              sous 24h.
             </p>
             <div className="mt-8 flex flex-col gap-4 sm:flex-row">
               <Button size="lg" variant="cta" className="text-base" asChild>
@@ -71,12 +74,16 @@ export default function HomePage() {
                 </a>
               </Button>
             </div>
+            <p className="mt-4 text-sm text-muted-foreground">
+              Pensé pour les étudiants d&apos;Afrique francophone en mobilité vers
+              l&apos;Europe ou le Canada — et pour les familles qui les accompagnent.
+            </p>
             <dl className="mt-10 grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
               {[
                 { icon: Check, label: "Documents vérifiables" },
                 { icon: ShieldCheck, label: "Paiement sécurisé" },
                 { icon: Building2, label: "Société immatriculée" },
-                { icon: UserCheck, label: "Accompagnement structuré" },
+                { icon: BadgeCheck, label: "Remboursement garanti" },
               ].map((item) => (
                 <div key={item.label} className="flex items-center gap-2">
                   <item.icon className="h-4 w-4 shrink-0 text-accent" aria-hidden="true" />
@@ -118,12 +125,14 @@ export default function HomePage() {
         </div>
         <div className="container relative py-16 md:py-24">
           <div className="mx-auto max-w-3xl text-center">
-            <p className="text-sm font-semibold uppercase tracking-wider text-accent-light">Le parcours étudiant</p>
+            <p className="text-sm font-semibold uppercase tracking-wider text-accent-light">Votre situation</p>
             <h2 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl">
               Admission obtenue. Maintenant, le dossier administratif.
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-gray-300">
-              Entre l'acceptation de l'université et le départ, le parcours administratif peut créer du stress. AVI CERTIFY structure chaque étape.
+              Entre l&apos;acceptation de l&apos;université et le départ, le parcours
+              administratif peut créer du stress. Voici les trois étapes où AVI
+              CERTIFY vous évite les mauvaises surprises.
             </p>
           </div>
           <StudentJourneyCards />
@@ -134,7 +143,7 @@ export default function HomePage() {
         <SectionHeading
           eyebrow="Services"
           title="Les démarches essentielles, organisées au même endroit"
-          description="Preuve de fonds, AVI, transferts internationaux, paiement de frais de scolarité, attestation de logement et visa : une équipe spécialisée vous aide à structurer chaque étape."
+          description="Preuve de fonds, AVI, transferts internationaux, paiement de frais de scolarité, attestation de logement et visa : une équipe spécialisée structure chaque étape pour limiter les oublis qui retardent un dossier."
         />
         <div className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {services.map((service) => (
@@ -143,118 +152,57 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="relative overflow-hidden border-y bg-[hsl(222,75%,8%)]">
-        <div className="absolute inset-0">
-          <Image
-            src="/assets/photos/tour-effel-paris-welcome-france.jpg.jpg"
-            alt="Paris académique et mobilité étudiante vers la France"
-            fill
-            className="object-cover opacity-55"
-            sizes="100vw"
-          />
-          <div className="absolute inset-0 bg-gradient-to-r from-[hsl(222,75%,8%)] via-[hsl(222,75%,8%)]/88 to-[hsl(222,75%,8%)]/62" />
-          <div className="absolute inset-y-0 left-0 w-1 bg-[hsl(var(--institutional-yellow))]" />
-        </div>
-        <div className="container relative grid gap-12 py-16 md:grid-cols-[0.85fr_1.15fr] md:items-start md:py-24">
-          <div className="max-w-3xl">
-            <p className="text-sm font-semibold uppercase tracking-normal text-[hsl(var(--institutional-yellow))]">
-              Méthode
-            </p>
-            <h2 className="text-balance mt-3 text-3xl font-semibold text-white sm:text-4xl">
-              Un parcours lisible pour l'étudiant et pour l'équipe
-            </h2>
-            <p className="mt-4 text-lg leading-8 text-slate-200">
-              Vous savez quelles informations fournir, comment organiser vos justificatifs financiers, vos virements et vos documents, et quelle est la prochaine action attendue.
-            </p>
-          </div>
-          <ProcessSteps />
-        </div>
-      </section>
-
       <section className="container grid gap-8 py-16 md:grid-cols-3 md:py-24">
         {[
           {
-            icon: FileCheck2,
-            title: "Dossier clarifié",
-            text: "Fonds, devise, logement, paiement et justificatifs sont structurés pour limiter les oublis et accélérer l'analyse.",
-            href: "/a-propos/mission",
-          },
-          {
-            icon: Building2,
-            title: "Présence internationale",
-            text: "Un accompagnement pensé pour les étudiants d'Afrique francophone visant l'Europe ou le Canada.",
-            href: "/a-propos/vision",
-          },
-          {
             icon: ShieldCheck,
-            title: "Sécurité documentaire",
-            text: "Les preuves de fonds, pièces sensibles et documents vérifiables restent rattachés à un parcours contrôlé.",
-            href: "/a-propos/confiance",
+            title: "Remboursement garanti",
+            text: "Si votre visa est refusé, vous êtes remboursé intégralement et sans condition, sous 24h sur simple présentation du refus.",
+            cta: "Voir la garantie",
+            href: "/prix#garantie-remboursement",
           },
-        ].map((item) => (
-          <Link
-            key={item.title}
-            href={item.href}
-            className="group relative overflow-hidden rounded-lg border bg-muted/30 p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-primary/30"
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-            <div className="relative">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 transition-colors duration-300 group-hover:bg-primary/20">
-                <item.icon className="h-6 w-6 text-primary" aria-hidden="true" />
+          {
+            icon: FileCheck2,
+            title: "Documents sécurisés",
+            text: "Chaque attestation porte un QR code et un lien public de vérification, pour contrôler son authenticité en quelques secondes.",
+            cta: "Vérifier un document",
+            href: "https://verify.avicertify.fr/",
+          },
+          {
+            icon: UserCheck,
+            title: "Un humain, pas un formulaire",
+            text: "Une équipe joignable par WhatsApp à chaque étape de votre dossier, y compris pendant le paiement.",
+            cta: "Parler à un conseiller",
+            href: "https://wa.me/message/XOKRBYI3ZEQBM1",
+          },
+        ].map((item) => {
+          const isExternal = item.href.startsWith("http");
+          return (
+            <Link
+              key={item.title}
+              href={item.href}
+              target={isExternal ? "_blank" : undefined}
+              rel={isExternal ? "noopener noreferrer" : undefined}
+              className="group relative overflow-hidden rounded-lg border bg-muted/30 p-6 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:border-primary/30"
+            >
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+              <div className="relative">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 transition-colors duration-300 group-hover:bg-primary/20">
+                  <item.icon className="h-6 w-6 text-primary" aria-hidden="true" />
+                </div>
+                <h3 className="mt-5 text-xl font-semibold">{item.title}</h3>
+                <p className="mt-3 leading-relaxed text-muted-foreground">{item.text}</p>
+                <span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary">
+                  {item.cta}
+                  <ArrowRight
+                    className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"
+                    aria-hidden="true"
+                  />
+                </span>
               </div>
-              <h3 className="mt-5 text-xl font-semibold">{item.title}</h3>
-              <p className="mt-3 leading-relaxed text-muted-foreground">{item.text}</p>
-              <span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary">
-                En savoir plus
-                <ArrowRight
-                  className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"
-                  aria-hidden="true"
-                />
-              </span>
-            </div>
-          </Link>
-        ))}
-      </section>
-
-      <section className="border-y bg-gradient-to-br from-primary/5 to-accent/5">
-        <div className="container grid gap-12 py-16 md:grid-cols-2 md:items-center md:py-24">
-          <div className="relative overflow-hidden rounded-lg border shadow-xl">
-            <div className="relative aspect-[4/3]">
-              <Image
-                src="/assets/photos/customer-service-avi-certify.jpg"
-                alt="Équipe d'accompagnement AVI CERTIFY"
-                fill
-                className="object-cover"
-                sizes="(max-width: 768px) 100vw, 50vw"
-              />
-            </div>
-          </div>
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-wider text-accent">Contact direct</p>
-            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-              Besoin d'échanger avant de commencer ?
-            </h2>
-            <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
-              Notre équipe répond à vos questions sur les preuves de fonds, l'hébergement, les virements internationaux, les frais de scolarité et l'accompagnement adapté à votre situation.
-            </p>
-            <div className="mt-8 space-y-4">
-              <Button size="lg" variant="cta" className="w-full text-base sm:w-auto" asChild>
-                <a
-                  href="https://wa.me/message/XOKRBYI3ZEQBM1"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <MessageCircle className="h-5 w-5" aria-hidden="true" />
-                  Parler sur WhatsApp
-                </a>
-              </Button>
-              <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                <Clock className="h-4 w-4" aria-hidden="true" />
-                <span>Réponse sous 24h ouvrées</span>
-              </div>
-            </div>
-          </div>
-        </div>
+            </Link>
+          );
+        })}
       </section>
 
       <section className="border-b bg-muted/30">
@@ -279,10 +227,10 @@ export default function HomePage() {
               />
             </div>
             <div className="p-8">
-              <div className="flex items-center justify-center gap-4">
+              <div className="flex flex-col items-center justify-center gap-4 text-center sm:flex-row sm:text-left">
                 <div className="rounded-lg border bg-muted/30 px-4 py-2">
                   <p className="text-sm font-semibold text-muted-foreground">
-                    Présence professionnelle vérifiable
+                    Gabriel Emmanuel Befolo Nkoa, fondateur d&apos;AVI CERTIFY
                   </p>
                 </div>
                 <a
@@ -292,7 +240,7 @@ export default function HomePage() {
                   className="inline-flex items-center gap-2 rounded-lg border bg-background px-4 py-2 text-sm font-medium transition-colors hover:border-accent hover:bg-accent/5"
                 >
                   <Linkedin className="h-4 w-4 text-primary" aria-hidden="true" />
-                  <span>LinkedIn professionnel du fondateur</span>
+                  <span>Profil LinkedIn vérifiable</span>
                 </a>
               </div>
             </div>
@@ -305,12 +253,17 @@ export default function HomePage() {
       <section className="border-y bg-gradient-to-br from-muted/40 via-accent/5 to-muted/40">
         <div className="container py-16 md:py-20">
           <div className="mx-auto max-w-3xl text-center">
-            <p className="text-sm font-semibold uppercase tracking-wider text-accent">Environnement international</p>
+            <p className="text-sm font-semibold uppercase tracking-wider text-accent">Partenariats financiers</p>
             <h2 className="mt-3 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
-              Un écosystème financier et administratif connecté
+              AVI CERTIFY ne travaille pas seule
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
-              Les parcours étudiants internationaux combinent devises, preuves financières, transferts, frais académiques, justificatifs et contraintes consulaires. AVI CERTIFY aide à rendre ces étapes lisibles.
+              Nous nous appuyons sur des partenariats réels avec des acteurs
+              financiers internationaux pour faciliter certaines solutions de
+              préfinancement des études, de crédit à la consommation étudiant et
+              de transferts multi-devises. L&apos;accès à une solution de
+              financement reste soumis à l&apos;étude individuelle de chaque
+              dossier.
             </p>
           </div>
 
@@ -333,20 +286,20 @@ export default function HomePage() {
                 { name: "Boursorama Banque", logo: "/assets/photos/logo_boursorama.png", url: "https://www.boursorama.com/", width: 140, height: 40 },
                 { name: "BNP Paribas", logo: "/assets/photos/logo_bnpparibas.svg", url: "https://mabanque.bnpparibas/", width: 120, height: 40 },
                 { name: "Wise", logo: "/assets/photos/logo_wise.png", url: "https://wise.com/", width: 90, height: 40 },
-              ]).map((partner, index) => (
+              ]).map((bank, index) => (
                 <a
-                  key={`${partner.name}-${index}`}
-                  href={partner.url}
+                  key={`${bank.name}-${index}`}
+                  href={bank.url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex shrink-0 items-center justify-center grayscale opacity-60 transition-all duration-300 hover:grayscale-0 hover:opacity-100"
-                  aria-label={partner.name}
+                  aria-label={bank.name}
                 >
                   <Image
-                    src={partner.logo}
-                    alt={partner.name}
-                    width={partner.width}
-                    height={partner.height}
+                    src={bank.logo}
+                    alt={bank.name}
+                    width={bank.width}
+                    height={bank.height}
                     className="h-10 w-auto object-contain"
                   />
                 </a>
@@ -355,7 +308,8 @@ export default function HomePage() {
           </div>
 
           <p className="mt-8 text-center text-sm text-muted-foreground">
-            Institutions financières internationales présentes dans les parcours de mobilité étudiante, notamment pour les paiements et transferts multi-devises.
+            Acteurs financiers internationaux mobilisés selon les besoins de
+            financement, de transfert et de mobilité de votre dossier.
           </p>
         </div>
       </section>
@@ -373,14 +327,6 @@ export default function HomePage() {
             >
               <Facebook className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
             </a>
-            <button
-              type="button"
-              disabled
-              className="flex h-12 w-12 items-center justify-center rounded-lg border border-border/50 bg-muted/20 opacity-40 cursor-not-allowed"
-              aria-label="Instagram (prochainement)"
-            >
-              <Instagram className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-            </button>
             <a
               href="https://www.linkedin.com/company/avi-certify/"
               target="_blank"
@@ -393,6 +339,13 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      <div className="border-b bg-background">
+        <div className="container flex items-center justify-center gap-2 py-4 text-center text-sm text-muted-foreground">
+          <Clock className="h-4 w-4 shrink-0 text-accent" aria-hidden="true" />
+          <span>Un conseiller vous répond sous 24h ouvrées.</span>
+        </div>
+      </div>
 
       <LeadFormSection />
     </>

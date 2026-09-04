@@ -21,24 +21,49 @@ const faqs = [
       "C'est une attestation utilisée pour justifier la disponibilité de fonds dans certaines démarches d'études et de visa.",
   },
   {
+    question: "Que se passe-t-il si mon visa est refusé ?",
+    answer:
+      "Vous êtes remboursé intégralement et sans condition des frais de service liés à votre dossier, sur simple présentation du refus émis par les autorités consulaires. Le remboursement est traité sous 24 heures. Cette garantie est adossée à notre assurance Responsabilité Civile Professionnelle (800 000 €) et à notre garantie financière (115 000 €) — voir nos Conditions Générales de Vente.",
+  },
+  {
+    question: "Comment vérifier l'authenticité d'une attestation AVI CERTIFY ?",
+    answer:
+      "Chaque attestation comporte un QR code et un lien public de vérification. Vous pouvez contrôler son authenticité à tout moment sur verify.avicertify.fr.",
+  },
+  {
     question: "Quels documents faut-il fournir ?",
     answer:
-      "La liste dépend du pays visé et du service choisi. Un conseiller vous indique les pièces à préparer après qualification.",
+      "La liste dépend du pays visé et du service choisi. Un conseiller vous indique précisément les pièces à préparer après qualification de votre dossier.",
   },
   {
     question: "Quel est le délai de traitement ?",
     answer:
-      "Le délai dépend de la complétude du dossier, du service demandé et des vérifications nécessaires.",
+      "Les attestations et documents sont généralement émis sous 24 à 48 heures ouvrées après validation du paiement et réception de l'ensemble des pièces requises. L'accompagnement visa suit en complément le calendrier propre au consulat.",
   },
   {
     question: "Comment se passe le paiement ?",
     answer:
-      "Les modalités de paiement sont confirmées avant validation afin de garder une trace claire du dossier.",
+      "Le paiement s'effectue en ligne via Stripe, notre prestataire sécurisé. AVI CERTIFY ne conserve et ne demande jamais vos informations bancaires par messagerie libre.",
+  },
+  {
+    question: "Mes données personnelles sont-elles sécurisées ?",
+    answer:
+      "Oui. Vos données sont traitées conformément au RGPD et à notre politique de confidentialité, dans un espace client authentifié et chiffré.",
+  },
+  {
+    question: "Le financement est-il garanti pour tous les étudiants ?",
+    answer:
+      "Non. AVI CERTIFY s'appuie sur des partenariats réels avec des acteurs financiers pour faciliter certaines solutions de préfinancement et de crédit à la consommation étudiant, mais l'éligibilité reste soumise à étude individuelle du dossier — aucune banque ne garantit un financement automatique.",
   },
   {
     question: "Proposez-vous un accompagnement visa ?",
     answer:
-      "Oui, AVI CERTIFY peut accompagner la préparation des pièces et les étapes liées au parcours visa étudiant.",
+      "Oui, AVI CERTIFY peut accompagner la préparation des pièces et les étapes liées au parcours visa étudiant, sans jamais promettre l'obtention du visa lui-même — cette décision appartient aux autorités consulaires.",
+  },
+  {
+    question: "Qui puis-je contacter en cas de problème ?",
+    answer:
+      "Notre équipe répond par WhatsApp et par email (contact@avicertify.fr), avec un objectif de réponse sous 24h ouvrées, à chaque étape de votre dossier — y compris avant et pendant le paiement.",
   },
   {
     question: "Comment recevoir le guide gratuit AVI CERTIFY ?",

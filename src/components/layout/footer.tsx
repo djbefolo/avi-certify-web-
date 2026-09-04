@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Shield, Mail, Building2, MessageCircle, Facebook, Instagram, Linkedin, ExternalLink } from "lucide-react";
+import { Shield, Mail, Building2, MessageCircle, Facebook, Linkedin, ExternalLink } from "lucide-react";
 import { InstitutionalTrust } from "@/components/layout/institutional-trust";
 import { navLinks } from "@/constants/navigation";
 
@@ -157,14 +157,6 @@ export function Footer() {
               >
                 <Facebook className="h-4 w-4 text-white" aria-hidden="true" />
               </a>
-              <button
-                type="button"
-                disabled
-                className="flex h-9 w-9 items-center justify-center rounded-md bg-white/5 opacity-40 cursor-not-allowed"
-                aria-label="Instagram (prochainement)"
-              >
-                <Instagram className="h-4 w-4 text-white" aria-hidden="true" />
-              </button>
               <a
                 href="https://www.linkedin.com/company/avi-certify/"
                 target="_blank"

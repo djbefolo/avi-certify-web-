@@ -32,9 +32,9 @@ const pricingSectionNav = [
 ] as const;
 
 const guaranteeItems = [
-  { icon: ShieldCheck, label: "Contrat clair" },
-  { icon: CircleDollarSign, label: "Fonds protégés" },
-  { icon: BookOpen, label: "Suivi documenté" },
+  { icon: ShieldCheck, label: "Remboursement garanti" },
+  { icon: CircleDollarSign, label: "Sous 24 heures" },
+  { icon: BookOpen, label: "Sans condition" },
 ] as const;
 
 export const metadata = createPageMetadata({
@@ -206,6 +206,21 @@ const faqs = [
     question: "Le paiement est-il sécurisé ?",
     answer:
       "Les paiements sont traités via des parcours sécurisés. AVI CERTIFY ne demande pas de transmettre des informations bancaires sensibles par messagerie libre.",
+  },
+  {
+    question: "Que se passe-t-il si mon visa est refusé ?",
+    answer:
+      "AVI CERTIFY vous rembourse intégralement et sans condition les frais de service liés à votre dossier, sur simple présentation du refus émis par les autorités consulaires. Cette garantie est adossée à notre assurance Responsabilité Civile Professionnelle (800 000 €) et à notre garantie financière (115 000 €).",
+  },
+  {
+    question: "Quand suis-je remboursé en cas de refus de visa ?",
+    answer:
+      "Le remboursement est traité sous 24 heures à compter de la réception de votre justificatif de refus. Les conditions complètes figurent dans nos Conditions Générales de Vente.",
+  },
+  {
+    question: "Le financement ou le préfinancement est-il garanti ?",
+    answer:
+      "AVI CERTIFY s'appuie sur des partenariats réels avec des acteurs financiers pour faciliter certaines solutions de préfinancement, de crédit à la consommation étudiant et de transfert international. L'accès à une solution de financement reste soumis à étude individuelle du dossier et n'est jamais automatique.",
   },
   {
     question: "Puis-je parler à un conseiller avant de payer ?",
@@ -463,22 +478,31 @@ export default function PricingPage() {
                 <p className="leading-7">
                   Chez AVI CERTIFY, nous comprenons que les fonds engagés dans
                   un projet d’études représentent un effort important pour
-                  l’étudiant et sa famille.
-                </p>
-                <p className="leading-7">
-                  En cas de refus de visa, notre politique de remboursement
-                  s’applique conformément aux conditions prévues au contrat, avec
-                  transparence et accompagnement tout au long du processus. AVI
-                  CERTIFY place la confiance et la protection financière des
-                  étudiants au centre de son accompagnement.
+                  l’étudiant et sa famille. En cas de refus de visa, vous
+                  n’êtes pas seul face au risque financier.
                 </p>
                 <div className="rounded-lg border border-accent/25 bg-accent/10 p-4 text-foreground">
-                  <p className="font-semibold">Notre objectif est simple :</p>
+                  <p className="font-semibold">
+                    En cas de refus de visa, AVI CERTIFY vous rembourse
+                    intégralement les frais de service liés à votre dossier,
+                    sans condition, sur simple présentation du refus émis par
+                    les autorités consulaires.
+                  </p>
                   <p className="mt-2 leading-7">
-                    sécuriser votre projet, protéger vos fonds et avancer avec
-                    clarté.
+                    Le remboursement est traité sous 24 heures à compter de la
+                    réception de votre justificatif.
                   </p>
                 </div>
+                <p className="leading-7">
+                  Cette garantie est adossée à notre assurance Responsabilité
+                  Civile Professionnelle (800 000 €) et à notre garantie
+                  financière (115 000 €), souscrites auprès de Lloyd's
+                  Insurance Company S.A. Conditions complètes dans nos{" "}
+                  <a href="/cgv" className="font-medium text-accent hover:underline">
+                    Conditions Générales de Vente
+                  </a>
+                  .
+                </p>
               </div>
               <div className="mt-6 grid gap-3 sm:grid-cols-3">
                 {guaranteeItems.map(({ icon: Icon, label }) => (

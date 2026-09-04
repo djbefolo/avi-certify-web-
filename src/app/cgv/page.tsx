@@ -74,14 +74,34 @@ export default function CgvPage() {
             votre commande, avant la génération des documents.
           </p>
 
-          <h2>7. Responsabilité</h2>
+          <h2>7. Responsabilité et garantie de remboursement en cas de refus de visa</h2>
           <p>
             AVI CERTIFY s'engage à fournir les services avec le plus grand
-            soin et conformément aux standards en vigueur. Toutefois, la
-            responsabilité d'AVI CERTIFY ne saurait être engagée en cas de
-            refus de visa ou de dossier par les autorités compétentes, ces
-            décisions relevant de la compétence exclusive des services
-            consulaires et administratifs.
+            soin et conformément aux standards en vigueur. La décision
+            d'attribution ou de refus d'un visa relève de la compétence
+            exclusive des services consulaires et administratifs : à ce
+            titre, la responsabilité d'AVI CERTIFY ne saurait être engagée
+            dans la décision rendue par ces autorités.
+          </p>
+          <p>
+            Cette absence de responsabilité sur la décision consulaire ne
+            remet toutefois pas en cause l'engagement commercial suivant :{" "}
+            <strong>
+              en cas de refus de visa, AVI CERTIFY garantit le remboursement
+              intégral et sans condition des frais de service perçus au titre
+              du dossier concerné
+            </strong>
+            , sur simple présentation d'un justificatif de refus émis par les
+            autorités consulaires. Le remboursement est traité sous 24 heures
+            à compter de la réception de ce justificatif.
+          </p>
+          <p>
+            Cette garantie est adossée à une assurance Responsabilité Civile
+            Professionnelle (plafond 800 000 €) et à une garantie financière
+            (plafond 115 000 €), souscrites auprès de Lloyd's Insurance
+            Company S.A., représentée par +Simple — voir les détails
+            d'immatriculation dans nos{" "}
+            <a href="/mentions-legales">mentions légales</a>.
           </p>
           <p>
             En cas d'anomalie dans la génération ou la conformité d'une

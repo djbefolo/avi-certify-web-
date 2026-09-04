@@ -32,6 +32,12 @@ export const metadata: Metadata = {
     canonical: "/",
   },
   robots: defaultRobots,
+  // Dormant until NEXT_PUBLIC_GSC_VERIFICATION is set in the deployment
+  // environment with the real code from Google Search Console — never
+  // fabricate a value here.
+  verification: process.env.NEXT_PUBLIC_GSC_VERIFICATION
+    ? { google: process.env.NEXT_PUBLIC_GSC_VERIFICATION }
+    : undefined,
   openGraph: {
     title: siteConfig.title,
     description: siteConfig.description,

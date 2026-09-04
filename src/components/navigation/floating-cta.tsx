@@ -12,8 +12,13 @@ import { useAnalytics } from "@/hooks/use-analytics";
  * Premium institutional floating CTA that adapts based on auth state:
  * - Unauthenticated: WhatsApp contact
  * - Authenticated: Dashboard access
+ * - Authenticated on /dossier/* (documents, paiement...): WhatsApp contact,
+ *   never hidden — this is where anxiety is highest (e.g. at the moment of
+ *   payment), so the human contact channel must stay visible instead of
+ *   being replaced by a redundant "Mon espace" link.
  *
- * Hidden on dashboard/dossier pages to avoid redundancy.
+ * Hidden only on the bare dashboard/account pages where a WhatsApp bubble
+ * would be redundant with in-page navigation.
  * Calm, premium, conversion-oriented institutional UX.
  */
 export function FloatingCta() {
@@ -22,10 +27,11 @@ export function FloatingCta() {
   const pathname = usePathname();
   const [visible, setVisible] = useState(false);
 
-  // Hide on dashboard/internal pages
+  const isDossierRoute = pathname?.startsWith("/dossier") ?? false;
+
+  // Hide on account/dashboard pages; /dossier/* stays visible (see above).
   const shouldHide =
     pathname?.startsWith("/dashboard") ||
-    pathname?.startsWith("/dossier") ||
     pathname?.startsWith("/profil") ||
     pathname?.startsWith("/connexion") ||
     pathname?.startsWith("/inscription") ||
@@ -62,7 +68,7 @@ export function FloatingCta() {
         visible ? "translate-y-0 opacity-100" : "translate-y-16 opacity-0 pointer-events-none"
       )}
     >
-      {isAuthenticated ? (
+      {isAuthenticated && !isDossierRoute ? (
         <Link
           href="/dashboard"
           className="group flex items-center gap-3 rounded-lg border border-accent/30 bg-accent shadow-lg backdrop-blur-sm transition-all duration-300 hover:shadow-xl hover:scale-105"

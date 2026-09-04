@@ -147,7 +147,17 @@ export function PaymentButton() {
               : "Proceder au paiement securise"}
         </Button>
         <p className="text-center text-xs text-muted-foreground">
-          Besoin d&apos;aide ? <a href="mailto:contact@avicertify.fr" className="font-medium text-foreground hover:text-accent">contact@avicertify.fr</a>
+          Une question avant de payer ?{" "}
+          <a
+            href="https://wa.me/message/XOKRBYI3ZEQBM1"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-foreground hover:text-accent"
+          >
+            Parlez-nous sur WhatsApp
+          </a>{" "}
+          ou écrivez à{" "}
+          <a href="mailto:contact@avicertify.fr" className="font-medium text-foreground hover:text-accent">contact@avicertify.fr</a>
         </p>
       </div>
     </section>
