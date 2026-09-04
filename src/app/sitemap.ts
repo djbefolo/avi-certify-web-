@@ -9,10 +9,20 @@ const publicRoutes: Array<{
 }> = [
   { path: "/", changeFrequency: "weekly", priority: 1 },
   { path: "/services", changeFrequency: "monthly", priority: 0.9 },
+  { path: "/prix", changeFrequency: "monthly", priority: 0.8 },
   { path: "/contact", changeFrequency: "monthly", priority: 0.8 },
   { path: "/faq", changeFrequency: "monthly", priority: 0.7 },
   { path: "/a-propos", changeFrequency: "monthly", priority: 0.6 },
+  { path: "/a-propos/mission", changeFrequency: "monthly", priority: 0.5 },
+  { path: "/a-propos/vision", changeFrequency: "monthly", priority: 0.5 },
+  { path: "/a-propos/confiance", changeFrequency: "monthly", priority: 0.5 },
   { path: "/comment-ca-marche", changeFrequency: "monthly", priority: 0.8 },
+  { path: "/parcours/qualification", changeFrequency: "monthly", priority: 0.4 },
+  { path: "/parcours/dossier", changeFrequency: "monthly", priority: 0.4 },
+  { path: "/parcours/pieces", changeFrequency: "monthly", priority: 0.4 },
+  { path: "/parcours/paiement", changeFrequency: "monthly", priority: 0.4 },
+  { path: "/parcours/verification", changeFrequency: "monthly", priority: 0.4 },
+  { path: "/parcours/depart", changeFrequency: "monthly", priority: 0.4 },
   { path: "/connexion", changeFrequency: "yearly", priority: 0.3 },
   { path: "/inscription", changeFrequency: "yearly", priority: 0.4 },
   {
@@ -20,6 +30,9 @@ const publicRoutes: Array<{
     changeFrequency: "yearly",
     priority: 0.2,
   },
+  { path: "/mentions-legales", changeFrequency: "yearly", priority: 0.2 },
+  { path: "/confidentialite", changeFrequency: "yearly", priority: 0.2 },
+  { path: "/cgv", changeFrequency: "yearly", priority: 0.2 },
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {

@@ -54,7 +54,7 @@ export default function FaqPage() {
       <PageHeader
         eyebrow="FAQ"
         title="Les premières réponses avant de démarrer."
-        description="Cette page centralisera les questions récurrentes sur l'AVI, l'hébergement, le préfinancement et le visa."
+        description="Les questions récurrentes sur l'AVI, l'hébergement, le préfinancement et le visa étudiant."
       />
 
       <section className="container pt-10">
